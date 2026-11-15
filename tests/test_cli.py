@@ -64,6 +64,28 @@ def test_breakeven_command_returns_a_load(tmp_path) -> None:
     assert 0.6 <= payload["lambda"] <= 1.25
 
 
+def test_scenarios_command_lists_provenance(tmp_path) -> None:
+    output = tmp_path / "scenarios.json"
+    code = main(["scenarios", "--out", str(output)])
+    assert code == 0
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    names = {row["name"] for row in payload["scenarios"]}
+    assert {"baseline_flat", "campus_rush"} <= names
+    assert all(row["uncertainty"] for row in payload["scenarios"])
+
+
+def test_scenario_command_runs_library_config(tmp_path) -> None:
+    output = tmp_path / "scenario.json"
+    code = main(
+        ["scenario", "--name", "baseline_flat", "--reps", "3", "--out", str(output)]
+    )
+    assert code == 0
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["config"]["name"] == "baseline_flat"
+    assert payload["reps"] == 3
+    assert payload["means"]["served"] > 0
+
+
 def test_sweep_command_writes_records(tmp_path) -> None:
     output = tmp_path / "sweep.json"
     code = main(

@@ -27,7 +27,7 @@ from .params import (
     ServiceTimes,
     SimConfig,
 )
-from . import scenarios, stats
+from . import data_spec, library, scenarios, stats
 
 __all__ = [
     "Customer",
@@ -40,9 +40,11 @@ __all__ = [
     "SimConfig",
     "Simulation",
     "SimulationResult",
+    "data_spec",
+    "library",
     "scenarios",
     "simulate",
     "stats",
 ]
 
-__version__ = "1.0.0"
+__version__ = "2.0.0"

@@ -2,7 +2,7 @@
 
 Outputs
 -------
-``docs/index.html``      bilingual report (English main text, Chinese paragraphs),
+``archive/report-v1.html``  the archived v1 report (English main text, Chinese paragraphs).
                          inline SVG figures, no JavaScript, no CDN, no fonts or
                          CSS loaded from the network - it opens from ``file://``.
 ``docs/experiments.md``  every result table as GitHub-flavoured Markdown.
@@ -2790,7 +2790,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     document = build_html(data, figures)
     DOCS.mkdir(parents=True, exist_ok=True)
-    index_path = DOCS / "index.html"
+    index_path = common.ROOT / "archive" / "report-v1.html"
+    index_path.parent.mkdir(parents=True, exist_ok=True)
     with index_path.open("w", encoding="utf-8", newline="\n") as handle:
         handle.write(document)
     print(f"wrote {index_path.relative_to(common.ROOT)} ({len(document) / 1024:.0f} KiB)")

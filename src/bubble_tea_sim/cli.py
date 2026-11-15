@@ -186,6 +186,64 @@ def cmd_breakeven(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_scenarios(args: argparse.Namespace) -> int:
+    """List the scenario library with provenance and headline configuration."""
+    from . import library
+
+    rows = []
+    for name in library.scenario_names():
+        raw = library.load_raw(name)
+        config = library.load_scenario(name)
+        provenance = raw.get("provenance", {})
+        rows.append(
+            {
+                "name": name,
+                "title": raw.get("title", name),
+                "legacy_compat": config.legacy_compat,
+                "uncertainty": provenance.get("uncertainty"),
+                "source": provenance.get("source"),
+                "utilisation": round(config.utilization(), 4),
+            }
+        )
+        print(
+            f"{name:26s} legacy={config.legacy_compat!s:5s} "
+            f"uncertainty={str(provenance.get('uncertainty')):6s} "
+            f"util={config.utilization():6.1%}  {raw.get('title', '')}"
+        )
+    if args.out:
+        _json_dump(args.out, {"version": __version__, "scenarios": rows})
+    return 0
+
+
+def cmd_scenario(args: argparse.Namespace) -> int:
+    """Replicate one scenario from the library and print the headline metrics."""
+    from . import library
+
+    config = library.load_scenario(args.name)
+    summary = stats.replicate(
+        config, reps=args.reps, seed=args.seed, seed_stride=args.seed_stride
+    )
+    keys = (
+        "served",
+        "mean_los",
+        "los_p95",
+        "util",
+        "profit_per_hour",
+        "balked",
+        "reneged",
+        "stockout_losses",
+        "waste_units",
+        "starvation_events",
+    )
+    headline = {
+        key: round(summary.means[key], 4) for key in keys if key in summary.means
+    }
+    print(json.dumps({"scenario": config.name, "config": config.describe(), "means": headline}, indent=2))
+    if args.out:
+        _json_dump(args.out, summary.as_dict())
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="bubble-tea",
@@ -219,6 +277,22 @@ def build_parser() -> argparse.ArgumentParser:
     breakeven_parser.add_argument("--metric", default="profit_per_hour")
     breakeven_parser.add_argument("--tolerance", type=float, default=0.01)
     breakeven_parser.set_defaults(func=cmd_breakeven)
+
+    scenarios_parser = sub.add_parser(
+        "scenarios", help="list the v2 scenario library"
+    )
+    scenarios_parser.add_argument("--out", type=Path, default=None)
+    scenarios_parser.set_defaults(func=cmd_scenarios)
+
+    scenario_parser = sub.add_parser(
+        "scenario", help="run one v2 scenario from the library"
+    )
+    scenario_parser.add_argument("--name", required=True)
+    scenario_parser.add_argument("--reps", type=int, default=100)
+    scenario_parser.add_argument("--seed", type=int, default=0)
+    scenario_parser.add_argument("--seed-stride", type=int, default=1)
+    scenario_parser.add_argument("--out", type=Path, default=None)
+    scenario_parser.set_defaults(func=cmd_scenario)
 
     return parser
 

@@ -6,7 +6,7 @@ authors:
   - name: "dwan621"
 repository-code: "https://github.com/dwan621/bubble-tea-shop-sim"
 license: MIT
-version: "1.0.0"
+version: "2.0.0"
 date-released: "2026-11-16"
 abstract: >-
   Discrete-event simulation study of a bubble-tea shop with a shared clerk pool

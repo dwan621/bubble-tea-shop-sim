@@ -23,8 +23,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+
+      - name: Assemble site (mirror the repository paths used by the pages)
+        run: |
+          mkdir -p site
+          cp -r docs site/docs
+          cp -r demo site/demo
+          mkdir -p site/archive
+          cp archive/report-v1.html site/archive/report-v1.html
+          cp README.md site/README.md
+          cat > site/index.html <<'HTML'
+          <!doctype html>
+          <html lang="en"><head><meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <meta http-equiv="refresh" content="0; url=docs/index.html">
+          <link rel="canonical" href="docs/index.html">
+          <title>Bubble-tea shop simulation v2</title></head>
+          <body><p>Redirecting to the <a href="docs/index.html">v2 report</a>.</p></body></html>
+          HTML
+
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: docs
+          path: site
       - id: deployment
         uses: actions/deploy-pages@v4
