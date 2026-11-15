@@ -1,0 +1,218 @@
+{
+  "schema_version": 1,
+  "name": "mall_weekend",
+  "title": "Weekend mall shop: afternoon and evening family peaks, group orders",
+  "provenance": {
+    "source": "Synthetic, anchored on the Course 5006 parameter set and on teaching-case ranges for shopping-centre weekend traffic",
+    "method": "Piecewise-constant demand with a slow opening, afternoon peak, dinner dip and evening peak; daily mean normalised to the quoted rate; batch arrivals model families and friend groups; four baristas and three tea slots so the evening peak is tight but finite",
+    "uncertainty": "high",
+    "notes": "Not field-measured. Twelve-hour modelled day (720 min). Group orders (20% of arrivals, mean 2.5 people) are the main reason the peak rate exceeds the daily mean on a per-person basis. Two ice slots represent a larger mall counter."
+  },
+  "base": {
+    "workers": 6,
+    "arrival_rate": 0.95,
+    "sim_minutes": 720.0,
+    "warmup_minutes": 60.0
+  },
+  "demand": {
+    "segments": [
+      [
+        0.0,
+        0.3
+      ],
+      [
+        180.0,
+        0.6
+      ],
+      [
+        240.0,
+        1.5
+      ],
+      [
+        420.0,
+        0.9
+      ],
+      [
+        480.0,
+        1.6
+      ],
+      [
+        660.0,
+        0.5
+      ]
+    ],
+    "normalize_daily_mean": 1.0
+  },
+  "batches": {
+    "probability": 0.2,
+    "sizes": [
+      [
+        2,
+        0.6
+      ],
+      [
+        3,
+        0.3
+      ],
+      [
+        4,
+        0.1
+      ]
+    ]
+  },
+  "classes": [
+    {
+      "name": "regular",
+      "weight": 0.7,
+      "patience": {
+        "balk_mean": 9.0,
+        "balk_cv": 0.5,
+        "renege_mean": 16.0,
+        "renege_cv": 0.6
+      },
+      "priority": 1
+    },
+    {
+      "name": "family",
+      "weight": 0.25,
+      "mix": {
+        "tea": 0.4,
+        "bread": 0.2,
+        "ice": 0.2,
+        "mix": 0.2
+      },
+      "patience": {
+        "balk_mean": 6.0,
+        "balk_cv": 0.5,
+        "renege_mean": 12.0,
+        "renege_cv": 0.5
+      },
+      "priority": 1
+    },
+    {
+      "name": "delivery",
+      "weight": 0.05,
+      "delivery": true,
+      "priority": 1
+    }
+  ],
+  "variability": {
+    "kind": "lognormal",
+    "order_cv": 0.15,
+    "tea_cv": 0.35,
+    "bread_cv": 0.2,
+    "ice_cv": 0.3
+  },
+  "network": {
+    "stations": [
+      {
+        "name": "order",
+        "capacity": 2,
+        "skill": "cashier"
+      },
+      {
+        "name": "tea",
+        "capacity": 3,
+        "skill": "barista"
+      },
+      {
+        "name": "ice",
+        "capacity": 2,
+        "skill": "barista"
+      },
+      {
+        "name": "bread",
+        "capacity": 2,
+        "skill": "cashier"
+      }
+    ],
+    "staff": {
+      "roles": [
+        "cashier",
+        "barista"
+      ],
+      "counts": [
+        2,
+        4
+      ],
+      "skills": [
+        [
+          "cashier"
+        ],
+        [
+          "barista"
+        ]
+      ],
+      "windows": [
+        {
+          "role": "cashier",
+          "start": 0.0,
+          "end": 720.0
+        },
+        {
+          "role": "cashier",
+          "start": 0.0,
+          "end": 720.0
+        },
+        {
+          "role": "barista",
+          "start": 0.0,
+          "end": 720.0
+        },
+        {
+          "role": "barista",
+          "start": 180.0,
+          "end": 720.0
+        },
+        {
+          "role": "barista",
+          "start": 180.0,
+          "end": 720.0
+        },
+        {
+          "role": "barista",
+          "start": 420.0,
+          "end": 720.0
+        }
+      ],
+      "breaks": [
+        {
+          "role": "cashier",
+          "start": 300.0,
+          "end": 330.0
+        },
+        {
+          "role": "barista",
+          "start": 360.0,
+          "end": 390.0
+        }
+      ]
+    },
+    "routes": [
+      [
+        "tea",
+        "tea"
+      ],
+      [
+        "mix_tea",
+        "tea"
+      ],
+      [
+        "ice",
+        "ice"
+      ],
+      [
+        "mix_ice",
+        "ice"
+      ],
+      [
+        "bread",
+        "bread"
+      ]
+    ]
+  },
+  "policy": {
+    "split_mix": false,
+    "fast_priority": false
+  }
+}

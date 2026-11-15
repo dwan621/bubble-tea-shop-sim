@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "name": "inventory_lean",
+  "title": "Lean inventory: pearls perish, deliveries take two hours",
+  "provenance": {
+    "source": "Course 5006 Lecture 4 (BOM/MRP/CRP) assumptions + synthetic replenishment parameters",
+    "method": "Synthetic: (s, S) review with 2-hour lead time and a 4-hour pearl shelf life; recipes are one kit per component",
+    "uncertainty": "high",
+    "notes": "Designed so that stock-outs and pearl waste actually occur at the modelled demand; not calibrated to a real supplier."
+  },
+  "base": {
+    "workers": 3,
+    "arrival_rate": 1.15,
+    "sim_minutes": 480.0,
+    "warmup_minutes": 60.0
+  },
+  "variability": {
+    "kind": "lognormal",
+    "tea_cv": 0.30,
+    "bread_cv": 0.10,
+    "ice_cv": 0.20
+  },
+  "inventory": {
+    "stockout_policy": "lose",
+    "ingredients": [
+      {"name": "tea_kit", "initial_stock": 300, "reorder_point": 120, "order_quantity": 250, "lead_time_minutes": 60, "unit_cost": 1.2},
+      {"name": "pearls", "initial_stock": 80, "reorder_point": 25, "order_quantity": 60, "lead_time_minutes": 60, "unit_cost": 0.6, "shelf_life_minutes": 240},
+      {"name": "ice_mix", "initial_stock": 120, "reorder_point": 35, "order_quantity": 90, "lead_time_minutes": 90, "unit_cost": 0.5, "shelf_life_minutes": 480},
+      {"name": "bread_unit", "initial_stock": 140, "reorder_point": 50, "order_quantity": 110, "lead_time_minutes": 60, "unit_cost": 0.4}
+    ],
+    "recipes": [
+      {"product": "tea", "components": [["tea_kit", 1], ["pearls", 0.5]]},
+      {"product": "bread", "components": [["bread_unit", 1]]},
+      {"product": "ice", "components": [["ice_mix", 1]]},
+      {"product": "mix", "components": [["tea_kit", 1], ["pearls", 0.5], ["ice_mix", 1]]}
+    ]
+  }
+}

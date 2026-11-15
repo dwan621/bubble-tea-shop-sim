@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "name": "strict_sla_fairness",
+  "title": "Strict SLA with a fairness cap: 4-minute promise, 3-unit compensation, 2-minute ageing cap",
+  "provenance": {
+    "source": "Synthetic, anchored on the Course 5006 campus demand shape and on teaching-case service-guarantee / compensation policies",
+    "method": "campus_rush load with a 4-minute SLA target and 3-unit per-late-customer compensation, plus a 2-minute starvation cap so any job (including the low-priority tea queue) is aged to the top after two minutes; split delivery keeps the ice component of mixed orders moving",
+    "uncertainty": "high",
+    "notes": "Not field-measured. The SLA promise is deliberately stricter than the process can hold at the peak, so the interesting output is the compensation bill and the gap between classes, not a 100% attainment rate. The ageing cap is the fairness mechanism: it trades some fast-item speed for bounded worst-case waiting."
+  },
+  "base": {
+    "workers": 5,
+    "arrival_rate": 1.15,
+    "sim_minutes": 480.0,
+    "warmup_minutes": 60.0
+  },
+  "demand": {
+    "segments": [[0.0, 0.5], [60.0, 1.7], [180.0, 0.6], [300.0, 1.6], [420.0, 0.8]],
+    "normalize_daily_mean": 1.0
+  },
+  "batches": {
+    "probability": 0.15,
+    "sizes": [[2, 0.6], [3, 0.3], [4, 0.1]]
+  },
+  "classes": [
+    {
+      "name": "regular",
+      "weight": 0.72,
+      "patience": {"balk_mean": 9.0, "balk_cv": 0.5, "renege_mean": 16.0, "renege_cv": 0.6},
+      "priority": 1
+    },
+    {
+      "name": "student",
+      "weight": 0.20,
+      "mix": {"tea": 0.68, "bread": 0.13, "ice": 0.05, "mix": 0.14},
+      "patience": {"balk_mean": 5.0, "balk_cv": 0.4, "renege_mean": 9.0, "renege_cv": 0.5},
+      "priority": 1
+    },
+    {
+      "name": "delivery",
+      "weight": 0.08,
+      "delivery": true,
+      "priority": 0
+    }
+  ],
+  "variability": {
+    "kind": "lognormal",
+    "order_cv": 0.10,
+    "tea_cv": 0.35,
+    "bread_cv": 0.15,
+    "ice_cv": 0.25
+  },
+  "sla": {
+    "target_minutes": 4.0,
+    "compensation": 3.0,
+    "fairness_cap_minutes": 2.0
+  },
+  "network": {
+    "stations": [
+      {"name": "order", "capacity": 2, "skill": "cashier"},
+      {"name": "tea", "capacity": 3, "skill": "barista"},
+      {"name": "ice", "capacity": 1, "skill": "barista"},
+      {"name": "bread", "capacity": 2, "skill": "cashier"}
+    ],
+    "staff": {
+      "roles": ["cashier", "barista"],
+      "counts": [2, 3],
+      "skills": [["cashier"], ["barista"]],
+      "windows": [
+        {"role": "cashier", "start": 0.0, "end": 480.0},
+        {"role": "cashier", "start": 0.0, "end": 480.0},
+        {"role": "barista", "start": 0.0, "end": 480.0},
+        {"role": "barista", "start": 0.0, "end": 480.0},
+        {"role": "barista", "start": 60.0, "end": 480.0}
+      ],
+      "breaks": [
+        {"role": "cashier", "start": 240.0, "end": 270.0},
+        {"role": "barista", "start": 300.0, "end": 330.0}
+      ]
+    },
+    "routes": [
+      ["tea", "tea"], ["mix_tea", "tea"],
+      ["ice", "ice"], ["mix_ice", "ice"],
+      ["bread", "bread"]
+    ]
+  },
+  "policy": {
+    "split_mix": true,
+    "fast_priority": true,
+    "starvation_cap": 2.0
+  }
+}

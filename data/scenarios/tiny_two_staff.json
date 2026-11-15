@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "name": "tiny_two_staff",
+  "title": "Two-person corner shop: every station has one slot, both staff are generalists",
+  "provenance": {
+    "source": "Synthetic, anchored on the Course 5006 parameter set and on the teaching-case description of a small owner-operated counter",
+    "method": "Two cross-trained staff with the 'all' skill, one slot per station (single tea machine, single ice machine, one till, one bread warmer); low arrival rate with a lunch bump; daily mean normalised to the quoted rate",
+    "uncertainty": "high",
+    "notes": "Not field-measured. With two generalists the *station* capacities bind before the labour does: the single tea slot is the equipment bottleneck at the lunch bump even though total staff utilisation stays near 60-70%. Good contrast case for the network study."
+  },
+  "base": {
+    "workers": 2,
+    "arrival_rate": 0.45,
+    "sim_minutes": 480.0,
+    "warmup_minutes": 60.0
+  },
+  "demand": {
+    "segments": [[0.0, 0.7], [90.0, 1.3], [240.0, 0.7], [330.0, 1.2], [420.0, 0.6]],
+    "normalize_daily_mean": 1.0
+  },
+  "batches": {
+    "probability": 0.06,
+    "sizes": [[2, 1.0]]
+  },
+  "classes": [
+    {
+      "name": "regular",
+      "weight": 0.9,
+      "patience": {"balk_mean": 10.0, "balk_cv": 0.5, "renege_mean": 18.0, "renege_cv": 0.6},
+      "priority": 1
+    },
+    {
+      "name": "delivery",
+      "weight": 0.1,
+      "delivery": true,
+      "priority": 1
+    }
+  ],
+  "variability": {
+    "kind": "lognormal",
+    "order_cv": 0.12,
+    "tea_cv": 0.35,
+    "bread_cv": 0.18,
+    "ice_cv": 0.25
+  },
+  "network": {
+    "stations": [
+      {"name": "order", "capacity": 1, "skill": "cashier"},
+      {"name": "tea", "capacity": 1, "skill": "barista"},
+      {"name": "ice", "capacity": 1, "skill": "barista"},
+      {"name": "bread", "capacity": 1, "skill": "cashier"}
+    ],
+    "staff": {
+      "roles": ["clerk"],
+      "counts": [2],
+      "skills": [["all"]],
+      "windows": [
+        {"role": "clerk", "start": 0.0, "end": 480.0},
+        {"role": "clerk", "start": 0.0, "end": 480.0}
+      ]
+    },
+    "routes": [
+      ["tea", "tea"], ["mix_tea", "tea"],
+      ["ice", "ice"], ["mix_ice", "ice"],
+      ["bread", "bread"]
+    ]
+  },
+  "policy": {
+    "split_mix": false,
+    "fast_priority": true
+  }
+}

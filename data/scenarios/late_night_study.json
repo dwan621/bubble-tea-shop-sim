@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "name": "late_night_study",
+  "title": "Late-night study cafe: low, long traffic with a midnight bump",
+  "provenance": {
+    "source": "Synthetic, anchored on the Course 5006 parameter set and on teaching-case ranges for all-night study venues",
+    "method": "Twelve-hour modelled night with a small daily mean, two peaks (early evening and around midnight) and long quiet stretches; one cashier and one barista on shift for the whole night",
+    "uncertainty": "high",
+    "notes": "Not field-measured. The point of the scenario is the opposite of the campus rush: utilisation stays low, waiting is near the process floor, and the binding constraint is staffing (a single barista) rather than demand. Long run (720 min) makes the low-rate Poisson noise relatively less dominant."
+  },
+  "base": {
+    "workers": 2,
+    "arrival_rate": 0.35,
+    "sim_minutes": 720.0,
+    "warmup_minutes": 60.0
+  },
+  "demand": {
+    "segments": [[0.0, 0.6], [120.0, 1.4], [300.0, 0.5], [420.0, 1.2], [600.0, 0.4]],
+    "normalize_daily_mean": 1.0
+  },
+  "batches": {
+    "probability": 0.08,
+    "sizes": [[2, 0.8], [3, 0.2]]
+  },
+  "classes": [
+    {
+      "name": "regular",
+      "weight": 0.88,
+      "patience": {"balk_mean": 12.0, "balk_cv": 0.5, "renege_mean": 20.0, "renege_cv": 0.6},
+      "priority": 1
+    },
+    {
+      "name": "student",
+      "weight": 0.12,
+      "mix": {"tea": 0.60, "bread": 0.25, "ice": 0.02, "mix": 0.13},
+      "patience": {"balk_mean": 8.0, "balk_cv": 0.4, "renege_mean": 15.0, "renege_cv": 0.5},
+      "priority": 1
+    }
+  ],
+  "variability": {
+    "kind": "lognormal",
+    "order_cv": 0.10,
+    "tea_cv": 0.30,
+    "bread_cv": 0.15,
+    "ice_cv": 0.20
+  },
+  "network": {
+    "stations": [
+      {"name": "order", "capacity": 1, "skill": "cashier"},
+      {"name": "tea", "capacity": 1, "skill": "barista"},
+      {"name": "ice", "capacity": 1, "skill": "barista"},
+      {"name": "bread", "capacity": 1, "skill": "cashier"}
+    ],
+    "staff": {
+      "roles": ["cashier", "barista"],
+      "counts": [1, 1],
+      "skills": [["cashier"], ["barista"]],
+      "windows": [
+        {"role": "cashier", "start": 0.0, "end": 720.0},
+        {"role": "barista", "start": 0.0, "end": 720.0}
+      ]
+    },
+    "routes": [
+      ["tea", "tea"], ["mix_tea", "tea"],
+      ["ice", "ice"], ["mix_ice", "ice"],
+      ["bread", "bread"]
+    ]
+  },
+  "policy": {
+    "split_mix": false,
+    "fast_priority": false
+  }
+}

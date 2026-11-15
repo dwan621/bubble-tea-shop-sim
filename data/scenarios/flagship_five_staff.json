@@ -1,0 +1,188 @@
+{
+  "schema_version": 1,
+  "name": "flagship_five_staff",
+  "title": "Flagship branch: five staff, two ice slots, two bread counters, steady traffic",
+  "provenance": {
+    "source": "Synthetic, anchored on the Course 5006 parameter set and on teaching-case ranges for a high-volume flagship branch",
+    "method": "Higher daily mean than the campus shop with a lunch peak, two ice slots and two bread counters so the extra capacity is visible in the station table; five staff with staggered breaks",
+    "uncertainty": "high",
+    "notes": "Not field-measured. Nine-hour day (540 min). The design intent is a shop where labour is the planned constraint and equipment is deliberately over-provisioned, the mirror image of network_tea_bottleneck and bread_counter_bottleneck."
+  },
+  "base": {
+    "workers": 5,
+    "arrival_rate": 1.3,
+    "sim_minutes": 540.0,
+    "warmup_minutes": 60.0
+  },
+  "demand": {
+    "segments": [
+      [
+        0.0,
+        0.6
+      ],
+      [
+        120.0,
+        1.3
+      ],
+      [
+        240.0,
+        0.8
+      ],
+      [
+        360.0,
+        1.2
+      ],
+      [
+        480.0,
+        0.6
+      ]
+    ],
+    "normalize_daily_mean": 1.0
+  },
+  "batches": {
+    "probability": 0.1,
+    "sizes": [
+      [
+        2,
+        0.7
+      ],
+      [
+        3,
+        0.3
+      ]
+    ]
+  },
+  "classes": [
+    {
+      "name": "regular",
+      "weight": 0.85,
+      "patience": {
+        "balk_mean": 9.0,
+        "balk_cv": 0.5,
+        "renege_mean": 16.0,
+        "renege_cv": 0.6
+      },
+      "priority": 1
+    },
+    {
+      "name": "delivery",
+      "weight": 0.15,
+      "delivery": true,
+      "priority": 1
+    }
+  ],
+  "variability": {
+    "kind": "lognormal",
+    "order_cv": 0.12,
+    "tea_cv": 0.3,
+    "bread_cv": 0.15,
+    "ice_cv": 0.25
+  },
+  "network": {
+    "stations": [
+      {
+        "name": "order",
+        "capacity": 2,
+        "skill": "cashier"
+      },
+      {
+        "name": "tea",
+        "capacity": 3,
+        "skill": "barista"
+      },
+      {
+        "name": "ice",
+        "capacity": 2,
+        "skill": "barista"
+      },
+      {
+        "name": "bread",
+        "capacity": 2,
+        "skill": "cashier"
+      }
+    ],
+    "staff": {
+      "roles": [
+        "cashier",
+        "barista"
+      ],
+      "counts": [
+        2,
+        3
+      ],
+      "skills": [
+        [
+          "cashier"
+        ],
+        [
+          "barista"
+        ]
+      ],
+      "windows": [
+        {
+          "role": "cashier",
+          "start": 0.0,
+          "end": 540.0
+        },
+        {
+          "role": "cashier",
+          "start": 0.0,
+          "end": 540.0
+        },
+        {
+          "role": "barista",
+          "start": 0.0,
+          "end": 540.0
+        },
+        {
+          "role": "barista",
+          "start": 0.0,
+          "end": 540.0
+        },
+        {
+          "role": "barista",
+          "start": 0.0,
+          "end": 540.0
+        }
+      ],
+      "breaks": [
+        {
+          "role": "cashier",
+          "start": 300.0,
+          "end": 330.0
+        },
+        {
+          "role": "barista",
+          "start": 360.0,
+          "end": 390.0
+        }
+      ]
+    },
+    "routes": [
+      [
+        "tea",
+        "tea"
+      ],
+      [
+        "mix_tea",
+        "tea"
+      ],
+      [
+        "ice",
+        "ice"
+      ],
+      [
+        "mix_ice",
+        "ice"
+      ],
+      [
+        "bread",
+        "bread"
+      ]
+    ]
+  },
+  "policy": {
+    "split_mix": false,
+    "fast_priority": false
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "name": "exam_week",
+  "title": "Exam week: a much sharper student peak, extra rented tea slots",
+  "provenance": {
+    "source": "Synthetic, anchored on the Course 5006 parameter set and on teaching-case ranges for event-driven demand spikes",
+    "method": "Same campus structure as campus_rush but with 2.0x peak-to-mean demand shape and shorter peak windows; an extra rented tea slot and a sixth staff member are added so the shop still serves most of the peak",
+    "uncertainty": "high",
+    "notes": "Not field-measured. Peak multiplier 2.4 on a daily mean of ~1.21 multipliers gives a peak-to-mean ratio near 2.0: the peak hour looks like a normal campus rush but the daily average is much lower, so average utilisation looks safe while abandonment spikes. Same five staff and three tea slots as campus_rush (no extra capacity is bought for the two-week window)."
+  },
+  "base": {
+    "workers": 5,
+    "arrival_rate": 0.8,
+    "sim_minutes": 480.0,
+    "warmup_minutes": 60.0
+  },
+  "demand": {
+    "segments": [[0.0, 0.35], [60.0, 2.4], [150.0, 0.5], [300.0, 2.2], [400.0, 0.6]],
+    "normalize_daily_mean": 1.0
+  },
+  "batches": {
+    "probability": 0.2,
+    "sizes": [[2, 0.55], [3, 0.30], [4, 0.15]]
+  },
+  "classes": [
+    {
+      "name": "regular",
+      "weight": 0.55,
+      "patience": {"balk_mean": 8.0, "balk_cv": 0.5, "renege_mean": 15.0, "renege_cv": 0.6},
+      "priority": 1
+    },
+    {
+      "name": "student",
+      "weight": 0.40,
+      "mix": {"tea": 0.70, "bread": 0.12, "ice": 0.04, "mix": 0.14},
+      "patience": {"balk_mean": 4.0, "balk_cv": 0.4, "renege_mean": 8.0, "renege_cv": 0.5},
+      "priority": 1
+    },
+    {
+      "name": "delivery",
+      "weight": 0.05,
+      "delivery": true,
+      "priority": 1
+    }
+  ],
+  "variability": {
+    "kind": "lognormal",
+    "order_cv": 0.12,
+    "tea_cv": 0.35,
+    "bread_cv": 0.18,
+    "ice_cv": 0.25
+  },
+  "network": {
+    "stations": [
+      {"name": "order", "capacity": 2, "skill": "cashier"},
+      {"name": "tea", "capacity": 3, "skill": "barista"},
+      {"name": "ice", "capacity": 1, "skill": "barista"},
+      {"name": "bread", "capacity": 2, "skill": "cashier"}
+    ],
+    "staff": {
+      "roles": ["cashier", "barista"],
+      "counts": [2, 3],
+      "skills": [["cashier"], ["barista"]],
+      "windows": [
+        {"role": "cashier", "start": 0.0, "end": 480.0},
+        {"role": "cashier", "start": 0.0, "end": 480.0},
+        {"role": "barista", "start": 0.0, "end": 480.0},
+        {"role": "barista", "start": 0.0, "end": 480.0},
+        {"role": "barista", "start": 60.0, "end": 480.0}
+      ]
+    },
+    "routes": [
+      ["tea", "tea"], ["mix_tea", "tea"],
+      ["ice", "ice"], ["mix_ice", "ice"],
+      ["bread", "bread"]
+    ]
+  },
+  "policy": {
+    "split_mix": false,
+    "fast_priority": true
+  }
+}

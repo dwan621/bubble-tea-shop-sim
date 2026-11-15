@@ -1,0 +1,193 @@
+{
+  "schema_version": 1,
+  "name": "cbd_commute",
+  "title": "CBD commuter shop: short morning grab-and-go peak plus a lunch peak",
+  "provenance": {
+    "source": "Synthetic, anchored on the Course 5006 parameter set (order mix, make times, prices) and on teaching-case ranges for commuter-district peak-to-average ratios",
+    "method": "Piecewise-constant demand from an assumed commuter day (soft open, sharp 120-minute morning peak, midday trough, lunch peak, soft close); daily mean normalised to the quoted rate; stations and staff sized so the peaks are feasible but tight",
+    "uncertainty": "high",
+    "notes": "Not field-measured. The morning peak is shorter and sharper than the lunch peak; peak segments run ~1.8x the daily mean. Ten-hour modelled day so both peaks fit. Batches are small (commuters rarely arrive in groups)."
+  },
+  "base": {
+    "workers": 5,
+    "arrival_rate": 1.0,
+    "sim_minutes": 600.0,
+    "warmup_minutes": 60.0
+  },
+  "demand": {
+    "segments": [
+      [
+        0.0,
+        0.4
+      ],
+      [
+        120.0,
+        1.8
+      ],
+      [
+        240.0,
+        0.55
+      ],
+      [
+        360.0,
+        1.5
+      ],
+      [
+        480.0,
+        0.7
+      ]
+    ],
+    "normalize_daily_mean": 1.0
+  },
+  "batches": {
+    "probability": 0.1,
+    "sizes": [
+      [
+        2,
+        0.7
+      ],
+      [
+        3,
+        0.3
+      ]
+    ]
+  },
+  "classes": [
+    {
+      "name": "regular",
+      "weight": 0.85,
+      "patience": {
+        "balk_mean": 8.0,
+        "balk_cv": 0.5,
+        "renege_mean": 15.0,
+        "renege_cv": 0.6
+      },
+      "priority": 1
+    },
+    {
+      "name": "office",
+      "weight": 0.1,
+      "mix": {
+        "tea": 0.72,
+        "bread": 0.1,
+        "ice": 0.03,
+        "mix": 0.15
+      },
+      "patience": {
+        "balk_mean": 5.0,
+        "balk_cv": 0.4,
+        "renege_mean": 10.0,
+        "renege_cv": 0.5
+      },
+      "priority": 1
+    },
+    {
+      "name": "delivery",
+      "weight": 0.05,
+      "delivery": true,
+      "priority": 1
+    }
+  ],
+  "variability": {
+    "kind": "lognormal",
+    "order_cv": 0.12,
+    "tea_cv": 0.35,
+    "bread_cv": 0.18,
+    "ice_cv": 0.25
+  },
+  "network": {
+    "stations": [
+      {
+        "name": "order",
+        "capacity": 2,
+        "skill": "cashier"
+      },
+      {
+        "name": "tea",
+        "capacity": 3,
+        "skill": "barista"
+      },
+      {
+        "name": "ice",
+        "capacity": 1,
+        "skill": "barista"
+      },
+      {
+        "name": "bread",
+        "capacity": 2,
+        "skill": "cashier"
+      }
+    ],
+    "staff": {
+      "roles": [
+        "cashier",
+        "barista"
+      ],
+      "counts": [
+        2,
+        3
+      ],
+      "skills": [
+        [
+          "cashier"
+        ],
+        [
+          "barista"
+        ]
+      ],
+      "windows": [
+        {
+          "role": "cashier",
+          "start": 0.0,
+          "end": 600.0
+        },
+        {
+          "role": "cashier",
+          "start": 0.0,
+          "end": 600.0
+        },
+        {
+          "role": "barista",
+          "start": 0.0,
+          "end": 600.0
+        },
+        {
+          "role": "barista",
+          "start": 0.0,
+          "end": 600.0
+        },
+        {
+          "role": "barista",
+          "start": 120.0,
+          "end": 600.0
+        }
+      ]
+    },
+    "routes": [
+      [
+        "tea",
+        "tea"
+      ],
+      [
+        "mix_tea",
+        "tea"
+      ],
+      [
+        "ice",
+        "ice"
+      ],
+      [
+        "mix_ice",
+        "ice"
+      ],
+      [
+        "bread",
+        "bread"
+      ]
+    ]
+  },
+  "policy": {
+    "split_mix": false,
+    "fast_priority": true
+  }
+}

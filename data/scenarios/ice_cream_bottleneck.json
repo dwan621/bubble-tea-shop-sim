@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "name": "ice_cream_bottleneck",
+  "title": "Ice-cream machine bottleneck: one slow soft-serve slot, iced and mixed orders dominate",
+  "provenance": {
+    "source": "Synthetic: Course 5006 service-time structure with an assumed slow soft-serve machine, plus teaching-case ranges for cold-drink shares in warm weather",
+    "method": "Ice make time raised to 1.2 min per portion (soft-serve draw plus topping), ice/mixed share raised to 60% of orders, one ice slot; tea capacity and staff left generous so the ice slot is the structural bottleneck",
+    "uncertainty": "high",
+    "notes": "Not field-measured. Designed as the counterpart of network_tea_bottleneck: same shop, different binding equipment. Used by the network study to test whether fast-item priority is still worth it when the bottleneck is not the tea station."
+  },
+  "base": {
+    "workers": 5,
+    "arrival_rate": 0.9,
+    "sim_minutes": 480.0,
+    "warmup_minutes": 60.0
+  },
+  "times": {
+    "order": 0.5,
+    "tea": 2.0,
+    "bread": 0.167,
+    "ice": 1.2
+  },
+  "mix": {
+    "tea": 0.30,
+    "bread": 0.10,
+    "ice": 0.15,
+    "mix": 0.45
+  },
+  "batches": {
+    "probability": 0.1,
+    "sizes": [[2, 0.7], [3, 0.3]]
+  },
+  "classes": [
+    {
+      "name": "regular",
+      "weight": 0.9,
+      "patience": {"balk_mean": 9.0, "balk_cv": 0.5, "renege_mean": 16.0, "renege_cv": 0.6},
+      "priority": 1
+    },
+    {
+      "name": "delivery",
+      "weight": 0.1,
+      "delivery": true,
+      "priority": 1
+    }
+  ],
+  "variability": {
+    "kind": "lognormal",
+    "order_cv": 0.12,
+    "tea_cv": 0.30,
+    "bread_cv": 0.18,
+    "ice_cv": 0.35
+  },
+  "network": {
+    "stations": [
+      {"name": "order", "capacity": 2, "skill": "cashier"},
+      {"name": "tea", "capacity": 3, "skill": "barista"},
+      {"name": "ice", "capacity": 1, "skill": "barista"},
+      {"name": "bread", "capacity": 2, "skill": "cashier"}
+    ],
+    "staff": {
+      "roles": ["cashier", "barista"],
+      "counts": [2, 3],
+      "skills": [["cashier"], ["barista"]],
+      "windows": [
+        {"role": "cashier", "start": 0.0, "end": 480.0},
+        {"role": "cashier", "start": 0.0, "end": 480.0},
+        {"role": "barista", "start": 0.0, "end": 480.0},
+        {"role": "barista", "start": 0.0, "end": 480.0},
+        {"role": "barista", "start": 0.0, "end": 480.0}
+      ]
+    },
+    "routes": [
+      ["tea", "tea"], ["mix_tea", "tea"],
+      ["ice", "ice"], ["mix_ice", "ice"],
+      ["bread", "bread"]
+    ]
+  },
+  "policy": {
+    "split_mix": true,
+    "fast_priority": true
+  }
+}

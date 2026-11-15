@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "name": "network_tea_bottleneck",
+  "title": "Single tea station as the bottleneck (staff-rich, equipment-poor)",
+  "provenance": {
+    "source": "Course 5006 flow rates + synthetic capacity assumption",
+    "method": "Synthetic: one tea station and one barista, two cashiers and two order counters; demand flat so the bottleneck is structural, not demand-driven",
+    "uncertainty": "high",
+    "notes": "Designed to test whether fast-item triage still helps when the tea station is the binding constraint."
+  },
+  "base": {
+    "workers": 3,
+    "arrival_rate": 0.6,
+    "sim_minutes": 480.0,
+    "warmup_minutes": 60.0
+  },
+  "classes": [
+    {
+      "name": "regular",
+      "weight": 0.85,
+      "patience": {"balk_mean": 10.0, "balk_cv": 0.5, "renege_mean": 18.0, "renege_cv": 0.6},
+      "priority": 1
+    },
+    {
+      "name": "delivery",
+      "weight": 0.15,
+      "delivery": true,
+      "priority": 1
+    }
+  ],
+  "variability": {
+    "kind": "lognormal",
+    "tea_cv": 0.30,
+    "bread_cv": 0.10,
+    "ice_cv": 0.20
+  },
+  "network": {
+    "stations": [
+      {"name": "order", "capacity": 2, "skill": "cashier"},
+      {"name": "tea", "capacity": 1, "skill": "barista"},
+      {"name": "ice", "capacity": 1, "skill": "barista"},
+      {"name": "bread", "capacity": 2, "skill": "cashier"}
+    ],
+    "staff": {
+      "roles": ["cashier", "barista"],
+      "counts": [2, 1],
+      "skills": [["cashier"], ["barista"]],
+      "windows": [
+        {"role": "cashier", "start": 0.0, "end": 480.0},
+        {"role": "cashier", "start": 0.0, "end": 480.0},
+        {"role": "barista", "start": 0.0, "end": 480.0}
+      ]
+    },
+    "routes": [
+      ["tea", "tea"], ["mix_tea", "tea"],
+      ["ice", "ice"], ["mix_ice", "ice"],
+      ["bread", "bread"]
+    ]
+  },
+  "policy": {
+    "split_mix": true,
+    "fast_priority": true
+  }
+}

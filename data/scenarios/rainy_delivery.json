@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "name": "rainy_delivery",
+  "title": "Rainy weekday, delivery-dominant: walk-in demand falls, rider orders take over",
+  "provenance": {
+    "source": "Synthetic, anchored on the Course 5006 parameter set and on teaching-case ranges for rainy-day channel shift",
+    "method": "Flat-ish baseline demand with a mild lunch bump; half of all arrivals are delivery orders (no balking, higher icy/mixed mix, top queue priority), the walk-in half has low patience; two ice slots because cold drinks dominate on a wet day",
+    "uncertainty": "high",
+    "notes": "Not field-measured. Rain is modelled only as a channel mix shift, not as a change in total demand. The delivery class carries a heavier mixed/iced order mix, which raises make work per customer relative to a dry walk-in day. Delivery orders never balk and never renege by construction of the engine."
+  },
+  "base": {
+    "workers": 5,
+    "arrival_rate": 1.2,
+    "sim_minutes": 480.0,
+    "warmup_minutes": 60.0
+  },
+  "demand": {
+    "segments": [
+      [
+        0.0,
+        0.9
+      ],
+      [
+        120.0,
+        1.25
+      ],
+      [
+        240.0,
+        0.85
+      ],
+      [
+        360.0,
+        1.2
+      ],
+      [
+        420.0,
+        0.8
+      ]
+    ],
+    "normalize_daily_mean": 1.0
+  },
+  "classes": [
+    {
+      "name": "delivery",
+      "weight": 0.5,
+      "mix": {
+        "tea": 0.45,
+        "bread": 0.05,
+        "ice": 0.1,
+        "mix": 0.4
+      },
+      "delivery": true,
+      "priority": 1
+    },
+    {
+      "name": "walk_in",
+      "weight": 0.5,
+      "mix": {
+        "tea": 0.5,
+        "bread": 0.25,
+        "ice": 0.05,
+        "mix": 0.2
+      },
+      "patience": {
+        "balk_mean": 6.0,
+        "balk_cv": 0.5,
+        "renege_mean": 12.0,
+        "renege_cv": 0.5
+      },
+      "priority": 1
+    }
+  ],
+  "variability": {
+    "kind": "lognormal",
+    "order_cv": 0.15,
+    "tea_cv": 0.35,
+    "bread_cv": 0.18,
+    "ice_cv": 0.3
+  },
+  "network": {
+    "stations": [
+      {
+        "name": "order",
+        "capacity": 2,
+        "skill": "cashier"
+      },
+      {
+        "name": "tea",
+        "capacity": 3,
+        "skill": "barista"
+      },
+      {
+        "name": "ice",
+        "capacity": 2,
+        "skill": "barista"
+      },
+      {
+        "name": "bread",
+        "capacity": 2,
+        "skill": "cashier"
+      }
+    ],
+    "staff": {
+      "roles": [
+        "cashier",
+        "barista"
+      ],
+      "counts": [
+        2,
+        3
+      ],
+      "skills": [
+        [
+          "cashier"
+        ],
+        [
+          "barista"
+        ]
+      ],
+      "windows": [
+        {
+          "role": "cashier",
+          "start": 0.0,
+          "end": 480.0
+        },
+        {
+          "role": "cashier",
+          "start": 0.0,
+          "end": 480.0
+        },
+        {
+          "role": "barista",
+          "start": 0.0,
+          "end": 480.0
+        },
+        {
+          "role": "barista",
+          "start": 0.0,
+          "end": 480.0
+        },
+        {
+          "role": "barista",
+          "start": 0.0,
+          "end": 480.0
+        }
+      ]
+    },
+    "routes": [
+      [
+        "tea",
+        "tea"
+      ],
+      [
+        "mix_tea",
+        "tea"
+      ],
+      [
+        "ice",
+        "ice"
+      ],
+      [
+        "mix_ice",
+        "ice"
+      ],
+      [
+        "bread",
+        "bread"
+      ]
+    ]
+  },
+  "policy": {
+    "split_mix": true,
+    "fast_priority": false
+  }
+}

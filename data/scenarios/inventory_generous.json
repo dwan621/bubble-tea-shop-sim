@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "name": "inventory_generous",
+  "title": "Generous inventory: high stock cover, short lead times, visible perishable waste",
+  "provenance": {
+    "source": "Synthetic, anchored on the Course 5006 Lecture 4 (BOM/MRP/CRP) assumptions and on teaching-case (s, S) ranges",
+    "method": "Same BOM and product structure as inventory_lean, but with 2-3x the stock cover, 30-minute replenishment lead times and a shorter pearl shelf life so the policy is generous against stock-outs yet still wastes perishables",
+    "uncertainty": "high",
+    "notes": "Not field-measured. Deliberate contrast to inventory_lean: fill rate should sit at (or near) 1.0 while waste is non-zero, which is the trade-off the inventory study is after. The 360-minute pearl shelf life and the large opening lots are the mechanism that makes over-stocking visible: a generous (s, S) policy buys availability with opening stock and perishable waste."
+  },
+  "base": {
+    "workers": 3,
+    "arrival_rate": 1.15,
+    "sim_minutes": 480.0,
+    "warmup_minutes": 60.0
+  },
+  "variability": {
+    "kind": "lognormal",
+    "tea_cv": 0.30,
+    "bread_cv": 0.10,
+    "ice_cv": 0.20
+  },
+  "inventory": {
+    "stockout_policy": "lose",
+    "ingredients": [
+      {"name": "tea_kit", "initial_stock": 380, "reorder_point": 150, "order_quantity": 250, "lead_time_minutes": 30, "unit_cost": 1.2},
+      {"name": "pearls", "initial_stock": 220, "reorder_point": 160, "order_quantity": 220, "lead_time_minutes": 30, "unit_cost": 0.6, "shelf_life_minutes": 360},
+      {"name": "ice_mix", "initial_stock": 200, "reorder_point": 80, "order_quantity": 150, "lead_time_minutes": 30, "unit_cost": 0.5, "shelf_life_minutes": 480},
+      {"name": "bread_unit", "initial_stock": 180, "reorder_point": 70, "order_quantity": 140, "lead_time_minutes": 30, "unit_cost": 0.4}
+    ],
+    "recipes": [
+      {"product": "tea", "components": [["tea_kit", 1], ["pearls", 0.5]]},
+      {"product": "bread", "components": [["bread_unit", 1]]},
+      {"product": "ice", "components": [["ice_mix", 1]]},
+      {"product": "mix", "components": [["tea_kit", 1], ["pearls", 0.5], ["ice_mix", 1]]}
+    ]
+  }
+}
