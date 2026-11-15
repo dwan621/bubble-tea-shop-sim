@@ -85,14 +85,104 @@ counted as served, balked or reneged). Normal studies stay far below the limit.
    the AnyLogic E-series and reports deviations against the archived figures
    (see `docs/experiments.md` for the honest caveats).
 
+## v2 layers
+
+v2 keeps the v1 event loop and adds four opt-in layers. A configuration that uses
+none of them takes the `legacy_compat` path and reproduces v1 bit-for-bit; the
+regression test pins `data/scenarios/baseline_flat.json` to the legacy anchors.
+
+| Layer | What it adds | Code | Tests |
+|---|---|---|---|
+| 1. Demand | intra-day demand curve (piecewise constant), batch arrivals, customer classes with own mix and patience distributions, service-time variability | `data_spec.DemandProfile/BatchSpec/PatienceSpec/CustomerClass/MixSpec/ServiceVariability` | `tests/test_v2_layers.py` |
+| 2. Supply network | stations with finite capacity, staff roles/skills, shift windows, breaks, staged order -> make -> hand-over, routing | `data_spec.StationSpec/StaffSpec/ShiftWindow/NetworkSpec` | same |
+| 3. Inventory / BOM | recipes, FIFO lots, (s, S) replenishment with lead time, shelf life, waste, lost-sale or substitution | `data_spec.Ingredient/Recipe/InventorySpec` | same |
+| 4. Economics / fairness | time-of-day pricing with demand elasticity, SLA compensation, starvation cap (aging) | `data_spec.PricingSpec/SlaSpec`, `params.Policy.starvation_cap` | same |
+
+Scenarios are data, not code: `data/scenarios/*.json` with a `provenance` block
+(source / method / uncertainty), loaded by `bubble_tea_sim.library` and validated
+in `tests/test_v2_layers.py`.
+
+## Resource model (v2)
+
+A v2 configuration with a `network` uses an event-driven scheduler instead of
+the v1 future-reservation rule:
+
+* **Staff units** carry a role, a skill set (`"all"` means any), and availability
+  windows (empty = all day). A break splits one unit's window into two spans; a
+  second barista joining mid-day is simply another window.
+* **Stations** have a capacity and an optional required skill. Jobs routed to a
+  station occupy one slot for their whole duration.
+* **Staged processing**: when stations exist, the order step (cashier) and the
+  make step (barista/station) are separate jobs. The make jobs are created when
+  the order finishes, so order-queue waiting and production-queue waiting are
+  distinguishable. Synchronised mixed orders chain tea -> ice; split orders
+  release the ice and tea jobs in parallel.
+* **Dispatch rule**: at every event (arrival, completion, restock, shift
+  boundary) the scheduler starts ready jobs in `(effective priority, sequence)`
+  order as long as both a skilled staff unit and a station slot are free and the
+  job finishes inside the staff member's window. No preemption, no future
+  reservation.
+
+## Inventory model
+
+Ingredients are FIFO lots with an expiry time. Consumption happens when the order
+is accepted (BOM reservation). With (s, S) continuous review, an order is placed
+when the inventory position (stock + on order) drops to the reorder point and
+arrives after the lead time; purchases (including the opening stock) are costed
+at `unit_cost`. Expired lots are recorded as waste. Stock-out either loses the
+sale (`"lose"`) or serves a substitute product (`"substitute"`).
+
+## Pricing, SLA and fairness
+
+* Price multiplier windows raise the ticket price inside peak windows; demand
+  inside a window is scaled by `price_multiplier ** elasticity`.
+* The SLA records the share of customers whose LOS exceeds `target_minutes` and
+  charges `compensation` for each of them.
+* The fairness cap ages any job that has waited longer than
+  `Policy.starvation_cap` to the top priority class. `Metrics.fairness_gap` is
+  the spread of mean LOS across customer classes.
+
+## Determinism contract (v2)
+
+* The arrival stream is generated up front. With a demand curve the engine uses
+  thinning: candidates arrive at `lambda_max`, and each candidate is accepted
+  with probability `rate(t) / lambda_max`. Batch size, customer class and the
+  per-customer patience thresholds are drawn in a fixed order for every accepted
+  arrival.
+* Service durations are drawn when the job is created, in component order.
+  Behaviour (balking/reneging/priority) changes the schedule but never the
+  random stream, so two runs with the same seed are identical.
+* **Balking estimate**: a customer decides from `in_system * p_bar / staff`,
+  where `staff` counts only the units on shift at that moment (shift windows and
+  breaks included). A late-joining barista therefore does not make the queue look
+  shorter than it is before they arrive.
+* Runs that leave customers in the shop at closing time mark them `closed`
+  (`Metrics.stranded`) instead of dropping them; flow conservation holds.
+
+## Validation strategy (v2)
+
+1. **Degenerate equivalence** — `baseline_flat` must equal the v1 anchors
+   exactly; tests compare full metric dictionaries.
+2. **Invariants** — flow conservation on every scenario file, non-negative
+   timings, utilisation invariance across delivery policies, staged jobs always
+   have an order completion before production.
+3. **Directional tests** — variability increases the tail, a cap ages the low
+   priority queue, a stock-out loses sales, over-ordering a perishable wastes
+   it, pricing with negative elasticity lowers peak demand.
+4. **Internal consistency only** — these are not field validations. The
+   scenario provenance block is the honest boundary: synthetic assumptions with
+   explicit uncertainty.
+
 ## Extension points
 
 * **New behaviour rule**: add a field to `Policy`, apply it in
   `_handle_arrival` / `_dispatch` / `_handle_renege`, and add a directional test.
 * **New metric**: add it in `Metrics` and `_build_metrics()`, then to
   `stats.flatten_metrics()` so sweeps pick it up automatically.
-* **New study**: add a builder to `scenarios.py` and a CLI subcommand (or an
-  `analysis/` script that imports the package).
-* **New distribution**: service times are currently deterministic; a
-  distribution hook belongs in `_create_jobs()` and must consume RNG in a
-  documented order (update the determinism contract above).
+* **New scenario**: add a JSON file under `data/scenarios/` with a provenance
+  block; `tests/test_v2_layers.py` automatically runs it.
+* **New station/route**: add a `StationSpec` and a route in the scenario file;
+  no engine code is needed.
+* **New layer**: prefer a new `data_spec` dataclass plus a `SimConfig` field, so
+  the v1 path stays untouched and `legacy_compat` keeps its guarantee.
+
