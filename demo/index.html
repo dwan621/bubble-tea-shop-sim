@@ -1,0 +1,1186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bubble-tea shop v2 — interactive demo (precomputed, offline)</title>
+<meta name="description" content="Offline interactive demo for the v2 bubble-tea shop simulation: scenario x policy comparison, intra-day demand-curve slider and a traced queue-timeline animation. Data precomputed by analysis/build_demo_data.py; the browser does not run the simulation.">
+<style>
+:root{--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--bg:#f6f7f9;--card:#fff;
+--teal:#0f766e;--teal-l:#ccfbf1;--amber:#b45309;--rose:#9f1239;
+--mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);
+font:15.5px/1.6 system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+-webkit-font-smoothing:antialiased}
+a{color:var(--teal)}
+p{margin:0 0 11px}
+.hero{background:linear-gradient(135deg,#0f172a 0%,#134e4a 58%,#0f766e 100%);color:#e2e8f0;padding:38px 0 30px}
+.hero .wrap{padding-bottom:0}
+.hero h1{font-size:clamp(1.5rem,3vw,2.2rem);line-height:1.2;margin:0 0 8px;color:#fff;letter-spacing:-.4px}
+.hero .sub{font-size:1rem;color:#99f6e4;margin:0 0 10px}
+.hero .meta{font-size:.79rem;color:#a5b4fc;font-family:var(--mono);margin:0}
+.badges{display:flex;flex-wrap:wrap;gap:7px;margin:14px 0 0}
+.badge{font-size:.72rem;padding:3px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.25);
+background:rgba(255,255,255,.08);color:#e2e8f0;font-family:var(--mono)}
+.badge.ok{border-color:#34d399;color:#a7f3d0}
+.wrap{max-width:1220px;margin:0 auto;padding:0 20px 80px}
+nav.tabs{position:sticky;top:0;z-index:30;background:rgba(246,247,249,.96);
+border-bottom:1px solid var(--line);backdrop-filter:blur(6px)}
+nav.tabs .wrap{display:flex;flex-wrap:wrap;gap:6px;padding:9px 20px;align-items:center}
+nav.tabs button{font:inherit;font-size:.85rem;border:1px solid transparent;background:transparent;
+color:#334155;padding:6px 12px;border-radius:8px;cursor:pointer}
+nav.tabs button:hover{background:#e2e8f0}
+nav.tabs button[aria-selected="true"]{background:var(--teal);color:#fff}
+nav.tabs .spacer{flex:1}
+nav.tabs .links a{font-size:.78rem;color:#475569;text-decoration:none;padding:4px 8px;border-radius:6px}
+nav.tabs .links a:hover{background:#e2e8f0}
+main.wrap{padding-top:18px}
+.panel[hidden]{display:none}
+.layout{display:grid;grid-template-columns:270px 1fr;gap:18px;align-items:start}
+@media (max-width:900px){.layout{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:18px 20px;margin:0 0 16px}
+.card h2{font-size:1.16rem;margin:0 0 4px;letter-spacing:-.2px}
+.card h3{font-size:.98rem;margin:16px 0 7px}
+.card .zh{display:block;font-size:.83rem;color:var(--muted);font-weight:400;margin-top:2px}
+.sidebar{position:sticky;top:60px}
+.scenario-list{display:flex;flex-direction:column;gap:6px;max-height:70vh;overflow:auto;padding-right:2px}
+.scenario-btn{text-align:left;font:inherit;background:#fff;border:1px solid var(--line);
+border-radius:10px;padding:9px 11px;cursor:pointer;color:var(--ink)}
+.scenario-btn:hover{border-color:#94a3b8}
+.scenario-btn[aria-pressed="true"]{border-color:var(--teal);box-shadow:0 0 0 2px var(--teal-l);background:#f0fdfa}
+.scenario-btn .nm{display:block;font-family:var(--mono);font-size:.78rem;color:#115e59}
+.scenario-btn .tt{display:block;font-size:.8rem;color:#334155;line-height:1.35;margin-top:2px}
+.muted{color:var(--muted)}
+.small{font-size:.8rem}
+.mono{font-family:var(--mono);font-size:.8rem}
+.toolbar{display:flex;flex-wrap:wrap;gap:14px 20px;align-items:flex-start;margin:6px 0 4px}
+.toolbar .group{display:flex;flex-direction:column;gap:5px}
+.toolbar .group>span{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.seg{display:flex;flex-wrap:wrap;gap:5px}
+.seg button{font:inherit;font-size:.79rem;border:1px solid var(--line);background:#fff;color:#334155;
+padding:5px 9px;border-radius:7px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:#0f172a;color:#fff;border-color:#0f172a}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:.79rem;border:1px solid var(--line);
+background:#fff;border-radius:999px;padding:4px 10px;cursor:pointer;color:#334155}
+.chip i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.chip[aria-pressed="false"]{opacity:.45;text-decoration:line-through}
+.chip[aria-pressed="true"]{border-color:#94a3b8}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11px;margin:12px 0 4px}
+.stat{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.stat .label{font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.stat .value{font-size:1.2rem;font-weight:700;font-variant-numeric:tabular-nums;margin-top:1px}
+.stat .hint{font-size:.72rem;color:var(--muted);line-height:1.35;margin-top:1px}
+figure{margin:16px 0;padding:12px 12px 6px;background:#fff;border:1px solid var(--line);border-radius:12px}
+figure svg{display:block;width:100%;height:auto}
+figcaption{font-size:.79rem;color:var(--muted);margin-top:5px}
+figcaption .src{display:block;font-size:.71rem;color:#94a3b8;font-family:var(--mono);margin-top:2px}
+.fig-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media (max-width:900px){.fig-grid{grid-template-columns:1fr}}
+.fig-grid figure{margin:0}
+.table-wrap{overflow-x:auto;margin:12px 0}
+table{border-collapse:collapse;width:100%;font-size:.83rem;font-variant-numeric:tabular-nums}
+caption{caption-side:top;text-align:left;font-size:.82rem;color:var(--muted);padding:0 0 6px}
+th{background:#f1f5f9;color:#334155;font-weight:600;padding:6px 9px;border-bottom:1px solid var(--line);white-space:nowrap;text-align:right}
+th.l{text-align:left}
+td{padding:5px 9px;border-bottom:1px solid #f1f5f9;text-align:right}
+td.l{text-align:left}
+tbody tr:hover{background:#f8fafc}
+.callout{border-radius:10px;padding:11px 14px;margin:12px 0;font-size:.86rem;border:1px solid}
+.callout.info{background:#f0f9ff;border-color:#bae6fd}
+.callout.warn{background:#fffbeb;border-color:#fde68a}
+.callout.good{background:#f0fdf4;border-color:#bbf7d0}
+.callout b{font-weight:650}
+details{margin:8px 0;font-size:.83rem}
+summary{cursor:pointer;color:#334155}
+dt{color:var(--muted);font-size:.78rem;margin-top:4px}
+dd{margin:0;font-size:.83rem}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:3px 14px;font-size:.83rem}
+.kv dt{margin:0;padding-top:2px}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.77rem;color:#334155;margin-top:4px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:13px;height:3px;border-radius:2px;display:inline-block}
+.legend i.box{height:10px;width:10px;border-radius:3px}
+.controls{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:10px 0}
+.controls button{font:inherit;font-size:.83rem;border:1px solid var(--line);background:#fff;color:#334155;
+padding:6px 12px;border-radius:8px;cursor:pointer}
+.controls button.primary{background:var(--teal);border-color:var(--teal);color:#fff}
+.controls button:hover{border-color:#94a3b8}
+.controls label{font-size:.79rem;color:var(--muted);display:inline-flex;align-items:center;gap:7px}
+input[type=range]{width:190px;accent-color:var(--teal)}
+input[type=range].wide{width:min(560px,100%)}
+.clock{font-family:var(--mono);font-size:.85rem;color:#115e59}
+.counters{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;margin:8px 0}
+.counter{background:#f8fafc;border:1px solid var(--line);border-radius:9px;padding:7px 10px}
+.counter .k{font-size:.66rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.counter .v{font-size:1.05rem;font-weight:700;font-variant-numeric:tabular-nums}
+footer{color:var(--muted);font-size:.77rem;text-align:center;padding:24px 0 8px}
+footer p{margin:4px 0}
+:focus-visible{outline:2px solid #0d9488;outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+#error{padding:18px;border:1px solid #fecaca;background:#fef2f2;border-radius:12px}
+@media print{nav.tabs{display:none}.card{break-inside:avoid}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="sub">SYE5006 service-operations project · v2 engine demo</p>
+    <h1>Bubble-tea shop simulation: four layers, one engine</h1>
+    <p class="meta" id="heroMeta">loading precomputed data…</p>
+    <div class="badges">
+      <span class="badge ok">precomputed · no DES in the browser</span>
+      <span class="badge" id="badgeVersion">bubble_tea_sim ?</span>
+      <span class="badge" id="badgeGenerated">generated ?</span>
+      <span class="badge">vanilla JS · file:// · no CDN</span>
+    </div>
+  </div>
+</header>
+
+<nav class="tabs" aria-label="Demo sections">
+  <div class="wrap">
+    <button type="button" id="tab-scenarios" aria-selected="true">1 · Scenarios × policies</button>
+    <button type="button" id="tab-demand" aria-selected="false">2 · Demand-curve slider</button>
+    <button type="button" id="tab-timeline" aria-selected="false">3 · Queue timeline</button>
+    <span class="spacer"></span>
+    <span class="links">
+      <a href="../docs/index.html">v2 report</a>
+      <a href="../docs/experiments-v2.md">v2 tables</a>
+      <a href="../archive/report-v1.html">v1 report</a>
+      <a href="../README.md">README</a>
+    </span>
+  </div>
+</nav>
+
+<main class="wrap">
+  <div class="callout info" id="globalNote" hidden></div>
+  <div id="error" hidden></div>
+
+  <!-- ======================= PANEL 1 ======================= -->
+  <section class="panel" id="panel-scenarios" aria-labelledby="h-scenarios">
+    <div class="layout">
+      <aside class="card sidebar">
+        <h2 id="h-scenarios">Scenarios<span class="zh">场景库（来自 data/scenarios/*.json）</span></h2>
+        <p class="small muted">Each file is one shop context with its own provenance block. Select one to relink every chart.</p>
+        <div class="scenario-list" id="scenarioList"></div>
+      </aside>
+      <div>
+        <div class="card">
+          <h2 id="scenarioTitle">—</h2>
+          <p class="small muted" id="scenarioProvenance"></p>
+          <div class="toolbar">
+            <div class="group"><span>Metric</span><div class="seg" id="metricTabs"></div></div>
+            <div class="group"><span>Policies in comparison</span><div class="seg" id="policyToggles"></div></div>
+          </div>
+          <div class="cards" id="scenarioCards"></div>
+          <details>
+            <summary>Scenario configuration and provenance</summary>
+            <dl class="kv" id="scenarioConfig"></dl>
+            <div id="scenarioProvenanceDetail" class="small" style="margin-top:8px"></div>
+          </details>
+        </div>
+        <figure>
+          <div id="chartPolicies"></div>
+          <figcaption id="capPolicies">Loading…</figcaption>
+        </figure>
+        <figure>
+          <div id="chartCompare"></div>
+          <figcaption id="capCompare">Loading…</figcaption>
+        </figure>
+        <figure>
+          <div id="chartDemand"></div>
+          <figcaption>The scenario's intra-day arrival multiplier. Flat profiles stay at ×1.0; peak profiles multiply the
+          daily-mean rate inside the peak windows. Peaks matter because waiting is convex in load, not because the daily
+          average changes.<span class="src">data/scenarios/*.json → scenario config.demand</span></figcaption>
+        </figure>
+        <div class="card">
+          <h2>Metrics table<span class="zh">所选场景在四种策略下的指标</span></h2>
+          <div class="table-wrap" id="scenarioTable"></div>
+          <p class="small muted" id="scenarioTableNote"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= PANEL 2 ======================= -->
+  <section class="panel" id="panel-demand" aria-labelledby="h-demand" hidden>
+    <div class="card">
+      <h2 id="h-demand">Intra-day demand curve: same daily mean, different peaks
+        <span class="zh">日内需求曲线滑块：日均客流不变，只改变峰值形状</span></h2>
+      <p>Drag the slider to make the day peakier. The <b>daily mean arrival rate is held fixed</b>: every point models the
+      same total demand, only its shape changes. Watch the tail (p95) and the walk-away rate deteriorate while the
+      day-average utilisation barely moves — the same trap the v2 demand study reports at 100 replicates.</p>
+      <div class="controls">
+        <label for="peakSlider">peak multiplier <input type="range" id="peakSlider" class="wide" min="0" max="5" step="1" value="3" aria-describedby="peakValue"></label>
+        <span class="clock" id="peakValue">×1.60</span>
+      </div>
+      <div class="cards" id="demandCards"></div>
+      <div class="fig-grid">
+        <figure><div id="chartDemandCurve"></div><figcaption>Expected arrivals per hour for the selected curve.
+          <span class="src">demo/data/demand_slider.json</span></figcaption></figure>
+        <figure><div id="chartDemandP95"></div><figcaption>p95 time in system vs peak multiplier. The marker is the slider position.</figcaption></figure>
+        <figure><div id="chartDemandBalk"></div><figcaption>Share of arrivals that balk vs peak multiplier.</figcaption></figure>
+      </div>
+      <figure><div id="chartDemandProfit"></div>
+        <figcaption>Profit per hour vs peak multiplier (waiting cost included). The daily mean is constant, so this is
+        the price of variability alone.<span class="src">demo/data/demand_slider.json · 6 replicates per point, seed 0–5</span></figcaption></figure>
+      <p class="small muted" id="demandNote"></p>
+    </div>
+  </section>
+
+  <!-- ======================= PANEL 3 ======================= -->
+  <section class="panel" id="panel-timeline" aria-labelledby="h-timeline" hidden>
+    <div class="card">
+      <h2 id="h-timeline">One traced day<span class="zh">一天的事件级排队时间轴（预计算 trace，浏览器只回放）</span></h2>
+      <p>The engine records every <span class="mono">arrival</span>, <span class="mono">start</span> and
+      <span class="mono">done</span> event. This panel replays one traced replicate: the top band is the number of customers
+      waiting, the swim-lanes show which station each order occupied, and the counters track the day as it unfolds.
+      Nothing is simulated in the browser — the trace is precomputed.</p>
+      <div class="controls">
+        <label>day <select id="timelineSelect" class="mono"></select></label>
+        <button type="button" class="primary" id="playBtn" aria-pressed="false">▶ Play</button>
+        <label for="speedSelect">speed <select id="speedSelect">
+          <option value="0.5">0.5×</option><option value="1" selected>1×</option>
+          <option value="2">2×</option><option value="4">4×</option></select></label>
+        <label for="clockSlider">time <input type="range" id="clockSlider" min="0" max="480" step="0.25" value="0" aria-describedby="clockRead"></label>
+        <span class="clock" id="clockRead">t = 0 min (09:00)</span>
+      </div>
+      <div class="counters" id="timelineCounters"></div>
+      <figure style="margin-top:6px">
+        <div id="timelineChart"></div>
+        <figcaption id="timelineCaption"></figcaption>
+      </figure>
+      <div class="legend" id="timelineLegend"></div>
+      <p class="small muted" id="timelineNote"></p>
+    </div>
+  </section>
+
+  <footer>
+    <p>Data: <span class="mono">demo/data/*.json</span> and <span class="mono">demo/data/bundle.js</span>, generated by
+    <span class="mono">python analysis/build_demo_data.py</span>. The JSON files are the canonical artifacts; the bundle is
+    only a <span class="mono">file://</span>-safe mirror because browsers block <span class="mono">fetch()</span> of local files.</p>
+    <p>Bubble-tea shop simulation v2 · static offline demo · no tracking, no network calls.</p>
+  </footer>
+</main>
+
+<noscript><div class="wrap"><div class="callout warn">This demo needs JavaScript to repaint precomputed data; the report
+itself (<a href="../docs/index.html">docs/index.html</a>) is completely script-free.</div></div></noscript>
+
+<script src="data/bundle.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  // ------------------------------------------------------------------
+  // constants / tiny helpers
+  // ------------------------------------------------------------------
+  const PALETTE = {
+    'synchro+fcfs': '#64748b', 'synchro+fast': '#0284c7',
+    'split+fcfs': '#d97706', 'split+fast': '#059669'
+  };
+  const SHORT = {
+    'synchro+fcfs': 'Sync+FCFS', 'synchro+fast': 'Sync+Fast',
+    'split+fcfs': 'Split+FCFS', 'split+fast': 'Split+Fast'
+  };
+  const KIND_COLORS = ['#0ea5e9', '#f59e0b', '#8b5cf6', '#10b981', '#94a3b8'];
+  const STATUS_COLORS = ['#059669', '#e11d48', '#be123c', '#b45309', '#7c3aed'];
+  const METRICS = [
+    ['profit_per_hour', 'Profit / hour', v => fmt(v, 1)],
+    ['mean_los', 'Mean time in system (min)', v => fmt(v, 2) + ' min'],
+    ['los_p95', 'p95 time in system (min)', v => fmt(v, 2) + ' min'],
+    ['util', 'Staff utilisation', v => pct(v, 1)],
+    ['balk_rate', 'Walk-away rate', v => pct(v, 1)]
+  ];
+  const $ = (selector, root) => (root || document).querySelector(selector);
+  const $$ = (selector, root) => Array.from((root || document).querySelectorAll(selector));
+  const esc = value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+  function fmt(value, digits) {
+    if (value === null || value === undefined || Number.isNaN(value)) return '–';
+    const d = digits === undefined ? 2 : digits;
+    if (Math.abs(value) >= 1000) return value.toLocaleString('en-US', { maximumFractionDigits: 0 });
+    return value.toFixed(d);
+  }
+  function pct(value, digits) {
+    if (value === null || value === undefined || Number.isNaN(value)) return '–';
+    return (value * 100).toFixed(digits === undefined ? 1 : digits) + '%';
+  }
+  function signed(value, digits) {
+    if (value === null || value === undefined || Number.isNaN(value)) return '–';
+    return (value >= 0 ? '+' : '') + value.toFixed(digits === undefined ? 1 : digits);
+  }
+
+  // ------------------------------------------------------------------
+  // chart primitives (SVG strings, no dependencies)
+  // ------------------------------------------------------------------
+  const INK = '#0f172a', MUTED = '#64748b', GRID = '#e2e8f0', AXIS = '#94a3b8';
+
+  function niceTicks(lo, hi, count) {
+    const n = count || 5;
+    if (!(hi > lo)) return [lo];
+    const raw = (hi - lo) / Math.max(n - 1, 1);
+    const magnitude = Math.pow(10, Math.floor(Math.log10(raw)));
+    let step = magnitude;
+    [1, 1.5, 2, 2.5, 3, 4, 5, 7.5, 10].some(function (f) {
+      step = f * magnitude;
+      return step >= raw;
+    });
+    const start = Math.floor(lo / step) * step;
+    const ticks = [];
+    for (let value = start; value <= hi + step * 1e-9; value += step) {
+      if (value >= lo - step * 1e-9) ticks.push(Math.round(value * 1e10) / 1e10);
+    }
+    return ticks.length ? ticks : [lo, hi];
+  }
+  function scale(lo, hi, p0, p1) {
+    const span = hi - lo || 1;
+    return value => p0 + ((value - lo) / span) * (p1 - p0);
+  }
+  function svgOpen(width, height, label) {
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + width + ' ' + height +
+      '" width="100%" role="img" aria-label="' + esc(label) + '" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif">';
+  }
+
+  /** vertical bars: categories on x, one value per category */
+  function barsChart(opts) {
+    const width = opts.width || 720, height = opts.height || 300;
+    const left = 66, right = 22, top = opts.title ? 42 : 20, bottom = 46;
+    const plotW = width - left - right, plotH = height - top - bottom;
+    const values = opts.values;
+    let lo = Math.min(0, Math.min.apply(null, values));
+    let hi = Math.max(0, Math.max.apply(null, values));
+    const pad = (hi - lo) * 0.12 || 1;
+    lo = lo - (lo < 0 ? pad : 0); hi = hi + pad;
+    const sy = scale(lo, hi, top + plotH, top);
+    const ticks = niceTicks(lo, hi, 5);
+    let out = svgOpen(width, height, opts.title || opts.yLabel);
+    out += '<rect width="' + width + '" height="' + height + '" fill="#fff"/>';
+    if (opts.title) out += '<text x="' + left + '" y="20" font-size="13.5" font-weight="650" fill="' + INK + '">' + esc(opts.title) + '</text>';
+    ticks.forEach(t => {
+      const y = sy(t);
+      if (y < top - 1 || y > top + plotH + 1) return;
+      out += '<line x1="' + left + '" y1="' + y.toFixed(1) + '" x2="' + (left + plotW) + '" y2="' + y.toFixed(1) + '" stroke="' + GRID + '"/>';
+      out += '<text x="' + (left - 8) + '" y="' + (y + 4).toFixed(1) + '" text-anchor="end" font-size="10.5" fill="' + MUTED + '">' + esc(opts.format(t)) + '</text>';
+    });
+    out += '<line x1="' + left + '" y1="' + top + '" x2="' + left + '" y2="' + (top + plotH) + '" stroke="' + AXIS + '"/>';
+    out += '<line x1="' + left + '" y1="' + sy(0).toFixed(1) + '" x2="' + (left + plotW) + '" y2="' + sy(0).toFixed(1) + '" stroke="' + AXIS + '"/>';
+    out += '<text transform="translate(14,' + (top + plotH / 2).toFixed(1) + ') rotate(-90)" text-anchor="middle" font-size="11" fill="' + INK + '">' + esc(opts.yLabel) + '</text>';
+    const slot = plotW / Math.max(values.length, 1);
+    const barW = Math.min(slot * 0.62, 64);
+    values.forEach((value, index) => {
+      const x = left + slot * (index + 0.5) - barW / 2;
+      const y1 = sy(value), y0 = sy(0);
+      out += '<rect x="' + x.toFixed(1) + '" y="' + Math.min(y0, y1).toFixed(1) + '" width="' + barW.toFixed(1) +
+        '" height="' + Math.abs(y0 - y1).toFixed(1) + '" rx="2" fill="' + (opts.colors[index] || '#0f766e') + '" opacity="0.92">' +
+        '<title>' + esc(opts.categories[index]) + ' = ' + esc(opts.format(value)) + '</title></rect>';
+      out += '<text x="' + (left + slot * (index + 0.5)).toFixed(1) + '" y="' + (top + plotH + 16) +
+        '" text-anchor="middle" font-size="10" fill="' + MUTED + '">' + esc(opts.categories[index]) + '</text>';
+      if (opts.valueLabels !== false) {
+        out += '<text x="' + (left + slot * (index + 0.5)).toFixed(1) + '" y="' + (Math.min(y0, y1) - 5).toFixed(1) +
+          '" text-anchor="middle" font-size="10" font-weight="600" fill="' + INK + '">' + esc(opts.format(value)) + '</text>';
+      }
+    });
+    return out + '</svg>';
+  }
+
+  /** grouped horizontal bars: one row per category, one bar per series */
+  function groupedHBar(opts) {
+    const rows = opts.rows, series = opts.series;
+    const width = opts.width || 760;
+    const rowH = 30, top = 34, bottom = 34;
+    const height = top + rows.length * rowH + bottom;
+    const labelW = 168, right = 24;
+    const plotW = width - labelW - right;
+    let hi = 0;
+    rows.forEach(row => row.values.forEach(v => { hi = Math.max(hi, v || 0); }));
+    hi = hi > 0 ? hi * 1.12 : 1;
+    const sx = scale(0, hi, labelW, labelW + plotW);
+    const barH = Math.min(9, (rowH - 8) / series.length);
+    let out = svgOpen(width, height, opts.title || opts.xLabel);
+    out += '<rect width="' + width + '" height="' + height + '" fill="#fff"/>';
+    if (opts.title) out += '<text x="14" y="19" font-size="13.5" font-weight="650" fill="' + INK + '">' + esc(opts.title) + '</text>';
+    niceTicks(0, hi, 4).forEach(t => {
+      const x = sx(t);
+      if (x < labelW - 1 || x > labelW + plotW + 1) return;
+      out += '<line x1="' + x.toFixed(1) + '" y1="' + (top - 6) + '" x2="' + x.toFixed(1) + '" y2="' + (top + rows.length * rowH) + '" stroke="' + GRID + '"/>';
+      out += '<text x="' + x.toFixed(1) + '" y="' + (top + rows.length * rowH + 14) + '" text-anchor="middle" font-size="10" fill="' + MUTED + '">' + esc(opts.format(t)) + '</text>';
+    });
+    out += '<line x1="' + labelW + '" y1="' + (top - 6) + '" x2="' + labelW + '" y2="' + (top + rows.length * rowH) + '" stroke="' + AXIS + '"/>';
+    rows.forEach((row, rowIndex) => {
+      const y0 = top + rowIndex * rowH;
+      const labelFill = row.highlight ? '#115e59' : '#334155';
+      out += '<text x="' + (labelW - 9) + '" y="' + (y0 + rowH / 2 + 4) + '" text-anchor="end" font-size="10.5" fill="' + labelFill + '"' +
+        (row.highlight ? ' font-weight="700"' : '') + '>' + esc(row.label) + '</text>';
+      if (row.highlight) {
+        out += '<rect x="4" y="' + (y0 + 2) + '" width="' + (labelW - 6) + '" height="' + (rowH - 4) + '" rx="5" fill="#f0fdfa"/>';
+      }
+      row.values.forEach((value, seriesIndex) => {
+        if (value === null || value === undefined) return;
+        const y = y0 + (rowH - barH * series.length - 2) / 2 + seriesIndex * barH;
+        const x1 = sx(Math.max(value, 0));
+        out += '<rect x="' + labelW + '" y="' + y.toFixed(1) + '" width="' + Math.max(0, x1 - labelW).toFixed(1) +
+          '" height="' + barH.toFixed(1) + '" rx="1.5" fill="' + series[seriesIndex].color + '" opacity="0.92">' +
+          '<title>' + esc(row.label) + ' · ' + esc(series[seriesIndex].label) + ' = ' + esc(opts.format(value)) + '</title></rect>';
+      });
+    });
+    // legend
+    let lx = labelW;
+    series.forEach(item => {
+      out += '<rect x="' + lx + '" y="' + (height - 20) + '" width="9" height="9" rx="2" fill="' + item.color + '"/>';
+      out += '<text x="' + (lx + 13) + '" y="' + (height - 12) + '" font-size="10" fill="' + INK + '">' + esc(item.label) + '</text>';
+      lx += 30 + item.label.length * 5.6;
+    });
+    out += '<text x="14" y="' + (height - 12) + '" font-size="10" fill="' + MUTED + '">' + esc(opts.xLabel) + '</text>';
+    return out + '</svg>';
+  }
+
+  /** simple line chart; series = [{label,color,points:[[x,y]...]}] */
+  function lineChart(opts) {
+    const width = opts.width || 480, height = opts.height || 260;
+    const left = 58, right = 16, top = opts.title ? 38 : 16, bottom = 40;
+    const plotW = width - left - right, plotH = height - top - bottom;
+    const all = [];
+    opts.series.forEach(s => s.points.forEach(p => all.push(p)));
+    const xs = all.map(p => p[0]), ys = all.map(p => p[1]);
+    const xLo = opts.xRange ? opts.xRange[0] : Math.min.apply(null, xs);
+    const xHi = opts.xRange ? opts.xRange[1] : Math.max.apply(null, xs);
+    let yLo = opts.yRange ? opts.yRange[0] : Math.min.apply(null, ys);
+    let yHi = opts.yRange ? opts.yRange[1] : Math.max.apply(null, ys);
+    const pad = (yHi - yLo) * 0.14 || 1; yLo -= pad; yHi += pad;
+    const sx = scale(xLo, xHi, left, left + plotW);
+    const sy = scale(yLo, yHi, top + plotH, top);
+    let out = svgOpen(width, height, opts.title || opts.yLabel);
+    out += '<rect width="' + width + '" height="' + height + '" fill="#fff"/>';
+    if (opts.title) out += '<text x="14" y="18" font-size="12.5" font-weight="650" fill="' + INK + '">' + esc(opts.title) + '</text>';
+    niceTicks(yLo, yHi, 4).forEach(t => {
+      const y = sy(t);
+      if (y < top - 1 || y > top + plotH + 1) return;
+      out += '<line x1="' + left + '" y1="' + y.toFixed(1) + '" x2="' + (left + plotW) + '" y2="' + y.toFixed(1) + '" stroke="' + GRID + '"/>';
+      out += '<text x="' + (left - 7) + '" y="' + (y + 3.5).toFixed(1) + '" text-anchor="end" font-size="9.5" fill="' + MUTED + '">' + esc(opts.yFormat ? opts.yFormat(t) : fmt(t, 1)) + '</text>';
+    });
+    niceTicks(xLo, xHi, 5).forEach(t => {
+      const x = sx(t);
+      if (x < left - 1 || x > left + plotW + 1) return;
+      out += '<line x1="' + x.toFixed(1) + '" y1="' + (top + plotH) + '" x2="' + x.toFixed(1) + '" y2="' + (top + plotH + 4) + '" stroke="' + AXIS + '"/>';
+      out += '<text x="' + x.toFixed(1) + '" y="' + (top + plotH + 16) + '" text-anchor="middle" font-size="9.5" fill="' + MUTED + '">' + esc(opts.xFormat ? opts.xFormat(t) : fmt(t, 1)) + '</text>';
+    });
+    out += '<line x1="' + left + '" y1="' + top + '" x2="' + left + '" y2="' + (top + plotH) + '" stroke="' + AXIS + '"/>';
+    out += '<line x1="' + left + '" y1="' + (top + plotH) + '" x2="' + (left + plotW) + '" y2="' + (top + plotH) + '" stroke="' + AXIS + '"/>';
+    out += '<text x="' + (left + plotW / 2) + '" y="' + (height - 6) + '" text-anchor="middle" font-size="10" fill="' + INK + '">' + esc(opts.xLabel || '') + '</text>';
+    out += '<text transform="translate(12,' + (top + plotH / 2) + ') rotate(-90)" text-anchor="middle" font-size="10" fill="' + INK + '">' + esc(opts.yLabel || '') + '</text>';
+    opts.series.forEach(series => {
+      const d = series.points.map(p => sx(p[0]).toFixed(1) + ',' + sy(p[1]).toFixed(1)).join(' ');
+      out += '<polyline points="' + d + '" fill="none" stroke="' + series.color + '" stroke-width="2" stroke-linejoin="round"/>';
+      series.points.forEach(p => {
+        out += '<circle cx="' + sx(p[0]).toFixed(1) + '" cy="' + sy(p[1]).toFixed(1) + '" r="2.6" fill="#fff" stroke="' +
+          series.color + '" stroke-width="1.5"><title>' + esc(series.label) + ' · ' + esc(fmt(p[1], 2)) + '</title></circle>';
+      });
+    });
+    if (opts.markerX !== undefined && opts.markerX !== null) {
+      const x = sx(opts.markerX);
+      out += '<line x1="' + x.toFixed(1) + '" y1="' + top + '" x2="' + x.toFixed(1) + '" y2="' + (top + plotH) + '" stroke="#0f172a" stroke-width="1" stroke-dasharray="4 3"/>';
+    }
+    if (opts.legend !== false && opts.series.length > 1) {
+      let lx = left;
+      opts.series.forEach(series => {
+        out += '<line x1="' + lx + '" y1="' + (top - 10) + '" x2="' + (lx + 14) + '" y2="' + (top - 10) + '" stroke="' + series.color + '" stroke-width="2.4"/>';
+        out += '<text x="' + (lx + 18) + '" y="' + (top - 6) + '" font-size="9.5" fill="' + INK + '">' + esc(series.label) + '</text>';
+        lx += 26 + series.label.length * 5.2;
+      });
+    }
+    return out + '</svg>';
+  }
+
+  /** step line for the demand multiplier */
+  function stepChart(opts) {
+    const width = opts.width || 760, height = opts.height || 240;
+    const left = 56, right = 20, top = 34, bottom = 38;
+    const plotW = width - left - right, plotH = height - top - bottom;
+    const maxMinute = opts.maxMinute;
+    const segments = opts.segments;
+    const values = segments.map(s => s.multiplier).concat([1]);
+    const yLo = Math.min.apply(null, values) * 0.8;
+    const yHi = Math.max.apply(null, values) * 1.18;
+    const sx = scale(0, maxMinute, left, left + plotW);
+    const sy = scale(yLo, yHi, top + plotH, top);
+    let out = svgOpen(width, height, opts.title || 'Demand multiplier');
+    out += '<rect width="' + width + '" height="' + height + '" fill="#fff"/>';
+    if (opts.title) out += '<text x="14" y="18" font-size="12.5" font-weight="650" fill="' + INK + '">' + esc(opts.title) + '</text>';
+    niceTicks(yLo, yHi, 4).forEach(t => {
+      const y = sy(t);
+      out += '<line x1="' + left + '" y1="' + y.toFixed(1) + '" x2="' + (left + plotW) + '" y2="' + y.toFixed(1) + '" stroke="' + GRID + '"/>';
+      out += '<text x="' + (left - 7) + '" y="' + (y + 3.5).toFixed(1) + '" text-anchor="end" font-size="9.5" fill="' + MUTED + '">×' + esc(fmt(t, 1)) + '</text>';
+    });
+    for (let hour = 0; hour <= maxMinute; hour += 60) {
+      const x = sx(hour);
+      out += '<line x1="' + x.toFixed(1) + '" y1="' + (top + plotH) + '" x2="' + x.toFixed(1) + '" y2="' + (top + plotH + 4) + '" stroke="' + AXIS + '"/>';
+      out += '<text x="' + x.toFixed(1) + '" y="' + (top + plotH + 16) + '" text-anchor="middle" font-size="9.5" fill="' + MUTED + '">' + Math.floor(hour / 60) + 'h</text>';
+    }
+    out += '<line x1="' + left + '" y1="' + top + '" x2="' + left + '" y2="' + (top + plotH) + '" stroke="' + AXIS + '"/>';
+    out += '<line x1="' + left + '" y1="' + (top + plotH) + '" x2="' + (left + plotW) + '" y2="' + (top + plotH) + '" stroke="' + AXIS + '"/>';
+    out += '<line x1="' + left + '" y1="' + sy(1).toFixed(1) + '" x2="' + (left + plotW) + '" y2="' + sy(1).toFixed(1) + '" stroke="#94a3b8" stroke-dasharray="4 3"/>';
+    let path = '';
+    segments.forEach((segment, index) => {
+      const next = index + 1 < segments.length ? segments[index + 1].minute : maxMinute;
+      const x1 = sx(segment.minute), x2 = sx(next), y = sy(segment.multiplier);
+      path += (index === 0 ? 'M' : 'L') + x1.toFixed(1) + ',' + y.toFixed(1) + 'L' + x2.toFixed(1) + ',' + y.toFixed(1);
+    });
+    out += '<path d="' + path + '" fill="none" stroke="#0f766e" stroke-width="2.2"/>';
+    segments.forEach(segment => {
+      out += '<circle cx="' + sx(segment.minute).toFixed(1) + '" cy="' + sy(segment.multiplier).toFixed(1) + '" r="2.6" fill="#fff" stroke="#0f766e" stroke-width="1.6">' +
+        '<title>' + esc('minute ' + segment.minute + ' → ×' + fmt(segment.multiplier, 2)) + '</title></circle>';
+    });
+    out += '<text x="' + (left + plotW / 2) + '" y="' + (height - 4) + '" text-anchor="middle" font-size="10" fill="' + INK + '">minute of the modelled day</text>';
+    out += '<text transform="translate(12,' + (top + plotH / 2) + ') rotate(-90)" text-anchor="middle" font-size="10" fill="' + INK + '">arrival multiplier</text>';
+    return out + '</svg>';
+  }
+
+  // ------------------------------------------------------------------
+  // data bootstrap
+  // ------------------------------------------------------------------
+  async function loadData() {
+    if (window.DEMO_DATA) return window.DEMO_DATA;
+    // http(s) fallback: file:// blocks fetch, which is why bundle.js exists.
+    const get = async name => {
+      const response = await fetch('data/' + name, { cache: 'no-store' });
+      if (!response.ok) throw new Error(name + ': HTTP ' + response.status);
+      return response.json();
+    };
+    const data = {};
+    data.manifest = await get('manifest.json');
+    data.scenarios = await get('scenarios.json');
+    data.demand_slider = await get('demand_slider.json');
+    for (const item of data.manifest.files.timelines) {
+      data[item.file.replace(/\.json$/, '')] = await get(item.file);
+    }
+    return data;
+  }
+
+  // ------------------------------------------------------------------
+  // panel 1: scenarios x policies
+  // ------------------------------------------------------------------
+  const state = {
+    tab: 'scenarios',
+    scenario: null,
+    metric: 'profit_per_hour',
+    policies: new Set(['synchro+fcfs', 'synchro+fast', 'split+fcfs', 'split+fast']),
+    peakIndex: 3,
+    timelineIndex: 0,
+    time: 0,
+    playing: false,
+    speed: 1
+  };
+  let DATA = null;
+
+  function scenarioRecord() {
+    return DATA.scenarios.scenarios.find(item => item.name === state.scenario);
+  }
+  function metricDef(key) {
+    return METRICS.find(item => item[0] === key) || METRICS[0];
+  }
+  function policyMetrics(scenario, key) {
+    const entry = scenario.policies.find(item => item.key === key);
+    return entry ? entry.metrics : {};
+  }
+
+  function renderScenarioList() {
+    const list = $('#scenarioList');
+    list.innerHTML = DATA.scenarios.scenarios.map(item => {
+      const uncertainty = (item.provenance && item.provenance.uncertainty) || '?';
+      return '<button type="button" class="scenario-btn" data-scenario="' + esc(item.name) + '" aria-pressed="' +
+        (item.name === state.scenario) + '"><span class="nm">' + esc(item.name) + '</span>' +
+        '<span class="tt">' + esc(item.title) + '</span>' +
+        '<span class="small muted">uncertainty: ' + esc(uncertainty) + '</span></button>';
+    }).join('');
+    $$('.scenario-btn', list).forEach(button => {
+      button.addEventListener('click', () => {
+        state.scenario = button.getAttribute('data-scenario');
+        renderScenarioPanel();
+      });
+    });
+  }
+
+  function renderMetricTabs() {
+    $('#metricTabs').innerHTML = METRICS.map(item =>
+      '<button type="button" data-metric="' + item[0] + '" aria-pressed="' + (item[0] === state.metric) + '">' + esc(item[1].split(' (')[0]) + '</button>'
+    ).join('');
+    $$('#metricTabs button').forEach(button => {
+      button.addEventListener('click', () => { state.metric = button.getAttribute('data-metric'); renderScenarioPanel(); });
+    });
+  }
+
+  function renderPolicyToggles() {
+    const keys = DATA.scenarios.policies;
+    $('#policyToggles').innerHTML = keys.map(key =>
+      '<button type="button" class="chip" data-policy="' + esc(key) + '" aria-pressed="' + state.policies.has(key) + '">' +
+      '<i style="background:' + PALETTE[key] + '"></i>' + esc(SHORT[key]) + '</button>'
+    ).join('');
+    $$('#policyToggles .chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const key = chip.getAttribute('data-policy');
+        if (state.policies.has(key)) state.policies.delete(key); else state.policies.add(key);
+        if (!state.policies.size) state.policies.add(key); // never empty
+        renderScenarioPanel();
+      });
+    });
+  }
+
+  function renderCards(scenario) {
+    const config = scenario.config;
+    const metricKey = state.metric;
+    const definition = metricDef(metricKey);
+    const cards = [];
+    cards.push(['Daily arrival rate', fmt(config.arrival_rate, 2) + ' /min', 'after daily-mean normalisation']);
+    cards.push(['Crew', String(config.workers) + ' staff', config.stations.length ? config.stations.length + ' stations' : 'single clerk pool']);
+    cards.push(['Utilisation (theory)', pct(config.util_theory, 1), 'λ·p̄ / m']);
+    cards.push(['Peak multiplier', '×' + fmt(config.demand_peak, 1), config.legacy_compat ? 'v1-equivalent config' : 'demand layer on']);
+    cards.push(['Variability', config.variability, 'service-time CVs']);
+    cards.push(['Layers', [config.has_inventory ? 'inventory' : '', config.pricing ? 'pricing' : '', config.sla ? 'SLA' : '']
+      .filter(Boolean).join(' · ') || 'demand / network / classes', 'optional v2 layers']);
+    const metrics = policyMetrics(scenario, 'synchro+fcfs');
+    cards.push([definition[1], definition[2](metrics[metricKey]), 'for the synchro + FCFS policy']);
+    $('#scenarioCards').innerHTML = cards.map(item =>
+      '<div class="stat"><div class="label">' + esc(item[0]) + '</div><div class="value">' + esc(item[1]) +
+      '</div><div class="hint">' + esc(item[2]) + '</div></div>').join('');
+  }
+
+  function renderScenarioConfig(scenario) {
+    const config = scenario.config;
+    const rows = [
+      ['name', config.name], ['workers', config.workers], ['arrival rate (daily mean)', fmt(config.arrival_rate, 3) + ' /min'],
+      ['simulated day', fmt(config.sim_minutes, 0) + ' min, warm-up ' + fmt(config.warmup_minutes, 0) + ' min'],
+      ['mean service time', fmt(config.mean_service_time, 2) + ' staff-min / customer'],
+      ['demand segments', config.demand.map(s => '×' + fmt(s.multiplier, 2) + ' from ' + fmt(s.minute, 0) + ' min').join(' · ')],
+      ['batch arrivals', config.batch_probability ? 'p = ' + fmt(config.batch_probability, 2) : 'none'],
+      ['customer classes', config.classes.join(', ')],
+      ['stations', config.stations.length ? config.stations.map(s => s.name + '×' + s.capacity).join(', ') : 'legacy single pool'],
+      ['staff', config.staff ? config.staff.roles.map((role, index) => role + '×' + config.staff.counts[index] + ' (' + config.staff.skills[index].join('/') + ')').join(', ') : 'n/a'],
+      ['legacy-compatible', config.legacy_compat ? 'yes (exact v1 model)' : 'no (v2 layers active)']
+    ];
+    $('#scenarioConfig').innerHTML = rows.map(row => '<dt>' + esc(row[0]) + '</dt><dd>' + esc(row[1]) + '</dd>').join('');
+    const provenance = scenario.provenance || {};
+    $('#scenarioProvenanceDetail').innerHTML =
+      '<dl class="kv">' +
+      ['source', 'method', 'uncertainty', 'notes'].map(key =>
+        '<dt>' + key + '</dt><dd>' + esc(provenance[key] || '–') + '</dd>').join('') + '</dl>';
+  }
+
+  function renderPolicyChart(scenario) {
+    const definition = metricDef(state.metric);
+    const keys = DATA.scenarios.policies;
+    const values = keys.map(key => policyMetrics(scenario, key)[state.metric]);
+    const colors = keys.map(key => state.policies.has(key) ? PALETTE[key] : '#cbd5e1');
+    $('#chartPolicies').innerHTML = barsChart({
+      width: 760, height: 300, title: scenario.name + ' — ' + definition[1] + ' by policy',
+      categories: keys.map(key => SHORT[key]), values: values, colors: colors,
+      yLabel: definition[1], format: value => definition[2](value)
+    });
+    $('#capPolicies').innerHTML = 'One point per policy for the selected scenario (' +
+      (DATA.scenarios.meta.reps) + ' replicates, seeds 0–' + (DATA.scenarios.meta.reps - 1) +
+      '). Grey bars are policies switched off in the comparison.' +
+      '<span class="src">demo/data/scenarios.json · generated by analysis/build_demo_data.py</span>';
+  }
+
+  function renderCompareChart() {
+    const definition = metricDef(state.metric);
+    const keys = DATA.scenarios.policies.filter(key => state.policies.has(key));
+    const rows = DATA.scenarios.scenarios.map(scenario => ({
+      label: scenario.name.length > 22 ? scenario.name.slice(0, 21) + '…' : scenario.name,
+      highlight: scenario.name === state.scenario,
+      values: keys.map(key => policyMetrics(scenario, key)[state.metric])
+    })).sort((a, b) => {
+      const av = a.values[0] === null ? -Infinity : a.values[0];
+      const bv = b.values[0] === null ? -Infinity : b.values[0];
+      return bv - av;
+    });
+    $('#chartCompare').innerHTML = groupedHBar({
+      width: 760, title: 'All scenarios — ' + definition[1],
+      rows: rows, series: keys.map(key => ({ label: SHORT[key], color: PALETTE[key] })),
+      xLabel: definition[1], format: value => definition[2](value)
+    });
+    $('#capCompare').innerHTML = 'Every scenario in <span class="mono">data/scenarios/</span>, sorted by the first selected policy. ' +
+      'The highlighted row is the scenario selected on the left; click a scenario to relink this chart, the policy chart and the table.' +
+      '<span class="src">demo/data/scenarios.json</span>';
+  }
+
+  function renderScenarioDemand(scenario) {
+    const config = scenario.config;
+    $('#chartDemand').innerHTML = stepChart({
+      width: 760, height: 220, maxMinute: config.sim_minutes,
+      segments: config.demand, title: scenario.name + ' — intra-day demand multiplier'
+    });
+  }
+
+  function renderScenarioTable(scenario) {
+    const keys = DATA.scenarios.policies.filter(key => state.policies.has(key));
+    const columns = [['util', 'Util', pct], ['mean_los', 'Mean LOS (min)', v => fmt(v, 2)],
+      ['los_p95', 'p95 (min)', v => fmt(v, 2)], ['balk_rate', 'Balk', v => pct(v, 1)],
+      ['profit_per_hour', 'Profit/h', v => fmt(v, 1)], ['served', 'Served', v => fmt(v, 0)],
+      ['revenue_per_hour', 'Revenue/h', v => fmt(v, 1)]];
+    let html = '<table><caption>' + esc(scenario.name) + ' — metrics by policy</caption><thead><tr><th class="l">Policy</th>' +
+      columns.map(column => '<th>' + esc(column[1]) + '</th>').join('') + '</tr></thead><tbody>';
+    keys.forEach(key => {
+      const metrics = policyMetrics(scenario, key);
+      html += '<tr><td class="l"><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:' +
+        PALETTE[key] + ';margin-right:6px"></span>' + esc(SHORT[key]) + '</td>' +
+        columns.map(column => '<td>' + esc(column[2](metrics[column[0]])) + '</td>').join('') + '</tr>';
+    });
+    html += '</tbody></table>';
+    $('#scenarioTable').innerHTML = html;
+    $('#scenarioTableNote').textContent = 'Means of ' + DATA.scenarios.meta.reps +
+      ' replicates (seed 0–' + (DATA.scenarios.meta.reps - 1) + '); the v2 report uses 100 replicates per cell. ' +
+      'Balk = share of arrivals that left without ordering (balking + reneging + stock-out) / arrivals.';
+  }
+
+  function renderScenarioPanel() {
+    const scenario = scenarioRecord();
+    if (!scenario) return;
+    $('#scenarioTitle').textContent = scenario.name + ' — ' + scenario.title;
+    const provenance = scenario.provenance || {};
+    $('#scenarioProvenance').textContent = 'Provenance: ' + (provenance.source || 'n/a') +
+      ' · uncertainty: ' + (provenance.uncertainty || 'n/a');
+    renderScenarioList();
+    renderMetricTabs();
+    renderPolicyToggles();
+    renderCards(scenario);
+    renderScenarioConfig(scenario);
+    renderPolicyChart(scenario);
+    renderCompareChart();
+    renderScenarioDemand(scenario);
+    renderScenarioTable(scenario);
+  }
+
+  // ------------------------------------------------------------------
+  // panel 2: demand slider
+  // ------------------------------------------------------------------
+  function renderDemandPanel() {
+    const slider = DATA.demand_slider;
+    const point = slider.points[state.peakIndex];
+    const metrics = point.metrics;
+    $('#peakValue').textContent = '×' + fmt(point.peak, 2);
+    const cards = [
+      ['Day-average utilisation', pct(metrics.util, 1), 'barely moves with peakiness'],
+      ['Peak-hour busy ratio', pct(metrics.util_peak_hour, 1), 'max over hours'],
+      ['p95 time in system', fmt(metrics.los_p95, 2) + ' min', 'the tail pays for the peak'],
+      ['Walk-away rate', pct(metrics.balk_rate, 1), 'share of arrivals'],
+      ['Profit per hour', fmt(metrics.profit_per_hour, 1), 'waiting cost + wages netted'],
+      ['Served per day', fmt(metrics.served, 0), 'daily mean demand held fixed']
+    ];
+    $('#demandCards').innerHTML = cards.map(item =>
+      '<div class="stat"><div class="label">' + esc(item[0]) + '</div><div class="value">' + esc(item[1]) +
+      '</div><div class="hint">' + esc(item[2]) + '</div></div>').join('');
+
+    $('#chartDemandCurve').innerHTML = barsChart({
+      width: 400, height: 240, title: 'Expected arrivals / hour',
+      categories: point.hourly.map(row => row.hour + 'h'),
+      values: point.hourly.map(row => row.expected_arrivals),
+      colors: point.hourly.map(() => '#0d9488'), yLabel: 'customers / hour',
+      format: value => fmt(value, 0), valueLabels: false
+    });
+
+    const xs = slider.points.map(item => item.peak);
+    const p95 = slider.points.map(item => item.metrics.los_p95);
+    const balk = slider.points.map(item => item.metrics.balk_rate);
+    const profit = slider.points.map(item => item.metrics.profit_per_hour);
+    $('#chartDemandP95').innerHTML = lineChart({
+      width: 400, height: 240, title: 'p95 LOS (min)', xLabel: 'peak multiplier', yLabel: 'minutes',
+      series: [{ label: 'p95', color: '#b45309', points: xs.map((x, i) => [x, p95[i]]) }],
+      xRange: [1, 2], markerX: point.peak, legend: false,
+      xFormat: value => '×' + fmt(value, 1), yFormat: value => fmt(value, 1)
+    });
+    $('#chartDemandBalk').innerHTML = lineChart({
+      width: 400, height: 240, title: 'Walk-away rate', xLabel: 'peak multiplier', yLabel: 'share',
+      series: [{ label: 'balk', color: '#e11d48', points: xs.map((x, i) => [x, balk[i]]) }],
+      xRange: [1, 2], markerX: point.peak, legend: false,
+      xFormat: value => '×' + fmt(value, 1), yFormat: value => pct(value, 0)
+    });
+    $('#chartDemandProfit').innerHTML = lineChart({
+      width: 760, height: 280, title: 'Profit per hour vs peakiness (daily mean fixed)',
+      xLabel: 'peak multiplier (1.0 = flat day)', yLabel: 'profit / hour',
+      series: [{ label: 'profit/h', color: '#0f766e', points: xs.map((x, i) => [x, profit[i]]) }],
+      xRange: [1, 2], markerX: point.peak, legend: false,
+      xFormat: value => '×' + fmt(value, 1), yFormat: value => fmt(value, 0)
+    });
+    $('#demandNote').textContent = 'Base scenario: ' + slider.meta.base_scenario + ' · ' +
+      slider.meta.reps + ' replicates per point (seed 0–' + (slider.meta.reps - 1) + ') · ' +
+      'daily arrival rate held at ' + fmt(point.arrival_rate_daily_mean, 3) + '/min for every point. ' +
+      'Same total demand, different shape: this is why the v2 report compares peak and average load separately.';
+  }
+
+  // ------------------------------------------------------------------
+  // panel 3: timeline animation
+  // ------------------------------------------------------------------
+  let timeline = null;   // {customers, lanes, kinds, meta, summary, ...}
+  let timelineView = null; // rendered elements/geometry
+  let raf = null;
+  let lastFrame = 0;
+
+  function timelineOptions() {
+    return DATA.manifest.files.timelines.map((item, index) => ({
+      index: index,
+      key: item.file.replace(/\.json$/, ''),
+      scenario: item.scenario,
+      policy: item.policy
+    }));
+  }
+
+  function currentTimeline() {
+    const options = timelineOptions();
+    const option = options[state.timelineIndex] || options[0];
+    return DATA[option.key];
+  }
+
+  function prepareTimeline() {
+    timeline = currentTimeline();
+    const customers = timeline.customers;
+    const minutes = Math.ceil(timeline.meta.sim_minutes);
+
+    // Per-minute cumulative counters and queue length.
+    const arrived = new Array(minutes + 2).fill(0);
+    const served = new Array(minutes + 2).fill(0);
+    const leftEarly = new Array(minutes + 2).fill(0);
+    const stranded = new Array(minutes + 2).fill(0);
+    const queueDelta = new Array(minutes + 2).fill(0);
+    const clamp = value => Math.min(minutes + 1, Math.max(0, Math.floor(value)));
+    customers.forEach(customer => {
+      const a = customer[0], s = customer[1], end = customer[2], status = customer[4];
+      arrived[clamp(a)] += 1;
+      queueDelta[clamp(a)] += 1;
+      const leave = s !== null && s !== undefined ? s : end;
+      if (leave !== null && leave !== undefined) queueDelta[clamp(leave)] -= 1;
+      const exit = clamp(end === null || end === undefined ? a : end);
+      if (status === 0) served[exit] += 1;
+      else if (status === 4) stranded[exit] += 1;
+      else leftEarly[exit] += 1;
+    });
+    for (let m = 1; m <= minutes + 1; m++) {
+      arrived[m] += arrived[m - 1];
+      served[m] += served[m - 1];
+      leftEarly[m] += leftEarly[m - 1];
+      stranded[m] += stranded[m - 1];
+      queueDelta[m] += queueDelta[m - 1];
+    }
+    timelineView = {
+      minutes: minutes,
+      queue: queueDelta,
+      arrived: arrived,
+      served: served,
+      left: leftEarly,
+      stranded: stranded,
+      width: 1040, height: 0,
+      leftPad: 96, rightPad: 24,
+      queueTop: 30, queueHeight: 104,
+      laneTop: 178, laneHeight: 46, laneGap: 10,
+      playhead: null, clipRect: null, container: null, jobSlots: []
+    };
+    const laneCount = timeline.lanes.length;
+    timelineView.height = timelineView.laneTop + laneCount * (timelineView.laneHeight + timelineView.laneGap) + 44;
+
+    // Greedy slot assignment: each job takes the first free capacity slot of
+    // its station, so the lanes show genuine parallel occupancy.
+    const slotFree = timeline.lanes.map(lane => new Array(Math.max(1, lane.capacity)).fill(0));
+    timelineView.jobSlots = timeline.jobs.map(job => {
+      const lane = Math.min(job[2], timeline.lanes.length - 1);
+      const start = job[0], end = job[1];
+      const free = slotFree[lane];
+      let chosen = -1;
+      for (let slot = 0; slot < free.length; slot++) {
+        if (free[slot] <= start + 1e-9) { chosen = slot; break; }
+      }
+      if (chosen < 0) {
+        chosen = 0;
+        for (let slot = 1; slot < free.length; slot++) if (free[slot] < free[chosen]) chosen = slot;
+      }
+      free[chosen] = end;
+      return [lane, chosen];
+    });
+    renderTimelineSvg();
+  }
+
+  function renderTimelineSvg() {
+    const view = timelineView;
+    const width = view.width, height = view.height;
+    const x = scale(0, view.minutes, view.leftPad, width - view.rightPad);
+    const maxQueue = Math.max.apply(null, view.queue) || 1;
+    const qy = scale(0, maxQueue * 1.1, view.queueTop + view.queueHeight, view.queueTop);
+    let out = svgOpen(width, height, 'Queue length and station occupancy over the modelled day');
+    out += '<defs><clipPath id="tl-clip"><rect x="0" y="0" width="0" height="' + height + '"/></clipPath></defs>';
+    out += '<rect width="' + width + '" height="' + height + '" fill="#fff"/>';
+
+    // queue band (a faint full-day outline, then the revealed area inside the clip)
+    out += '<text x="' + view.leftPad + '" y="18" font-size="12.5" font-weight="650" fill="' + INK + '">Customers waiting</text>';
+    niceTicks(0, maxQueue * 1.1, 3).forEach(t => {
+      const y = qy(t);
+      out += '<line x1="' + view.leftPad + '" y1="' + y.toFixed(1) + '" x2="' + (width - view.rightPad) + '" y2="' + y.toFixed(1) + '" stroke="' + GRID + '"/>';
+      out += '<text x="' + (view.leftPad - 8) + '" y="' + (y + 4).toFixed(1) + '" text-anchor="end" font-size="10" fill="' + MUTED + '">' + esc(fmt(t, 0)) + '</text>';
+    });
+    out += '<line x1="' + view.leftPad + '" y1="' + (view.queueTop + view.queueHeight) + '" x2="' + (width - view.rightPad) + '" y2="' + (view.queueTop + view.queueHeight) + '" stroke="' + AXIS + '"/>';
+    let queueLine = 'M' + x(0).toFixed(1) + ',' + qy(view.queue[0]).toFixed(1);
+    for (let m = 0; m <= view.minutes; m++) {
+      queueLine += 'L' + x(m).toFixed(1) + ',' + qy(view.queue[m]).toFixed(1);
+    }
+    out += '<path d="' + queueLine + '" fill="none" stroke="#0f766e" stroke-width="1" opacity="0.22"/>';
+    const queuePath = queueLine +
+      'L' + x(view.minutes).toFixed(1) + ',' + (view.queueTop + view.queueHeight) +
+      'L' + x(0).toFixed(1) + ',' + (view.queueTop + view.queueHeight) + 'Z';
+    out += '<g clip-path="url(#tl-clip)"><path d="' + queuePath + '" fill="#ccfbf1" stroke="#0f766e" stroke-width="1.4"/></g>';
+
+    // lanes
+    const lanes = timeline.lanes;
+    lanes.forEach((lane, index) => {
+      const y0 = view.laneTop + index * (view.laneHeight + view.laneGap);
+      out += '<text x="' + (view.leftPad - 9) + '" y="' + (y0 + 16) + '" text-anchor="end" font-size="10.5" fill="#334155" font-weight="600">' + esc(lane.name) + '</text>';
+      out += '<text x="' + (view.leftPad - 9) + '" y="' + (y0 + 29) + '" text-anchor="end" font-size="9" fill="' + MUTED + '">cap ' + lane.capacity + '</text>';
+      out += '<rect x="' + view.leftPad + '" y="' + y0 + '" width="' + (width - view.leftPad - view.rightPad) +
+        '" height="' + view.laneHeight + '" rx="5" fill="#f8fafc" stroke="#eef2f7"/>';
+      // lane capacity slots as faint rows
+      for (let slot = 1; slot < lane.capacity; slot++) {
+        const slotY = y0 + (view.laneHeight / lane.capacity) * slot;
+        out += '<line x1="' + view.leftPad + '" y1="' + slotY.toFixed(1) + '" x2="' + (width - view.rightPad) + '" y2="' + slotY.toFixed(1) + '" stroke="#eef2f7"/>';
+      }
+    });
+    // service blocks per station (exact job records, inside the clip)
+    const axisY = view.laneTop + lanes.length * (view.laneHeight + view.laneGap) + 12;
+    out += '<g clip-path="url(#tl-clip)">';
+    timeline.jobs.forEach((job, index) => {
+      const start = job[0], end = job[1], kind = job[3];
+      const slot = view.jobSlots[index] || [Math.min(job[2], lanes.length - 1), 0];
+      const lane = lanes[slot[0]];
+      const y0 = view.laneTop + slot[0] * (view.laneHeight + view.laneGap);
+      const slotHeight = view.laneHeight / Math.max(lane.capacity, 1);
+      out += '<rect x="' + x(start).toFixed(1) + '" y="' + (y0 + 2 + slot[1] * slotHeight).toFixed(1) +
+        '" width="' + Math.max(0.6, x(end) - x(start)).toFixed(1) + '" height="' + Math.max(2, slotHeight - 3).toFixed(1) +
+        '" rx="1" fill="' + KIND_COLORS[kind] + '" opacity="0.82"><title>' +
+        esc(lane.name + ' · ' + timeline.kinds[kind] + ' job, customer ' + job[4] + ', minute ' + fmt(start, 1) + '–' + fmt(end, 1)) +
+        '</title></rect>';
+    });
+    // abandonment markers, just under the lanes
+    timeline.customers.forEach(customer => {
+      const status = customer[4];
+      if (status === 0) return;
+      const t = customer[2] === null || customer[2] === undefined ? customer[0] : customer[2];
+      out += '<circle cx="' + x(t).toFixed(1) + '" cy="' + (axisY - 8).toFixed(1) + '" r="1.7" fill="' +
+        STATUS_COLORS[Math.min(status, 4)] + '"><title>' + esc('customer ' + customer[5] + ' ' + timeline.status[status] + ' at ' + fmt(t, 1) + ' min') + '</title></circle>';
+    });
+    out += '</g>';
+
+    // axis (clock labels; the shop opens at 09:00)
+    out += '<line x1="' + view.leftPad + '" y1="' + axisY + '" x2="' + (width - view.rightPad) + '" y2="' + axisY + '" stroke="' + AXIS + '"/>';
+    for (let hour = 0; hour <= view.minutes; hour += 60) {
+      const px = x(hour);
+      out += '<line x1="' + px.toFixed(1) + '" y1="' + axisY + '" x2="' + px.toFixed(1) + '" y2="' + (axisY + 4) + '" stroke="' + AXIS + '"/>';
+      out += '<text x="' + px.toFixed(1) + '" y="' + (axisY + 17) + '" text-anchor="middle" font-size="10" fill="' + MUTED + '">' + timelineClock(hour) + '</text>';
+    }
+    out += '<text x="' + (width - view.rightPad) + '" y="' + (axisY + 17) + '" text-anchor="end" font-size="10" fill="' + MUTED + '">shop clock</text>';
+
+    // playhead
+    out += '<line id="tl-playhead" x1="' + view.leftPad + '" y1="' + (view.queueTop - 6) + '" x2="' + view.leftPad + '" y2="' + axisY +
+      '" stroke="#0f172a" stroke-width="1.4"/>';
+    out += '<text id="tl-clock" x="' + (width - view.rightPad) + '" y="18" text-anchor="end" font-size="10.5" fill="#0f172a" font-family="monospace"></text>';
+    out += '</svg>';
+    $('#timelineChart').innerHTML = out;
+    view.clipRect = document.querySelector('#tl-clip rect');
+    view.playhead = $('#tl-playhead');
+    const xScale = x;
+    view.xScale = xScale;
+    view.axisY = axisY;
+    applyTimelineTime();
+  }
+
+  function timelineClock(minute) {
+    const total = 9 * 60 + minute;
+    const hours = Math.floor(total / 60) % 24;
+    const mins = Math.floor(total % 60);
+    return (hours < 10 ? '0' : '') + hours + ':' + (mins < 10 ? '0' : '') + mins;
+  }
+
+  function indexAt(minute) {
+    return Math.max(0, Math.min(timelineView.minutes, Math.floor(minute)));
+  }
+
+  function applyTimelineTime() {
+    if (!timelineView) return;
+    const view = timelineView;
+    const minute = state.time;
+    const px = view.xScale(minute);
+    if (view.clipRect) view.clipRect.setAttribute('width', Math.max(0, px).toFixed(1));
+    if (view.playhead) {
+      view.playhead.setAttribute('x1', px.toFixed(1));
+      view.playhead.setAttribute('x2', px.toFixed(1));
+    }
+    const clockLabel = $('#tl-clock');
+    if (clockLabel) clockLabel.textContent = 't = ' + fmt(minute, 0) + ' min (' + timelineClock(minute) + ')';
+    $('#clockRead').textContent = 't = ' + fmt(minute, 0) + ' min (' + timelineClock(minute) + ')';
+    const index = indexAt(minute);
+    const waiting = view.queue[index];
+    const inShop = view.arrived[index] - view.served[index] - view.left[index] - view.stranded[index];
+    const counters = [
+      ['Arrived', fmt(view.arrived[index], 0), ''],
+      ['Waiting now', fmt(waiting, 0), 'queued but not started'],
+      ['Served', fmt(view.served[index], 0), 'finished by now'],
+      ['Left early', fmt(view.left[index], 0), 'balk / renege / stock-out'],
+      ['In shop', fmt(inShop, 0), 'arrived − served − left − stranded']
+    ];
+    $('#timelineCounters').innerHTML = counters.map(item =>
+      '<div class="counter"><div class="k">' + esc(item[0]) + '</div><div class="v">' + esc(item[1]) +
+      '</div><div class="hint small muted">' + esc(item[2]) + '</div></div>').join('');
+  }
+
+  function playLoop(timestamp) {
+    if (!state.playing) { raf = null; return; }
+    if (!lastFrame) lastFrame = timestamp;
+    const dt = Math.min(0.25, (timestamp - lastFrame) / 1000);
+    lastFrame = timestamp;
+    state.time += dt * 12 * state.speed; // 1x = 12 simulated minutes per real second
+    if (state.time >= timelineView.minutes) {
+      state.time = timelineView.minutes;
+      setPlaying(false);
+    }
+    $('#clockSlider').value = String(state.time);
+    applyTimelineTime();
+    raf = window.requestAnimationFrame(playLoop);
+  }
+
+  function setPlaying(flag) {
+    state.playing = flag;
+    const button = $('#playBtn');
+    button.textContent = flag ? '❚❚ Pause' : '▶ Play';
+    button.setAttribute('aria-pressed', String(flag));
+    if (flag) {
+      if (state.time >= timelineView.minutes) state.time = 0;
+      lastFrame = 0;
+      if (!raf) raf = window.requestAnimationFrame(playLoop);
+    } else if (raf) {
+      window.cancelAnimationFrame(raf);
+      raf = null;
+    }
+  }
+
+  function renderTimelinePanel(reset) {
+    const options = timelineOptions();
+    const select = $('#timelineSelect');
+    select.innerHTML = options.map(option =>
+      '<option value="' + option.index + '">' + esc(option.scenario + ' — ' + option.policy) + '</option>').join('');
+    select.value = String(state.timelineIndex);
+    if (reset) {
+      state.time = 0;
+      setPlaying(false);
+      $('#clockSlider').value = '0';
+    }
+    prepareTimeline();
+    const info = timeline.summary;
+    $('#timelineCaption').textContent = timeline.meta.scenario + ' · ' + timeline.meta.policy +
+      ' · one traced replicate (seed ' + timeline.meta.seed + ') · ' + fmt(info.arrivals, 0) + ' arrivals, ' +
+      fmt(info.served, 0) + ' served, ' + fmt(info.balked + info.reneged + info.stockout, 0) +
+      ' left early, mean LOS ' + fmt(info.mean_los, 2) + ' min.';
+    const legend = [];
+    timeline.kinds.forEach((kind, index) => legend.push(['box', KIND_COLORS[index], kind + ' job']));
+    legend.push(['box', STATUS_COLORS[1], 'left early']);
+    $('#timelineLegend').innerHTML = legend.map(item =>
+      '<span><i class="box" style="background:' + item[1] + '"></i>' + esc(item[2]) + '</span>').join('');
+    $('#timelineNote').textContent = 'Each bar is one engine job: the cashier step ("order") plus the make steps at the ' +
+      'station the component is routed to. Bars sit in the station slot they actually occupied (the engine records ' +
+      'start and finish of every job). Dots under the lanes are customers who left without being served. The trace is ' +
+      'precomputed by analysis/build_demo_data.py — the browser only replays it.';
+  }
+
+  // ------------------------------------------------------------------
+  // tabs + bootstrap
+  // ------------------------------------------------------------------
+  function showTab(tab) {
+    state.tab = tab;
+    ['scenarios', 'demand', 'timeline'].forEach(name => {
+      const panel = $('#panel-' + name);
+      const button = $('#tab-' + name);
+      const active = name === tab;
+      panel.hidden = !active;
+      button.setAttribute('aria-selected', String(active));
+    });
+    if (tab === 'scenarios') renderScenarioPanel();
+    if (tab === 'demand') renderDemandPanel();
+    if (tab === 'timeline') renderTimelinePanel(true);
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState(null, '', '#' + tab);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function tabFromHash() {
+    const hash = String(window.location.hash || '').replace('#', '');
+    return ['scenarios', 'demand', 'timeline'].indexOf(hash) >= 0 ? hash : 'scenarios';
+  }
+
+  function wireControls() {
+    $('#tab-scenarios').addEventListener('click', () => showTab('scenarios'));
+    $('#tab-demand').addEventListener('click', () => showTab('demand'));
+    $('#tab-timeline').addEventListener('click', () => showTab('timeline'));
+    $('#peakSlider').addEventListener('input', event => {
+      state.peakIndex = Number(event.target.value);
+      renderDemandPanel();
+    });
+    $('#timelineSelect').addEventListener('change', event => {
+      state.timelineIndex = Number(event.target.value);
+      renderTimelinePanel(true);
+    });
+    $('#playBtn').addEventListener('click', () => setPlaying(!state.playing));
+    $('#speedSelect').addEventListener('change', event => { state.speed = Number(event.target.value); });
+    $('#clockSlider').addEventListener('input', event => {
+      setPlaying(false);
+      state.time = Number(event.target.value);
+      applyTimelineTime();
+    });
+  }
+
+  async function main() {
+    try {
+      DATA = await loadData();
+    } catch (error) {
+      const box = $('#error');
+      box.hidden = false;
+      box.innerHTML = '<b>Could not load the precomputed demo data.</b><br>' + esc(String(error)) +
+        '<br><br>Run <span class="mono">python analysis/build_demo_data.py</span> from the repository root, then reload this page. ' +
+        'Opening <span class="mono">demo/index.html</span> directly from disk needs <span class="mono">demo/data/bundle.js</span> ' +
+        'because browsers block <span class="mono">fetch()</span> on <span class="mono">file://</span> pages.';
+      $('#heroMeta').textContent = 'precomputed data missing';
+      return;
+    }
+    const manifest = DATA.manifest;
+    $('#heroMeta').textContent = 'precomputed ' + manifest.package_version + ' · Python ' +
+      manifest.python_version + ' · generated ' + manifest.generated_at;
+    $('#badgeVersion').textContent = 'bubble_tea_sim ' + manifest.package_version;
+    $('#badgeGenerated').textContent = 'generated ' + manifest.generated_at;
+    const note = $('#globalNote');
+    note.hidden = false;
+    note.innerHTML = '<b>Precomputed demo.</b> Every number on this page comes from ' +
+      '<span class="mono">demo/data/*.json</span> (' + manifest.scenario_reps + ' replicates for the scenario matrix, ' +
+      manifest.slider_reps + ' for the slider, one traced day for the animation). The browser does not run the ' +
+      'discrete-event simulation; rerun <span class="mono">python analysis/build_demo_data.py</span> to regenerate. ' +
+      'The v2 report (<a href="../docs/index.html">docs/index.html</a>) is the authoritative, script-free version.';
+    state.scenario = (DATA.scenarios.scenarios.find(item => item.name === 'campus_rush') || DATA.scenarios.scenarios[0]).name;
+    state.peakIndex = Math.min(3, DATA.demand_slider.points.length - 1);
+    wireControls();
+    renderScenarioPanel();
+    renderDemandPanel();
+    renderTimelinePanel(true);
+    showTab(tabFromHash());
+    // Deep link to a moment of the traced day: demo/index.html?t=300#timeline
+    const initialTime = Number(new URLSearchParams(window.location.search || '').get('t'));
+    if (Number.isFinite(initialTime) && timelineView) {
+      state.time = Math.max(0, Math.min(timelineView.minutes, initialTime));
+      $('#clockSlider').value = String(state.time);
+      applyTimelineTime();
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', main);
+  } else {
+    main();
+  }
+})();
+</script>
+</body>
+</html>

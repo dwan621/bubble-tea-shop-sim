@@ -1,0 +1,53 @@
+{
+ "schema_version": 1, 
+ "generated_at": "2026-11-15T18:48:01Z", 
+ "package_version": "2.0.0", 
+ "python_version": "3.14.5", 
+ "engine": "bubble_tea_sim.engine.Simulation (standard library only)", 
+ "generator": "analysis/build_demo_data.py", 
+ "note": "Every number in demo/data was precomputed by the Python engine. The browser only repaints these values; it never runs the simulation.", 
+ "loading": "demo/index.html loads data/bundle.js (a classic script, allowed from file://) which mirrors these JSON files; fetch() of local JSON is blocked by browser CORS rules.", 
+ "scenario_reps": 5, 
+ "slider_reps": 6, 
+ "files": {
+  "scenarios": "scenarios.json", 
+  "demand_slider": "demand_slider.json", 
+  "timelines": [
+   {
+    "file": "timeline-synchro-fast.json", 
+    "scenario": "flagship_five_staff", 
+    "policy": "synchro+fast-priority"
+   }, 
+   {
+    "file": "timeline-split-fast.json", 
+    "scenario": "flagship_five_staff", 
+    "policy": "split+fast-priority"
+   }
+  ]
+ }, 
+ "sizes_bytes": {
+  "scenarios.json": 45099, 
+  "demand_slider.json": 6390, 
+  "timeline-synchro-fast.json": 67221, 
+  "timeline-split-fast.json": 67177
+ }, 
+ "total_bytes": 185887, 
+ "scenarios": [
+  "baseline_flat", 
+  "bread_counter_bottleneck", 
+  "campus_rush", 
+  "cbd_commute", 
+  "exam_week", 
+  "flagship_five_staff", 
+  "ice_cream_bottleneck", 
+  "inventory_generous", 
+  "inventory_lean", 
+  "late_night_study", 
+  "mall_weekend", 
+  "network_tea_bottleneck", 
+  "peak_pricing", 
+  "rainy_delivery", 
+  "strict_sla_fairness", 
+  "tiny_two_staff"
+ ]
+}
