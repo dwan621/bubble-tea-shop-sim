@@ -4,6 +4,8 @@
 
 [![CI](https://github.com/dwan621/bubble-tea-shop-sim/actions/workflows/ci.yml/badge.svg)](https://github.com/dwan621/bubble-tea-shop-sim/actions/workflows/ci.yml)
 
+**Live report:** https://dwan621.github.io/bubble-tea-shop-sim/ · **Source:** https://github.com/dwan621/bubble-tea-shop-sim
+
 This repository contains a dependency-free Python discrete-event simulation (DES) of a
 three-clerk bubble-tea shop, the experiment ledger behind the study, and a cleaned-up
 reproduction of the original course project. It answers three operational questions:
