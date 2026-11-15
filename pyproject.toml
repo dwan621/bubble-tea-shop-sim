@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bubble-tea-shop-sim"
+version = "1.0.0"
+description = "Discrete-event simulation of a bubble-tea shop: does fast-item triage pay off?"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "dwan621" }]
+keywords = ["simulation", "queueing", "operations-management", "discrete-event", "anylogic"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Education",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+bubble-tea = "bubble_tea_sim.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/dwan621/bubble-tea-shop-sim"
+Repository = "https://github.com/dwan621/bubble-tea-shop-sim"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

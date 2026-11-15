@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this simulation study, please cite it as below."
+title: "Bubble-Tea Shop Simulation: Is Fast-Item Triage Worth It?"
+type: software
+authors:
+  - name: "dwan621"
+repository-code: "https://github.com/dwan621/bubble-tea-shop-sim"
+license: MIT
+version: "1.0.0"
+date-released: "2026-11-16"
+abstract: >-
+  Discrete-event simulation study of a bubble-tea shop with a shared clerk pool
+  selling tea, bread and ice cream. It compares synchronised vs split delivery
+  for mixed tea + ice-cream orders, fast-item priority, and the economics of
+  waiting, with break-even and sensitivity analyses.
+keywords:
+  - discrete-event simulation
+  - queueing
+  - operations management
+  - priority scheduling
+  - service operations
