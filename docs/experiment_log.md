@@ -313,7 +313,8 @@ the AnyLogic material above remains **archival and not re-runnable**.
 
 Common conventions: seed 0, stride 1; 480-minute day with a 60-minute warm-up; paired
 differences on common random numbers; 95% CI for every mean. Runtimes are the values the
-scripts recorded on the development machine and are orientation only.
+scripts printed on the development machine (they are not stored in the JSON files, whose
+`meta` blocks carry the seed/replicate policy instead) and are orientation only.
 
 ### 6.1 Headline numbers (each traceable to one file)
 

@@ -311,7 +311,7 @@ python -m bubble_tea_sim reproduce --reps 200 --out results/legacy_anchors.json
 python analysis/run_policy_sweep.py        # full grid: 1-5 workers x lambda 0.30-1.30
 python analysis/run_breakeven.py           # 2-4 workers, profit + mean-LOS roots
 python analysis/reproduce_anylogic_ledger.py
-python analysis/build_report.py            # docs/experiments.md + docs/figures/
+python analysis/build_report.py            # archive/report-v1.html + docs/experiments.md + docs/figures/
 
 # regenerate the v2 results (four layers) and the v2 report + demo
 python analysis/v2_demand_network.py       # scenario library + layer 1 + layer 2
@@ -361,7 +361,7 @@ bubble-tea-shop-sim/
 │   ├── run_behaviour.py           # -> results/behaviour.json
 │   ├── run_sensitivity.py         # -> results/sensitivity.json
 │   ├── reproduce_anylogic_ledger.py  # -> results/anylogic_ledger.json
-│   ├── build_report.py            # -> docs/experiments.md (v1 tables) + docs/figures/
+│   ├── build_report.py            # -> archive/report-v1.html + docs/experiments.md (v1 tables) + docs/figures/
 │   ├── v2_demand_network.py       # -> results/v2/scenario_library.json, demand_study.json, network_study.json
 │   ├── v2_inventory_econ.py       # -> results/v2/inventory_study.json, economics_study.json
 │   ├── build_report_v2.py         # -> docs/index.html + docs/experiments-v2.md + docs/figures-v2/
