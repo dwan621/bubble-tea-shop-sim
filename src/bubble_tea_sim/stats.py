@@ -54,7 +54,29 @@ def flatten_metrics(metrics: Metrics) -> Dict[str, float]:
         "profit_per_hour": metrics.profit_per_hour,
         "balked": float(metrics.balked),
         "reneged": float(metrics.reneged),
+        "stranded": float(metrics.stranded),
+        "los_p50": metrics.los_p50,
+        "los_p90": metrics.los_p90,
+        "los_p95": metrics.los_p95,
+        "sla_attainment": metrics.sla_attainment or 0.0,
+        "sla_compensation_total": metrics.sla_compensation_total,
+        "stockout_losses": float(metrics.stockout_losses),
+        "waste_units": metrics.waste_units,
+        "purchase_cost": metrics.purchase_cost,
+        "ingredient_cost_per_hour": metrics.ingredient_cost_per_hour,
+        "starvation_events": float(metrics.starvation_events),
+        "fairness_gap": metrics.fairness_gap or 0.0,
+        "mean_price_factor": metrics.mean_price_factor,
+        "staff_minutes_available": metrics.staff_minutes_available,
     }
+    if metrics.fill_rate is not None:
+        flat["fill_rate"] = metrics.fill_rate
+    for name, values in metrics.by_class.items():
+        flat[f"class_{name}_mean_los"] = values.get("mean_los", 0.0)
+        flat[f"class_{name}_p95_los"] = values.get("p95_los", 0.0)
+        flat[f"class_{name}_served"] = values.get("served", 0.0)
+    for name, value in metrics.station_util.items():
+        flat[f"station_{name}_util"] = value
     for kind, value in metrics.los_by_kind.items():
         flat[f"los_{kind}"] = value
     for kind, value in metrics.counts.items():

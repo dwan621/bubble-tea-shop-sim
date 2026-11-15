@@ -13,6 +13,17 @@ from __future__ import annotations
 from dataclasses import dataclass, field, replace
 from typing import Dict, Mapping, Optional
 
+from .data_spec import (
+    BatchSpec,
+    DemandProfile,
+    InventorySpec,
+    MixSpec,
+    NetworkSpec,
+    PricingSpec,
+    ServiceVariability,
+    SlaSpec,
+)
+
 # Order classes. ``mix`` means "tea + ice cream in one order".
 TEA = "tea"
 BREAD = "bread"
@@ -99,6 +110,7 @@ class Policy:
     renege_threshold: Optional[float] = None
     dynamic_priority_threshold: Optional[float] = None
     mix_ice_priority: str = "jump"
+    starvation_cap: Optional[float] = None  # fairness: max wait before aging to top
 
     def __post_init__(self) -> None:
         if self.mix_ice_priority not in ("jump", "fcfs", "dynamic"):
@@ -110,6 +122,8 @@ class Policy:
             raise ValueError(
                 "mix_ice_priority='dynamic' requires dynamic_priority_threshold"
             )
+        if self.starvation_cap is not None and self.starvation_cap <= 0:
+            raise ValueError("starvation_cap must be positive when set")
 
     @property
     def any_behavior(self) -> bool:
@@ -131,6 +145,8 @@ class Policy:
                 parts.append(f"mix-ice-dyn>{self.dynamic_priority_threshold:g}m")
         if self.fast_priority:
             parts.append("fast-priority")
+        if self.starvation_cap is not None:
+            parts.append(f"fairness-cap>{self.starvation_cap:g}m")
         if self.balk_threshold is not None:
             parts.append(f"balk>{self.balk_threshold:g}m")
         if self.renege_threshold is not None:
@@ -179,6 +195,16 @@ class SimConfig:
     policy: Policy = field(default_factory=Policy)
     economics: Economics = field(default_factory=Economics)
 
+    # -- v2 layers (all opt-in; defaults reproduce v1 exactly) --------------
+    demand: DemandProfile = field(default_factory=DemandProfile)
+    batches: BatchSpec = field(default_factory=BatchSpec)
+    classes: MixSpec = field(default_factory=MixSpec)
+    variability: ServiceVariability = field(default_factory=ServiceVariability)
+    network: Optional[NetworkSpec] = None
+    inventory: Optional[InventorySpec] = None
+    pricing: Optional[PricingSpec] = None
+    sla: Optional[SlaSpec] = None
+
     def __post_init__(self) -> None:
         if self.workers < 1:
             raise ValueError("workers must be >= 1")
@@ -189,6 +215,47 @@ class SimConfig:
         if not 0 <= self.warmup_minutes < self.sim_minutes:
             raise ValueError("warmup_minutes must be in [0, sim_minutes)")
         self.mix.validate()
+        if self.network is not None and self.network.staff is not None:
+            for station in self.network.stations:
+                if station.skill is None:
+                    raise ValueError(
+                        f"station {station.name!r} needs a skill in a staffed network"
+                    )
+
+    @property
+    def legacy_compat(self) -> bool:
+        """True when the configuration is exactly the v1 model.
+
+        The v1 dispatch rule (reserving idle clerks for future jobs) is kept for
+        these configurations so the legacy anchor tables stay bit-for-bit
+        identical. Any v2 layer switches the engine to event-driven dispatch.
+        """
+        if not self.demand.is_flat():
+            return False
+        if self.batches.probability != 0.0:
+            return False
+        if len(self.classes.classes) != 1:
+            return False
+        customer_class = self.classes.classes[0]
+        if (
+            customer_class.name != "regular"
+            or customer_class.weight != 1.0
+            or customer_class.mix is not None
+            or customer_class.priority != 1
+            or customer_class.patience.balk_mean is not None
+            or customer_class.patience.renege_mean is not None
+        ):
+            return False
+        if not self.variability.is_fixed():
+            return False
+        if any(
+            layer is not None
+            for layer in (self.network, self.inventory, self.pricing, self.sla)
+        ):
+            return False
+        if self.policy.starvation_cap is not None:
+            return False
+        return True
 
     # -- derived quantities -------------------------------------------------
     def mean_service_time(self) -> float:
