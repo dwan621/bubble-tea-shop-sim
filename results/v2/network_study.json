@@ -1,0 +1,3208 @@
+{
+  "meta": {
+    "experiment": "network_study",
+    "schema_version": 1,
+    "package_version": "2.0.0",
+    "python_version": "3.14.5",
+    "engine": "bubble_tea_sim.engine.Simulation (stdlib only)",
+    "scenario_library": [
+      "baseline_flat",
+      "bread_counter_bottleneck",
+      "campus_rush",
+      "cbd_commute",
+      "exam_week",
+      "flagship_five_staff",
+      "ice_cream_bottleneck",
+      "inventory_generous",
+      "inventory_lean",
+      "late_night_study",
+      "mall_weekend",
+      "network_tea_bottleneck",
+      "peak_pricing",
+      "rainy_delivery",
+      "strict_sla_fairness",
+      "tiny_two_staff"
+    ],
+    "notes": "Layer 2 experiments on the network scenarios. Station utilisation comes straight from the engine; labour-pool utilisation is derived by grouping the stations that share a skill and dividing their busy minutes by the pre-break shift minutes of the staff that can operate them. Cells with an estimated peak load above 0.95 use 60 replicates (the saturated tea capacities), everything else uses 100; first seed 0, stride 1. The balk decision uses the engine's Little's-Law-style wait estimate divided by the number of staff units that are ON SHIFT at the arrival instant (shift windows and breaks are coverage-checked), so a late-joining barista does not make the shop look bigger than it is; the legacy v1 path keeps the full worker count so the golden anchors stay bit-identical.",
+    "reps_default": 100,
+    "reps_overload": 60,
+    "seed": 0,
+    "seed_stride": 1,
+    "elapsed_seconds": 73.2
+  },
+  "tables": {
+    "tea_capacity_sweep": [
+      {
+        "lambda": 0.6,
+        "tea_capacity": 1,
+        "baristas": 1,
+        "reps": 100,
+        "theoretical_barista_load": 0.42333,
+        "theoretical_pool_load": {
+          "barista": 0.9499500000000001,
+          "cashier": 0.16002
+        },
+        "station_util": {
+          "bread": 0.009447,
+          "ice": 0.047492,
+          "order": 0.142234,
+          "tea": 0.841686
+        },
+        "pool_util": {
+          "barista": 0.889179,
+          "cashier": 0.151682
+        },
+        "top_station": "tea",
+        "tea_util": 0.841686,
+        "order_util": 0.142234,
+        "ice_util": 0.047492,
+        "metrics": {
+          "util": 0.397514,
+          "mean_los": 6.618413,
+          "los_p50": 5.765642,
+          "los_p95": 16.031592,
+          "peak_hour_los": 10.750379,
+          "balk_rate": 0.046223,
+          "renege_rate": 0.001121,
+          "abandon_rate": 0.047345,
+          "served": 234.85,
+          "profit_per_hour": 53.451214,
+          "wage_per_hour": 75.0,
+          "staff_minutes_available": 1440.0
+        },
+        "ci95": {
+          "mean_los": 0.28049,
+          "los_p95": 0.654739,
+          "balk_rate": 0.005057,
+          "profit_per_hour": 3.856069
+        }
+      },
+      {
+        "lambda": 0.6,
+        "tea_capacity": 2,
+        "baristas": 2,
+        "reps": 100,
+        "theoretical_barista_load": 0.3174975,
+        "theoretical_pool_load": {
+          "barista": 0.47497500000000004,
+          "cashier": 0.16002
+        },
+        "station_util": {
+          "bread": 0.009938,
+          "ice": 0.04976,
+          "order": 0.149229,
+          "tea": 0.446428
+        },
+        "pool_util": {
+          "barista": 0.471308,
+          "cashier": 0.159167
+        },
+        "top_station": "tea",
+        "tea_util": 0.446428,
+        "order_util": 0.149229,
+        "ice_util": 0.04976,
+        "metrics": {
+          "util": 0.315238,
+          "mean_los": 2.354229,
+          "los_p50": 2.47851,
+          "los_p95": 4.422198,
+          "peak_hour_los": 2.816468,
+          "balk_rate": 0.000385,
+          "renege_rate": 0.001121,
+          "abandon_rate": 0.001507,
+          "served": 249.53,
+          "profit_per_hour": 103.270916,
+          "wage_per_hour": 100.0,
+          "staff_minutes_available": 1920.0
+        },
+        "ci95": {
+          "mean_los": 0.027971,
+          "los_p95": 0.106598,
+          "balk_rate": 0.000241,
+          "profit_per_hour": 2.669363
+        }
+      },
+      {
+        "lambda": 0.6,
+        "tea_capacity": 3,
+        "baristas": 3,
+        "reps": 100,
+        "theoretical_barista_load": 0.253998,
+        "theoretical_pool_load": {
+          "barista": 0.31665000000000004,
+          "cashier": 0.16002
+        },
+        "station_util": {
+          "bread": 0.00994,
+          "ice": 0.049775,
+          "order": 0.149276,
+          "tea": 0.297893
+        },
+        "pool_util": {
+          "barista": 0.314484,
+          "cashier": 0.159216
+        },
+        "top_station": "tea",
+        "tea_util": 0.297893,
+        "order_util": 0.149276,
+        "ice_util": 0.049775,
+        "metrics": {
+          "util": 0.252377,
+          "mean_los": 2.108862,
+          "los_p50": 2.390699,
+          "los_p95": 3.496467,
+          "peak_hour_los": 2.352584,
+          "balk_rate": 7e-05,
+          "renege_rate": 0.001121,
+          "abandon_rate": 0.001191,
+          "served": 249.72,
+          "profit_per_hour": 82.305531,
+          "wage_per_hour": 125.0,
+          "staff_minutes_available": 2400.0
+        },
+        "ci95": {
+          "mean_los": 0.014798,
+          "los_p95": 0.035526,
+          "balk_rate": 9.6e-05,
+          "profit_per_hour": 2.81052
+        }
+      },
+      {
+        "lambda": 0.6,
+        "tea_capacity": 4,
+        "baristas": 4,
+        "reps": 100,
+        "theoretical_barista_load": 0.211665,
+        "theoretical_pool_load": {
+          "barista": 0.23748750000000002,
+          "cashier": 0.16002
+        },
+        "station_util": {
+          "bread": 0.00994,
+          "ice": 0.049775,
+          "order": 0.149276,
+          "tea": 0.22348
+        },
+        "pool_util": {
+          "barista": 0.235923,
+          "cashier": 0.159216
+        },
+        "top_station": "tea",
+        "tea_util": 0.22348,
+        "order_util": 0.149276,
+        "ice_util": 0.049775,
+        "metrics": {
+          "util": 0.210354,
+          "mean_los": 2.067042,
+          "los_p50": 2.366404,
+          "los_p95": 3.358933,
+          "peak_hour_los": 2.272693,
+          "balk_rate": 7e-05,
+          "renege_rate": 0.001121,
+          "abandon_rate": 0.001191,
+          "served": 249.77,
+          "profit_per_hour": 58.010126,
+          "wage_per_hour": 150.0,
+          "staff_minutes_available": 2880.0
+        },
+        "ci95": {
+          "mean_los": 0.012648,
+          "los_p95": 0.027171,
+          "balk_rate": 9.6e-05,
+          "profit_per_hour": 2.834456
+        }
+      },
+      {
+        "lambda": 0.9,
+        "tea_capacity": 1,
+        "baristas": 1,
+        "reps": 60,
+        "theoretical_barista_load": 0.634995,
+        "theoretical_pool_load": {
+          "barista": 1.4249250000000002,
+          "cashier": 0.24003
+        },
+        "station_util": {
+          "bread": 0.010829,
+          "ice": 0.053566,
+          "order": 0.162526,
+          "tea": 0.939577
+        },
+        "pool_util": {
+          "barista": 0.993142,
+          "cashier": 0.173355
+        },
+        "top_station": "tea",
+        "tea_util": 0.939577,
+        "order_util": 0.162526,
+        "ice_util": 0.053566,
+        "metrics": {
+          "util": 0.446617,
+          "mean_los": 14.776809,
+          "los_p50": 17.157666,
+          "los_p95": 27.276463,
+          "peak_hour_los": 20.071284,
+          "balk_rate": 0.272622,
+          "renege_rate": 0.000851,
+          "abandon_rate": 0.273473,
+          "served": 256.483333,
+          "profit_per_hour": -65.31755,
+          "wage_per_hour": 75.0,
+          "staff_minutes_available": 1440.0
+        },
+        "ci95": {
+          "mean_los": 0.410124,
+          "los_p95": 0.591149,
+          "balk_rate": 0.009701,
+          "profit_per_hour": 6.267441
+        }
+      },
+      {
+        "lambda": 0.9,
+        "tea_capacity": 2,
+        "baristas": 2,
+        "reps": 100,
+        "theoretical_barista_load": 0.47624625,
+        "theoretical_pool_load": {
+          "barista": 0.7124625000000001,
+          "cashier": 0.24003
+        },
+        "station_util": {
+          "bread": 0.014809,
+          "ice": 0.074265,
+          "order": 0.223047,
+          "tea": 0.666312
+        },
+        "pool_util": {
+          "barista": 0.703445,
+          "cashier": 0.237856
+        },
+        "top_station": "tea",
+        "tea_util": 0.666312,
+        "order_util": 0.223047,
+        "ice_util": 0.074265,
+        "metrics": {
+          "util": 0.470651,
+          "mean_los": 2.958262,
+          "los_p50": 2.741953,
+          "los_p95": 6.56723,
+          "peak_hour_los": 4.016301,
+          "balk_rate": 0.005532,
+          "renege_rate": 0.001246,
+          "abandon_rate": 0.006778,
+          "served": 372.31,
+          "profit_per_hour": 188.969334,
+          "wage_per_hour": 100.0,
+          "staff_minutes_available": 1920.0
+        },
+        "ci95": {
+          "mean_los": 0.05757,
+          "los_p95": 0.232415,
+          "balk_rate": 0.000888,
+          "profit_per_hour": 2.521274
+        }
+      },
+      {
+        "lambda": 0.9,
+        "tea_capacity": 3,
+        "baristas": 3,
+        "reps": 100,
+        "theoretical_barista_load": 0.380997,
+        "theoretical_pool_load": {
+          "barista": 0.4749750000000001,
+          "cashier": 0.24003
+        },
+        "station_util": {
+          "bread": 0.014901,
+          "ice": 0.074596,
+          "order": 0.224234,
+          "tea": 0.447786
+        },
+        "pool_util": {
+          "barista": 0.472651,
+          "cashier": 0.239135
+        },
+        "top_station": "tea",
+        "tea_util": 0.447786,
+        "order_util": 0.224234,
+        "ice_util": 0.074596,
+        "metrics": {
+          "util": 0.379245,
+          "mean_los": 2.21733,
+          "los_p50": 2.44617,
+          "los_p95": 3.865661,
+          "peak_hour_los": 2.523317,
+          "balk_rate": 0.000303,
+          "renege_rate": 0.001246,
+          "abandon_rate": 0.001549,
+          "served": 375.21,
+          "profit_per_hour": 183.794007,
+          "wage_per_hour": 125.0,
+          "staff_minutes_available": 2400.0
+        },
+        "ci95": {
+          "mean_los": 0.014837,
+          "los_p95": 0.052776,
+          "balk_rate": 0.000168,
+          "profit_per_hour": 3.149172
+        }
+      },
+      {
+        "lambda": 0.9,
+        "tea_capacity": 4,
+        "baristas": 4,
+        "reps": 100,
+        "theoretical_barista_load": 0.3174975,
+        "theoretical_pool_load": {
+          "barista": 0.35623125000000005,
+          "cashier": 0.24003
+        },
+        "station_util": {
+          "bread": 0.014911,
+          "ice": 0.07455,
+          "order": 0.224281,
+          "tea": 0.336018
+        },
+        "pool_util": {
+          "barista": 0.354655,
+          "cashier": 0.239192
+        },
+        "top_station": "tea",
+        "tea_util": 0.336018,
+        "order_util": 0.224281,
+        "ice_util": 0.07455,
+        "metrics": {
+          "util": 0.316167,
+          "mean_los": 2.101726,
+          "los_p50": 2.387291,
+          "los_p95": 3.459755,
+          "peak_hour_los": 2.301555,
+          "balk_rate": 9.2e-05,
+          "renege_rate": 0.001246,
+          "abandon_rate": 0.001338,
+          "served": 375.41,
+          "profit_per_hour": 161.714354,
+          "wage_per_hour": 150.0,
+          "staff_minutes_available": 2880.0
+        },
+        "ci95": {
+          "mean_los": 0.00934,
+          "los_p95": 0.022874,
+          "balk_rate": 0.00011,
+          "profit_per_hour": 3.270518
+        }
+      },
+      {
+        "lambda": 1.2,
+        "tea_capacity": 1,
+        "baristas": 1,
+        "reps": 60,
+        "theoretical_barista_load": 0.84666,
+        "theoretical_pool_load": {
+          "barista": 1.8999000000000001,
+          "cashier": 0.32004
+        },
+        "station_util": {
+          "bread": 0.010923,
+          "ice": 0.054142,
+          "order": 0.164705,
+          "tea": 0.941328
+        },
+        "pool_util": {
+          "barista": 0.99547,
+          "cashier": 0.175628
+        },
+        "top_station": "tea",
+        "tea_util": 0.941328,
+        "order_util": 0.164705,
+        "ice_util": 0.054142,
+        "metrics": {
+          "util": 0.448909,
+          "mean_los": 20.032767,
+          "los_p50": 24.285486,
+          "los_p95": 34.274573,
+          "peak_hour_los": 25.486394,
+          "balk_rate": 0.44899,
+          "renege_rate": 0.000311,
+          "abandon_rate": 0.449301,
+          "served": 253.083333,
+          "profit_per_hour": -148.234309,
+          "wage_per_hour": 75.0,
+          "staff_minutes_available": 1440.0
+        },
+        "ci95": {
+          "mean_los": 0.466864,
+          "los_p95": 0.726731,
+          "balk_rate": 0.007361,
+          "profit_per_hour": 6.18242
+        }
+      },
+      {
+        "lambda": 1.2,
+        "tea_capacity": 2,
+        "baristas": 2,
+        "reps": 100,
+        "theoretical_barista_load": 0.634995,
+        "theoretical_pool_load": {
+          "barista": 0.9499500000000001,
+          "cashier": 0.32004
+        },
+        "station_util": {
+          "bread": 0.019028,
+          "ice": 0.095842,
+          "order": 0.287307,
+          "tea": 0.85243
+        },
+        "pool_util": {
+          "barista": 0.900351,
+          "cashier": 0.306335
+        },
+        "top_station": "tea",
+        "tea_util": 0.85243,
+        "order_util": 0.287307,
+        "ice_util": 0.095842,
+        "metrics": {
+          "util": 0.603343,
+          "mean_los": 4.65487,
+          "los_p50": 4.199284,
+          "los_p95": 10.701641,
+          "peak_hour_los": 6.9732,
+          "balk_rate": 0.042353,
+          "renege_rate": 0.000863,
+          "abandon_rate": 0.043216,
+          "served": 477.39,
+          "profit_per_hour": 219.926519,
+          "wage_per_hour": 100.0,
+          "staff_minutes_available": 1920.0
+        },
+        "ci95": {
+          "mean_los": 0.131559,
+          "los_p95": 0.319141,
+          "balk_rate": 0.00349,
+          "profit_per_hour": 3.782067
+        }
+      },
+      {
+        "lambda": 1.2,
+        "tea_capacity": 3,
+        "baristas": 3,
+        "reps": 100,
+        "theoretical_barista_load": 0.507996,
+        "theoretical_pool_load": {
+          "barista": 0.6333000000000001,
+          "cashier": 0.32004
+        },
+        "station_util": {
+          "bread": 0.019915,
+          "ice": 0.099893,
+          "order": 0.29962,
+          "tea": 0.595839
+        },
+        "pool_util": {
+          "barista": 0.629136,
+          "cashier": 0.319535
+        },
+        "top_station": "tea",
+        "tea_util": 0.595839,
+        "order_util": 0.29962,
+        "ice_util": 0.099893,
+        "metrics": {
+          "util": 0.505296,
+          "mean_los": 2.42566,
+          "los_p50": 2.501583,
+          "los_p95": 4.609795,
+          "peak_hour_los": 2.903985,
+          "balk_rate": 0.001778,
+          "renege_rate": 0.000931,
+          "abandon_rate": 0.00271,
+          "served": 501.65,
+          "profit_per_hour": 281.324159,
+          "wage_per_hour": 125.0,
+          "staff_minutes_available": 2400.0
+        },
+        "ci95": {
+          "mean_los": 0.022787,
+          "los_p95": 0.09816,
+          "balk_rate": 0.000342,
+          "profit_per_hour": 3.311607
+        }
+      },
+      {
+        "lambda": 1.2,
+        "tea_capacity": 4,
+        "baristas": 4,
+        "reps": 100,
+        "theoretical_barista_load": 0.42333,
+        "theoretical_pool_load": {
+          "barista": 0.47497500000000004,
+          "cashier": 0.32004
+        },
+        "station_util": {
+          "bread": 0.019919,
+          "ice": 0.099883,
+          "order": 0.300068,
+          "tea": 0.448685
+        },
+        "pool_util": {
+          "barista": 0.473656,
+          "cashier": 0.319986
+        },
+        "top_station": "tea",
+        "tea_util": 0.448685,
+        "order_util": 0.300068,
+        "ice_util": 0.099883,
+        "metrics": {
+          "util": 0.422433,
+          "mean_los": 2.163877,
+          "los_p50": 2.434165,
+          "los_p95": 3.646401,
+          "peak_hour_los": 2.389168,
+          "balk_rate": 0.000296,
+          "renege_rate": 0.000931,
+          "abandon_rate": 0.001227,
+          "served": 502.72,
+          "profit_per_hour": 265.490667,
+          "wage_per_hour": 150.0,
+          "staff_minutes_available": 2880.0
+        },
+        "ci95": {
+          "mean_los": 0.010542,
+          "los_p95": 0.029542,
+          "balk_rate": 0.000155,
+          "profit_per_hour": 3.61215
+        }
+      }
+    ],
+    "tea_capacity_marginals": [
+      {
+        "name": "tea_cap2_minus_cap1_lam0.6",
+        "comparison": "tea_cap2_baristas2_lam0.6 - tea_cap1_baristas1_lam0.6",
+        "reps": 100,
+        "metrics": {
+          "los_p95": {
+            "diff": -11.609394,
+            "ci95": 0.615288
+          },
+          "mean_los": {
+            "diff": -4.264184,
+            "ci95": 0.263687
+          },
+          "balk_rate": {
+            "diff": -0.045838,
+            "ci95": 0.005058
+          },
+          "served": {
+            "diff": 14.68,
+            "ci95": 1.635056
+          },
+          "profit_per_hour": {
+            "diff": 49.819702,
+            "ci95": 5.207729
+          },
+          "util": {
+            "diff": -0.082276,
+            "ci95": 0.001651
+          },
+          "staff_minutes_available": {
+            "diff": 480.0,
+            "ci95": 0.0
+          }
+        },
+        "note": "one extra tea station and one extra barista versus the previous capacity step; common random numbers"
+      },
+      {
+        "name": "tea_cap3_minus_cap2_lam0.6",
+        "comparison": "tea_cap3_baristas3_lam0.6 - tea_cap2_baristas2_lam0.6",
+        "reps": 100,
+        "metrics": {
+          "los_p95": {
+            "diff": -0.925731,
+            "ci95": 0.085955
+          },
+          "mean_los": {
+            "diff": -0.245367,
+            "ci95": 0.016304
+          },
+          "balk_rate": {
+            "diff": -0.000315,
+            "ci95": 0.000224
+          },
+          "served": {
+            "diff": 0.19,
+            "ci95": 0.08674
+          },
+          "profit_per_hour": {
+            "diff": -20.965385,
+            "ci95": 0.289876
+          },
+          "util": {
+            "diff": -0.062861,
+            "ci95": 0.000736
+          },
+          "staff_minutes_available": {
+            "diff": 480.0,
+            "ci95": 0.0
+          }
+        },
+        "note": "one extra tea station and one extra barista versus the previous capacity step; common random numbers"
+      },
+      {
+        "name": "tea_cap4_minus_cap3_lam0.6",
+        "comparison": "tea_cap4_baristas4_lam0.6 - tea_cap3_baristas3_lam0.6",
+        "reps": 100,
+        "metrics": {
+          "los_p95": {
+            "diff": -0.137534,
+            "ci95": 0.023977
+          },
+          "mean_los": {
+            "diff": -0.04182,
+            "ci95": 0.003987
+          },
+          "balk_rate": {
+            "diff": 0.0,
+            "ci95": 0.0
+          },
+          "served": {
+            "diff": 0.05,
+            "ci95": 0.042932
+          },
+          "profit_per_hour": {
+            "diff": -24.295405,
+            "ci95": 0.071869
+          },
+          "util": {
+            "diff": -0.042023,
+            "ci95": 0.000486
+          },
+          "staff_minutes_available": {
+            "diff": 480.0,
+            "ci95": 0.0
+          }
+        },
+        "note": "one extra tea station and one extra barista versus the previous capacity step; common random numbers"
+      },
+      {
+        "name": "tea_cap2_minus_cap1_lam0.9",
+        "comparison": "tea_cap2_baristas2_lam0.9 - tea_cap1_baristas1_lam0.9",
+        "reps": 60,
+        "metrics": {
+          "los_p95": {
+            "diff": -20.693015,
+            "ci95": 0.560561
+          },
+          "mean_los": {
+            "diff": -11.828882,
+            "ci95": 0.381586
+          },
+          "balk_rate": {
+            "diff": -0.267812,
+            "ci95": 0.009488
+          },
+          "served": {
+            "diff": 114.3,
+            "ci95": 4.999618
+          },
+          "profit_per_hour": {
+            "diff": 253.319687,
+            "ci95": 8.089333
+          },
+          "util": {
+            "diff": 0.022964,
+            "ci95": 0.005852
+          },
+          "staff_minutes_available": {
+            "diff": 480.0,
+            "ci95": 0.0
+          }
+        },
+        "note": "one extra tea station and one extra barista versus the previous capacity step; common random numbers"
+      },
+      {
+        "name": "tea_cap3_minus_cap2_lam0.9",
+        "comparison": "tea_cap3_baristas3_lam0.9 - tea_cap2_baristas2_lam0.9",
+        "reps": 100,
+        "metrics": {
+          "los_p95": {
+            "diff": -2.701568,
+            "ci95": 0.194975
+          },
+          "mean_los": {
+            "diff": -0.740933,
+            "ci95": 0.045939
+          },
+          "balk_rate": {
+            "diff": -0.005229,
+            "ci95": 0.000893
+          },
+          "served": {
+            "diff": 2.9,
+            "ci95": 0.514048
+          },
+          "profit_per_hour": {
+            "diff": -5.175327,
+            "ci95": 1.456383
+          },
+          "util": {
+            "diff": -0.091406,
+            "ci95": 0.000976
+          },
+          "staff_minutes_available": {
+            "diff": 480.0,
+            "ci95": 0.0
+          }
+        },
+        "note": "one extra tea station and one extra barista versus the previous capacity step; common random numbers"
+      },
+      {
+        "name": "tea_cap4_minus_cap3_lam0.9",
+        "comparison": "tea_cap4_baristas4_lam0.9 - tea_cap3_baristas3_lam0.9",
+        "reps": 100,
+        "metrics": {
+          "los_p95": {
+            "diff": -0.405906,
+            "ci95": 0.040688
+          },
+          "mean_los": {
+            "diff": -0.115603,
+            "ci95": 0.007539
+          },
+          "balk_rate": {
+            "diff": -0.000211,
+            "ci95": 0.000132
+          },
+          "served": {
+            "diff": 0.2,
+            "ci95": 0.092394
+          },
+          "profit_per_hour": {
+            "diff": -22.079653,
+            "ci95": 0.203777
+          },
+          "util": {
+            "diff": -0.063077,
+            "ci95": 0.000637
+          },
+          "staff_minutes_available": {
+            "diff": 480.0,
+            "ci95": 0.0
+          }
+        },
+        "note": "one extra tea station and one extra barista versus the previous capacity step; common random numbers"
+      },
+      {
+        "name": "tea_cap2_minus_cap1_lam1.2",
+        "comparison": "tea_cap2_baristas2_lam1.2 - tea_cap1_baristas1_lam1.2",
+        "reps": 60,
+        "metrics": {
+          "los_p95": {
+            "diff": -23.596365,
+            "ci95": 0.653299
+          },
+          "mean_los": {
+            "diff": -15.459783,
+            "ci95": 0.404466
+          },
+          "balk_rate": {
+            "diff": -0.40872,
+            "ci95": 0.005714
+          },
+          "served": {
+            "diff": 223.416667,
+            "ci95": 4.223303
+          },
+          "profit_per_hour": {
+            "diff": 370.222556,
+            "ci95": 6.315741
+          },
+          "util": {
+            "diff": 0.154025,
+            "ci95": 0.004948
+          },
+          "staff_minutes_available": {
+            "diff": 480.0,
+            "ci95": 0.0
+          }
+        },
+        "note": "one extra tea station and one extra barista versus the previous capacity step; common random numbers"
+      },
+      {
+        "name": "tea_cap3_minus_cap2_lam1.2",
+        "comparison": "tea_cap3_baristas3_lam1.2 - tea_cap2_baristas2_lam1.2",
+        "reps": 100,
+        "metrics": {
+          "los_p95": {
+            "diff": -6.091846,
+            "ci95": 0.278055
+          },
+          "mean_los": {
+            "diff": -2.22921,
+            "ci95": 0.116605
+          },
+          "balk_rate": {
+            "diff": -0.040575,
+            "ci95": 0.003401
+          },
+          "served": {
+            "diff": 24.26,
+            "ci95": 2.242956
+          },
+          "profit_per_hour": {
+            "diff": 61.397641,
+            "ci95": 5.165079
+          },
+          "util": {
+            "diff": -0.098047,
+            "ci95": 0.00182
+          },
+          "staff_minutes_available": {
+            "diff": 480.0,
+            "ci95": 0.0
+          }
+        },
+        "note": "one extra tea station and one extra barista versus the previous capacity step; common random numbers"
+      },
+      {
+        "name": "tea_cap4_minus_cap3_lam1.2",
+        "comparison": "tea_cap4_baristas4_lam1.2 - tea_cap3_baristas3_lam1.2",
+        "reps": 100,
+        "metrics": {
+          "los_p95": {
+            "diff": -0.963394,
+            "ci95": 0.079692
+          },
+          "mean_los": {
+            "diff": -0.261783,
+            "ci95": 0.014903
+          },
+          "balk_rate": {
+            "diff": -0.001483,
+            "ci95": 0.000306
+          },
+          "served": {
+            "diff": 1.07,
+            "ci95": 0.226754
+          },
+          "profit_per_hour": {
+            "diff": -15.833492,
+            "ci95": 0.570402
+          },
+          "util": {
+            "diff": -0.082863,
+            "ci95": 0.000753
+          },
+          "staff_minutes_available": {
+            "diff": 480.0,
+            "ci95": 0.0
+          }
+        },
+        "note": "one extra tea station and one extra barista versus the previous capacity step; common random numbers"
+      }
+    ],
+    "bottleneck_migration": {
+      "lambda_0.6": {
+        "tea_is_top_station_all_capacities": true,
+        "top_station_by_capacity": {
+          "1": "tea",
+          "2": "tea",
+          "3": "tea",
+          "4": "tea"
+        },
+        "tea_util_by_capacity": {
+          "1": 0.841686,
+          "2": 0.446428,
+          "3": 0.297893,
+          "4": 0.22348
+        },
+        "barista_pool_util_by_capacity": {
+          "1": 0.889179,
+          "2": 0.471308,
+          "3": 0.314484,
+          "4": 0.235923
+        },
+        "first_capacity_with_non_positive_marginal_profit": 3,
+        "first_capacity_with_insignificant_p95_gain": null,
+        "critical_capacity": 3,
+        "note": "critical_capacity is the smallest capacity whose extra station fails to pay for itself (marginal profit/h <= 0 on common random numbers). The bottleneck answer uses station utilisation: with staff synced to stations the tea station stops being the binding *station* once its utilisation falls to the level of the shared barista pool and the order counter."
+      },
+      "lambda_0.9": {
+        "tea_is_top_station_all_capacities": true,
+        "top_station_by_capacity": {
+          "1": "tea",
+          "2": "tea",
+          "3": "tea",
+          "4": "tea"
+        },
+        "tea_util_by_capacity": {
+          "1": 0.939577,
+          "2": 0.666312,
+          "3": 0.447786,
+          "4": 0.336018
+        },
+        "barista_pool_util_by_capacity": {
+          "1": 0.993142,
+          "2": 0.703445,
+          "3": 0.472651,
+          "4": 0.354655
+        },
+        "first_capacity_with_non_positive_marginal_profit": 3,
+        "first_capacity_with_insignificant_p95_gain": null,
+        "critical_capacity": 3,
+        "note": "critical_capacity is the smallest capacity whose extra station fails to pay for itself (marginal profit/h <= 0 on common random numbers). The bottleneck answer uses station utilisation: with staff synced to stations the tea station stops being the binding *station* once its utilisation falls to the level of the shared barista pool and the order counter."
+      },
+      "lambda_1.2": {
+        "tea_is_top_station_all_capacities": true,
+        "top_station_by_capacity": {
+          "1": "tea",
+          "2": "tea",
+          "3": "tea",
+          "4": "tea"
+        },
+        "tea_util_by_capacity": {
+          "1": 0.941328,
+          "2": 0.85243,
+          "3": 0.595839,
+          "4": 0.448685
+        },
+        "barista_pool_util_by_capacity": {
+          "1": 0.99547,
+          "2": 0.900351,
+          "3": 0.629136,
+          "4": 0.473656
+        },
+        "first_capacity_with_non_positive_marginal_profit": 4,
+        "first_capacity_with_insignificant_p95_gain": null,
+        "critical_capacity": 4,
+        "note": "critical_capacity is the smallest capacity whose extra station fails to pay for itself (marginal profit/h <= 0 on common random numbers). The bottleneck answer uses station utilisation: with staff synced to stations the tea station stops being the binding *station* once its utilisation falls to the level of the shared barista pool and the order counter."
+      }
+    },
+    "fixed_labour_companion": [
+      {
+        "lambda": 0.9,
+        "tea_capacity": 1,
+        "baristas": 2,
+        "reps": 60,
+        "theoretical_barista_load": 0.47624625,
+        "theoretical_pool_load": {
+          "barista": 0.7124625000000001,
+          "cashier": 0.24003
+        },
+        "tea_util": 0.993208,
+        "barista_pool_util": 0.525088,
+        "order_util": 0.172969,
+        "metrics": {
+          "util": 0.354787,
+          "mean_los": 17.662108,
+          "los_p95": 32.137576,
+          "balk_rate": 0.225822,
+          "served": 270.183333,
+          "profit_per_hour": -138.351067,
+          "staff_minutes_available": 1920.0
+        }
+      },
+      {
+        "lambda": 0.9,
+        "tea_capacity": 2,
+        "baristas": 2,
+        "reps": 100,
+        "theoretical_barista_load": 0.47624625,
+        "theoretical_pool_load": {
+          "barista": 0.7124625000000001,
+          "cashier": 0.24003
+        },
+        "tea_util": 0.666312,
+        "barista_pool_util": 0.703445,
+        "order_util": 0.223047,
+        "metrics": {
+          "util": 0.470651,
+          "mean_los": 2.958262,
+          "los_p95": 6.56723,
+          "balk_rate": 0.005532,
+          "served": 372.31,
+          "profit_per_hour": 188.969334,
+          "staff_minutes_available": 1920.0
+        }
+      },
+      {
+        "lambda": 0.9,
+        "tea_capacity": 3,
+        "baristas": 2,
+        "reps": 100,
+        "theoretical_barista_load": 0.47624625,
+        "theoretical_pool_load": {
+          "barista": 0.7124625000000001,
+          "cashier": 0.24003
+        },
+        "tea_util": 0.444208,
+        "barista_pool_util": 0.703445,
+        "order_util": 0.223047,
+        "metrics": {
+          "util": 0.470651,
+          "mean_los": 2.958262,
+          "los_p95": 6.56723,
+          "balk_rate": 0.005532,
+          "served": 372.31,
+          "profit_per_hour": 188.969334,
+          "staff_minutes_available": 1920.0
+        }
+      },
+      {
+        "lambda": 0.9,
+        "tea_capacity": 4,
+        "baristas": 2,
+        "reps": 100,
+        "theoretical_barista_load": 0.47624625,
+        "theoretical_pool_load": {
+          "barista": 0.7124625000000001,
+          "cashier": 0.24003
+        },
+        "tea_util": 0.333156,
+        "barista_pool_util": 0.703445,
+        "order_util": 0.223047,
+        "metrics": {
+          "util": 0.470651,
+          "mean_los": 2.958262,
+          "los_p95": 6.56723,
+          "balk_rate": 0.005532,
+          "served": 372.31,
+          "profit_per_hour": 188.969334,
+          "staff_minutes_available": 1920.0
+        }
+      },
+      {
+        "lambda": 1.2,
+        "tea_capacity": 1,
+        "baristas": 2,
+        "reps": 60,
+        "theoretical_barista_load": 0.634995,
+        "theoretical_pool_load": {
+          "barista": 0.9499500000000001,
+          "cashier": 0.32004
+        },
+        "tea_util": 0.995335,
+        "barista_pool_util": 0.526896,
+        "order_util": 0.176406,
+        "metrics": {
+          "util": 0.357474,
+          "mean_los": 24.290152,
+          "los_p95": 40.845387,
+          "balk_rate": 0.409784,
+          "served": 265.416667,
+          "profit_per_hour": -247.621686,
+          "staff_minutes_available": 1920.0
+        }
+      },
+      {
+        "lambda": 1.2,
+        "tea_capacity": 2,
+        "baristas": 2,
+        "reps": 100,
+        "theoretical_barista_load": 0.634995,
+        "theoretical_pool_load": {
+          "barista": 0.9499500000000001,
+          "cashier": 0.32004
+        },
+        "tea_util": 0.85243,
+        "barista_pool_util": 0.900351,
+        "order_util": 0.287307,
+        "metrics": {
+          "util": 0.603343,
+          "mean_los": 4.65487,
+          "los_p95": 10.701641,
+          "balk_rate": 0.042353,
+          "served": 477.39,
+          "profit_per_hour": 219.926519,
+          "staff_minutes_available": 1920.0
+        }
+      },
+      {
+        "lambda": 1.2,
+        "tea_capacity": 3,
+        "baristas": 2,
+        "reps": 100,
+        "theoretical_barista_load": 0.634995,
+        "theoretical_pool_load": {
+          "barista": 0.9499500000000001,
+          "cashier": 0.32004
+        },
+        "tea_util": 0.568287,
+        "barista_pool_util": 0.900351,
+        "order_util": 0.287307,
+        "metrics": {
+          "util": 0.603343,
+          "mean_los": 4.65487,
+          "los_p95": 10.701641,
+          "balk_rate": 0.042353,
+          "served": 477.39,
+          "profit_per_hour": 219.926519,
+          "staff_minutes_available": 1920.0
+        }
+      },
+      {
+        "lambda": 1.2,
+        "tea_capacity": 4,
+        "baristas": 2,
+        "reps": 100,
+        "theoretical_barista_load": 0.634995,
+        "theoretical_pool_load": {
+          "barista": 0.9499500000000001,
+          "cashier": 0.32004
+        },
+        "tea_util": 0.426215,
+        "barista_pool_util": 0.900351,
+        "order_util": 0.287307,
+        "metrics": {
+          "util": 0.603343,
+          "mean_los": 4.65487,
+          "los_p95": 10.701641,
+          "balk_rate": 0.042353,
+          "served": 477.39,
+          "profit_per_hour": 219.926519,
+          "staff_minutes_available": 1920.0
+        }
+      }
+    ],
+    "fixed_labour_marginals": [
+      {
+        "name": "fixed_labour_cap2_minus_cap1_lam0.9",
+        "comparison": "fixed_labour_cap2_lam0.9 - fixed_labour_cap1_lam0.9",
+        "reps": 60,
+        "metrics": {
+          "los_p95": {
+            "diff": -25.554127,
+            "ci95": 0.67598
+          },
+          "mean_los": {
+            "diff": -14.714181,
+            "ci95": 0.493838
+          },
+          "served": {
+            "diff": 100.6,
+            "ci95": 5.269689
+          },
+          "profit_per_hour": {
+            "diff": 326.353204,
+            "ci95": 10.019227
+          }
+        },
+        "note": "one extra tea slot, no extra barista"
+      },
+      {
+        "name": "fixed_labour_cap3_minus_cap2_lam0.9",
+        "comparison": "fixed_labour_cap3_lam0.9 - fixed_labour_cap2_lam0.9",
+        "reps": 100,
+        "metrics": {
+          "los_p95": {
+            "diff": 0.0,
+            "ci95": 0.0
+          },
+          "mean_los": {
+            "diff": 0.0,
+            "ci95": 0.0
+          },
+          "served": {
+            "diff": 0.0,
+            "ci95": 0.0
+          },
+          "profit_per_hour": {
+            "diff": 0.0,
+            "ci95": 0.0
+          }
+        },
+        "note": "one extra tea slot, no extra barista"
+      },
+      {
+        "name": "fixed_labour_cap4_minus_cap3_lam0.9",
+        "comparison": "fixed_labour_cap4_lam0.9 - fixed_labour_cap3_lam0.9",
+        "reps": 100,
+        "metrics": {
+          "los_p95": {
+            "diff": 0.0,
+            "ci95": 0.0
+          },
+          "mean_los": {
+            "diff": 0.0,
+            "ci95": 0.0
+          },
+          "served": {
+            "diff": 0.0,
+            "ci95": 0.0
+          },
+          "profit_per_hour": {
+            "diff": 0.0,
+            "ci95": 0.0
+          }
+        },
+        "note": "one extra tea slot, no extra barista"
+      },
+      {
+        "name": "fixed_labour_cap2_minus_cap1_lam1.2",
+        "comparison": "fixed_labour_cap2_lam1.2 - fixed_labour_cap1_lam1.2",
+        "reps": 60,
+        "metrics": {
+          "los_p95": {
+            "diff": -30.167179,
+            "ci95": 0.773956
+          },
+          "mean_los": {
+            "diff": -19.717168,
+            "ci95": 0.473675
+          },
+          "served": {
+            "diff": 211.083333,
+            "ci95": 4.30726
+          },
+          "profit_per_hour": {
+            "diff": 469.609933,
+            "ci95": 7.409342
+          }
+        },
+        "note": "one extra tea slot, no extra barista"
+      },
+      {
+        "name": "fixed_labour_cap3_minus_cap2_lam1.2",
+        "comparison": "fixed_labour_cap3_lam1.2 - fixed_labour_cap2_lam1.2",
+        "reps": 100,
+        "metrics": {
+          "los_p95": {
+            "diff": 0.0,
+            "ci95": 0.0
+          },
+          "mean_los": {
+            "diff": 0.0,
+            "ci95": 0.0
+          },
+          "served": {
+            "diff": 0.0,
+            "ci95": 0.0
+          },
+          "profit_per_hour": {
+            "diff": 0.0,
+            "ci95": 0.0
+          }
+        },
+        "note": "one extra tea slot, no extra barista"
+      },
+      {
+        "name": "fixed_labour_cap4_minus_cap3_lam1.2",
+        "comparison": "fixed_labour_cap4_lam1.2 - fixed_labour_cap3_lam1.2",
+        "reps": 100,
+        "metrics": {
+          "los_p95": {
+            "diff": 0.0,
+            "ci95": 0.0
+          },
+          "mean_los": {
+            "diff": 0.0,
+            "ci95": 0.0
+          },
+          "served": {
+            "diff": 0.0,
+            "ci95": 0.0
+          },
+          "profit_per_hour": {
+            "diff": 0.0,
+            "ci95": 0.0
+          }
+        },
+        "note": "one extra tea slot, no extra barista"
+      }
+    ],
+    "strategy_bottleneck": [
+      {
+        "scenario": "network_tea_bottleneck",
+        "policy": "synchro_plain",
+        "split_mix": false,
+        "fast_priority": false,
+        "reps": 100,
+        "station_util": {
+          "bread": 0.009469,
+          "ice": 0.046979,
+          "order": 0.142193,
+          "tea": 0.840766
+        },
+        "top_station": "tea",
+        "metrics": {
+          "mean_los": 6.640908,
+          "mix_los": 8.457334,
+          "mix_ice_hand": 8.457334,
+          "los_p95": 15.52826,
+          "balk_rate": 0.046539,
+          "abandon_rate": 0.047626,
+          "served": 234.89,
+          "profit_per_hour": 53.152411,
+          "util": 0.397023
+        },
+        "ci95": {
+          "mean_los": 0.266139,
+          "los_p95": 0.622678,
+          "profit_per_hour": 3.651805,
+          "balk_rate": 0.004792
+        }
+      },
+      {
+        "scenario": "network_tea_bottleneck",
+        "policy": "synchro_fast",
+        "split_mix": false,
+        "fast_priority": true,
+        "reps": 100,
+        "station_util": {
+          "bread": 0.009452,
+          "ice": 0.047034,
+          "order": 0.142448,
+          "tea": 0.842786
+        },
+        "top_station": "tea",
+        "metrics": {
+          "mean_los": 6.560508,
+          "mix_los": 8.705778,
+          "mix_ice_hand": 8.705778,
+          "los_p95": 15.789869,
+          "balk_rate": 0.044836,
+          "abandon_rate": 0.045923,
+          "served": 235.13,
+          "profit_per_hour": 54.480257,
+          "util": 0.397873
+        },
+        "ci95": {
+          "mean_los": 0.280566,
+          "los_p95": 0.644317,
+          "profit_per_hour": 3.868829,
+          "balk_rate": 0.004848
+        }
+      },
+      {
+        "scenario": "network_tea_bottleneck",
+        "policy": "split_plain",
+        "split_mix": true,
+        "fast_priority": false,
+        "reps": 100,
+        "station_util": {
+          "bread": 0.009421,
+          "ice": 0.047345,
+          "order": 0.141911,
+          "tea": 0.840704
+        },
+        "top_station": "tea",
+        "metrics": {
+          "mean_los": 6.761882,
+          "mix_los": 8.580623,
+          "mix_ice_hand": 1.774724,
+          "los_p95": 15.877354,
+          "balk_rate": 0.048457,
+          "abandon_rate": 0.049506,
+          "served": 234.36,
+          "profit_per_hour": 51.140845,
+          "util": 0.396905
+        },
+        "ci95": {
+          "mean_los": 0.283163,
+          "los_p95": 0.626066,
+          "profit_per_hour": 3.91362,
+          "balk_rate": 0.005043
+        }
+      },
+      {
+        "scenario": "network_tea_bottleneck",
+        "policy": "split_fast",
+        "split_mix": true,
+        "fast_priority": true,
+        "reps": 100,
+        "station_util": {
+          "bread": 0.009447,
+          "ice": 0.047492,
+          "order": 0.142234,
+          "tea": 0.841686
+        },
+        "top_station": "tea",
+        "metrics": {
+          "mean_los": 6.618413,
+          "mix_los": 8.750194,
+          "mix_ice_hand": 1.792911,
+          "los_p95": 16.031592,
+          "balk_rate": 0.046223,
+          "abandon_rate": 0.047345,
+          "served": 234.85,
+          "profit_per_hour": 53.451214,
+          "util": 0.397514
+        },
+        "ci95": {
+          "mean_los": 0.28049,
+          "los_p95": 0.654739,
+          "profit_per_hour": 3.856069,
+          "balk_rate": 0.005057
+        }
+      },
+      {
+        "scenario": "ice_cream_bottleneck",
+        "policy": "synchro_plain",
+        "split_mix": false,
+        "fast_priority": false,
+        "reps": 100,
+        "station_util": {
+          "bread": 0.008136,
+          "ice": 0.692809,
+          "order": 0.242361,
+          "tea": 0.483349
+        },
+        "top_station": "ice",
+        "metrics": {
+          "mean_los": 4.163555,
+          "mix_los": 5.168446,
+          "mix_ice_hand": 5.168446,
+          "los_p95": 8.227794,
+          "balk_rate": 0.036084,
+          "abandon_rate": 0.037123,
+          "served": 403.64,
+          "profit_per_hour": 164.677624,
+          "util": 0.52877
+        },
+        "ci95": {
+          "mean_los": 0.064805,
+          "los_p95": 0.180207,
+          "profit_per_hour": 2.313401,
+          "balk_rate": 0.002345
+        }
+      },
+      {
+        "scenario": "ice_cream_bottleneck",
+        "policy": "synchro_fast",
+        "split_mix": false,
+        "fast_priority": true,
+        "reps": 100,
+        "station_util": {
+          "bread": 0.008152,
+          "ice": 0.694075,
+          "order": 0.242737,
+          "tea": 0.484345
+        },
+        "top_station": "ice",
+        "metrics": {
+          "mean_los": 4.114419,
+          "mix_los": 5.729018,
+          "mix_ice_hand": 5.729018,
+          "los_p95": 8.510847,
+          "balk_rate": 0.034544,
+          "abandon_rate": 0.035604,
+          "served": 404.48,
+          "profit_per_hour": 166.379508,
+          "util": 0.529777
+        },
+        "ci95": {
+          "mean_los": 0.059444,
+          "los_p95": 0.185666,
+          "profit_per_hour": 2.307614,
+          "balk_rate": 0.002355
+        }
+      },
+      {
+        "scenario": "ice_cream_bottleneck",
+        "policy": "split_plain",
+        "split_mix": true,
+        "fast_priority": false,
+        "reps": 100,
+        "station_util": {
+          "bread": 0.008177,
+          "ice": 0.701109,
+          "order": 0.244135,
+          "tea": 0.486517
+        },
+        "top_station": "ice",
+        "metrics": {
+          "mean_los": 3.638533,
+          "mix_los": 3.781233,
+          "mix_ice_hand": 2.844884,
+          "los_p95": 7.6192,
+          "balk_rate": 0.028934,
+          "abandon_rate": 0.030017,
+          "served": 407.07,
+          "profit_per_hour": 180.660933,
+          "util": 0.533057
+        },
+        "ci95": {
+          "mean_los": 0.068484,
+          "los_p95": 0.259447,
+          "profit_per_hour": 2.341151,
+          "balk_rate": 0.002227
+        }
+      },
+      {
+        "scenario": "ice_cream_bottleneck",
+        "policy": "split_fast",
+        "split_mix": true,
+        "fast_priority": true,
+        "reps": 100,
+        "station_util": {
+          "bread": 0.008223,
+          "ice": 0.702207,
+          "order": 0.244738,
+          "tea": 0.487969
+        },
+        "top_station": "ice",
+        "metrics": {
+          "mean_los": 3.549601,
+          "mix_los": 4.199762,
+          "mix_ice_hand": 3.44735,
+          "los_p95": 7.269458,
+          "balk_rate": 0.02654,
+          "abandon_rate": 0.027622,
+          "served": 408.29,
+          "profit_per_hour": 183.668871,
+          "util": 0.534407
+        },
+        "ci95": {
+          "mean_los": 0.062413,
+          "los_p95": 0.197554,
+          "profit_per_hour": 2.435588,
+          "balk_rate": 0.002038
+        }
+      }
+    ],
+    "strategy_bottleneck_paired": [
+      {
+        "name": "network_tea_bottleneck_synchro_fast_minus_synchro_plain",
+        "comparison": "network_tea_bottleneck_synchro_fast - network_tea_bottleneck_synchro_plain",
+        "reps": 100,
+        "metrics": {
+          "profit_per_hour": {
+            "diff": 1.327846,
+            "ci95": 0.992559
+          },
+          "mean_los": {
+            "diff": -0.080399,
+            "ci95": 0.06143
+          },
+          "mix_los": {
+            "diff": 0.248444,
+            "ci95": 0.090633
+          },
+          "mix_ice_hand": {
+            "diff": 0.248444,
+            "ci95": 0.090633
+          },
+          "los_p95": {
+            "diff": 0.261609,
+            "ci95": 0.179298
+          },
+          "served": {
+            "diff": 0.24,
+            "ci95": 0.271695
+          },
+          "balk_rate": {
+            "diff": -0.001704,
+            "ci95": 0.000954
+          }
+        },
+        "note": "policy cell minus synchro+plain on common random numbers"
+      },
+      {
+        "name": "network_tea_bottleneck_split_plain_minus_synchro_plain",
+        "comparison": "network_tea_bottleneck_split_plain - network_tea_bottleneck_synchro_plain",
+        "reps": 100,
+        "metrics": {
+          "profit_per_hour": {
+            "diff": -2.011566,
+            "ci95": 1.311489
+          },
+          "mean_los": {
+            "diff": 0.120974,
+            "ci95": 0.0809
+          },
+          "mix_los": {
+            "diff": 0.123289,
+            "ci95": 0.103119
+          },
+          "mix_ice_hand": {
+            "diff": -6.68261,
+            "ci95": 0.318642
+          },
+          "los_p95": {
+            "diff": 0.349094,
+            "ci95": 0.253696
+          },
+          "served": {
+            "diff": -0.53,
+            "ci95": 0.447856
+          },
+          "balk_rate": {
+            "diff": 0.001917,
+            "ci95": 0.001428
+          }
+        },
+        "note": "policy cell minus synchro+plain on common random numbers"
+      },
+      {
+        "name": "network_tea_bottleneck_split_fast_minus_synchro_plain",
+        "comparison": "network_tea_bottleneck_split_fast - network_tea_bottleneck_synchro_plain",
+        "reps": 100,
+        "metrics": {
+          "profit_per_hour": {
+            "diff": 0.298803,
+            "ci95": 1.221042
+          },
+          "mean_los": {
+            "diff": -0.022495,
+            "ci95": 0.075266
+          },
+          "mix_los": {
+            "diff": 0.29286,
+            "ci95": 0.113047
+          },
+          "mix_ice_hand": {
+            "diff": -6.664423,
+            "ci95": 0.316178
+          },
+          "los_p95": {
+            "diff": 0.503332,
+            "ci95": 0.257632
+          },
+          "served": {
+            "diff": -0.04,
+            "ci95": 0.431498
+          },
+          "balk_rate": {
+            "diff": -0.000316,
+            "ci95": 0.001489
+          }
+        },
+        "note": "policy cell minus synchro+plain on common random numbers"
+      },
+      {
+        "name": "ice_cream_bottleneck_synchro_fast_minus_synchro_plain",
+        "comparison": "ice_cream_bottleneck_synchro_fast - ice_cream_bottleneck_synchro_plain",
+        "reps": 100,
+        "metrics": {
+          "profit_per_hour": {
+            "diff": 1.701884,
+            "ci95": 0.759488
+          },
+          "mean_los": {
+            "diff": -0.049136,
+            "ci95": 0.023368
+          },
+          "mix_los": {
+            "diff": 0.560572,
+            "ci95": 0.043665
+          },
+          "mix_ice_hand": {
+            "diff": 0.560572,
+            "ci95": 0.043665
+          },
+          "los_p95": {
+            "diff": 0.283053,
+            "ci95": 0.115823
+          },
+          "served": {
+            "diff": 0.84,
+            "ci95": 0.379643
+          },
+          "balk_rate": {
+            "diff": -0.00154,
+            "ci95": 0.000786
+          }
+        },
+        "note": "policy cell minus synchro+plain on common random numbers"
+      },
+      {
+        "name": "ice_cream_bottleneck_split_plain_minus_synchro_plain",
+        "comparison": "ice_cream_bottleneck_split_plain - ice_cream_bottleneck_synchro_plain",
+        "reps": 100,
+        "metrics": {
+          "profit_per_hour": {
+            "diff": 15.983309,
+            "ci95": 1.044353
+          },
+          "mean_los": {
+            "diff": -0.525023,
+            "ci95": 0.033353
+          },
+          "mix_los": {
+            "diff": -1.387214,
+            "ci95": 0.028956
+          },
+          "mix_ice_hand": {
+            "diff": -2.323562,
+            "ci95": 0.040741
+          },
+          "los_p95": {
+            "diff": -0.608594,
+            "ci95": 0.191367
+          },
+          "served": {
+            "diff": 3.43,
+            "ci95": 0.528016
+          },
+          "balk_rate": {
+            "diff": -0.007149,
+            "ci95": 0.001046
+          }
+        },
+        "note": "policy cell minus synchro+plain on common random numbers"
+      },
+      {
+        "name": "ice_cream_bottleneck_split_fast_minus_synchro_plain",
+        "comparison": "ice_cream_bottleneck_split_fast - ice_cream_bottleneck_synchro_plain",
+        "reps": 100,
+        "metrics": {
+          "profit_per_hour": {
+            "diff": 18.991247,
+            "ci95": 0.987935
+          },
+          "mean_los": {
+            "diff": -0.613954,
+            "ci95": 0.028464
+          },
+          "mix_los": {
+            "diff": -0.968684,
+            "ci95": 0.045677
+          },
+          "mix_ice_hand": {
+            "diff": -1.721096,
+            "ci95": 0.06679
+          },
+          "los_p95": {
+            "diff": -0.958336,
+            "ci95": 0.125883
+          },
+          "served": {
+            "diff": 4.65,
+            "ci95": 0.516965
+          },
+          "balk_rate": {
+            "diff": -0.009544,
+            "ci95": 0.001019
+          }
+        },
+        "note": "policy cell minus synchro+plain on common random numbers"
+      }
+    ],
+    "strategy_fast_value": [
+      {
+        "scenario": "network_tea_bottleneck",
+        "split_label": "synchro",
+        "split_mix": false,
+        "profit_per_hour": {
+          "diff": 1.327846,
+          "ci95": 0.992559
+        },
+        "mean_los": {
+          "diff": -0.080399,
+          "ci95": 0.06143
+        },
+        "los_p95": {
+          "diff": 0.261609,
+          "ci95": 0.179298
+        },
+        "balk_rate": {
+          "diff": -0.001704,
+          "ci95": 0.000954
+        }
+      },
+      {
+        "scenario": "network_tea_bottleneck",
+        "split_label": "split",
+        "split_mix": true,
+        "profit_per_hour": {
+          "diff": 2.310369,
+          "ci95": 0.602455
+        },
+        "mean_los": {
+          "diff": -0.143469,
+          "ci95": 0.039537
+        },
+        "los_p95": {
+          "diff": 0.154238,
+          "ci95": 0.123664
+        },
+        "balk_rate": {
+          "diff": -0.002233,
+          "ci95": 0.000756
+        }
+      },
+      {
+        "scenario": "ice_cream_bottleneck",
+        "split_label": "synchro",
+        "split_mix": false,
+        "profit_per_hour": {
+          "diff": 1.701884,
+          "ci95": 0.759488
+        },
+        "mean_los": {
+          "diff": -0.049136,
+          "ci95": 0.023368
+        },
+        "los_p95": {
+          "diff": 0.283053,
+          "ci95": 0.115823
+        },
+        "balk_rate": {
+          "diff": -0.00154,
+          "ci95": 0.000786
+        }
+      },
+      {
+        "scenario": "ice_cream_bottleneck",
+        "split_label": "split",
+        "split_mix": true,
+        "profit_per_hour": {
+          "diff": 3.007938,
+          "ci95": 0.710138
+        },
+        "mean_los": {
+          "diff": -0.088931,
+          "ci95": 0.020802
+        },
+        "los_p95": {
+          "diff": -0.349742,
+          "ci95": 0.154119
+        },
+        "balk_rate": {
+          "diff": -0.002394,
+          "ci95": 0.000707
+        }
+      }
+    ],
+    "strategy_split_value": [
+      {
+        "scenario": "network_tea_bottleneck",
+        "fast_label": "plain",
+        "fast_priority": false,
+        "profit_per_hour": {
+          "diff": -2.011566,
+          "ci95": 1.311489
+        },
+        "mean_los": {
+          "diff": 0.120974,
+          "ci95": 0.0809
+        },
+        "mix_ice_hand": {
+          "diff": -6.68261,
+          "ci95": 0.318642
+        },
+        "los_p95": {
+          "diff": 0.349094,
+          "ci95": 0.253696
+        }
+      },
+      {
+        "scenario": "network_tea_bottleneck",
+        "fast_label": "fast",
+        "fast_priority": true,
+        "profit_per_hour": {
+          "diff": -1.029043,
+          "ci95": 1.177985
+        },
+        "mean_los": {
+          "diff": 0.057904,
+          "ci95": 0.071769
+        },
+        "mix_ice_hand": {
+          "diff": -6.912867,
+          "ci95": 0.352898
+        },
+        "los_p95": {
+          "diff": 0.241723,
+          "ci95": 0.260288
+        }
+      },
+      {
+        "scenario": "ice_cream_bottleneck",
+        "fast_label": "plain",
+        "fast_priority": false,
+        "profit_per_hour": {
+          "diff": 15.983309,
+          "ci95": 1.044353
+        },
+        "mean_los": {
+          "diff": -0.525023,
+          "ci95": 0.033353
+        },
+        "mix_ice_hand": {
+          "diff": -2.323562,
+          "ci95": 0.040741
+        },
+        "los_p95": {
+          "diff": -0.608594,
+          "ci95": 0.191367
+        }
+      },
+      {
+        "scenario": "ice_cream_bottleneck",
+        "fast_label": "fast",
+        "fast_priority": true,
+        "profit_per_hour": {
+          "diff": 17.289363,
+          "ci95": 0.740662
+        },
+        "mean_los": {
+          "diff": -0.564818,
+          "ci95": 0.023878
+        },
+        "mix_ice_hand": {
+          "diff": -2.281669,
+          "ci95": 0.05473
+        },
+        "los_p95": {
+          "diff": -1.241389,
+          "ci95": 0.133893
+        }
+      }
+    ],
+    "skill_matrix": [
+      {
+        "configuration": "dedicated",
+        "description": "2 cashiers + 2 baristas, no shared skills",
+        "headcount": 4,
+        "skills": [
+          [
+            "cashier"
+          ],
+          [
+            "barista"
+          ]
+        ],
+        "reps": 100,
+        "station_util": {
+          "bread": 0.019025,
+          "ice": 0.047924,
+          "order": 0.287214,
+          "tea": 0.568136
+        },
+        "pool_util": {
+          "barista": 0.900128,
+          "cashier": 0.306238
+        },
+        "metrics": {
+          "wage_per_hour": 100.0,
+          "util": 0.603183,
+          "mean_los": 4.652463,
+          "los_p95": 10.71456,
+          "balk_rate": 0.042671,
+          "served": 477.29,
+          "profit_per_hour": 219.959163,
+          "revenue_per_hour": 458.815,
+          "staff_minutes_available": 1920.0
+        },
+        "ci95": {
+          "mean_los": 0.133054,
+          "los_p95": 0.324601,
+          "profit_per_hour": 3.863236,
+          "balk_rate": 0.003525
+        }
+      },
+      {
+        "configuration": "generalist",
+        "description": "4 generalists, every staff unit has the 'all' skill",
+        "headcount": 4,
+        "skills": [
+          [
+            "all"
+          ]
+        ],
+        "reps": 100,
+        "station_util": {
+          "bread": 0.019828,
+          "ice": 0.049774,
+          "order": 0.298219,
+          "tea": 0.592825
+        },
+        "pool_util": {
+          "barista": 0.469506,
+          "cashier": 0.159023
+        },
+        "metrics": {
+          "wage_per_hour": 100.0,
+          "util": 0.62853,
+          "mean_los": 2.421316,
+          "los_p95": 4.474044,
+          "balk_rate": 0.006378,
+          "served": 499.26,
+          "profit_per_hour": 304.495099,
+          "revenue_per_hour": 480.0975,
+          "staff_minutes_available": 1920.0
+        },
+        "ci95": {
+          "mean_los": 0.021963,
+          "los_p95": 0.073307,
+          "profit_per_hour": 3.205281,
+          "balk_rate": 0.000643
+        }
+      },
+      {
+        "configuration": "cross_trained",
+        "description": "2 cashiers + 2 baristas where baristas can also cashier",
+        "headcount": 4,
+        "skills": [
+          [
+            "cashier"
+          ],
+          [
+            "barista",
+            "cashier"
+          ]
+        ],
+        "reps": 100,
+        "station_util": {
+          "bread": 0.01903,
+          "ice": 0.047939,
+          "order": 0.287266,
+          "tea": 0.568113
+        },
+        "pool_util": {
+          "barista": 0.900108,
+          "cashier": 0.153148
+        },
+        "metrics": {
+          "wage_per_hour": 100.0,
+          "util": 0.603202,
+          "mean_los": 4.648658,
+          "los_p95": 10.69282,
+          "balk_rate": 0.042505,
+          "served": 477.37,
+          "profit_per_hour": 220.126124,
+          "revenue_per_hour": 458.89,
+          "staff_minutes_available": 1920.0
+        },
+        "ci95": {
+          "mean_los": 0.133185,
+          "los_p95": 0.327245,
+          "profit_per_hour": 3.873087,
+          "balk_rate": 0.003494
+        }
+      }
+    ],
+    "skill_matrix_paired": [
+      {
+        "name": "skill_generalist_minus_dedicated",
+        "comparison": "skill_generalist - skill_dedicated",
+        "reps": 100,
+        "metrics": {
+          "mean_los": {
+            "diff": -2.231148,
+            "ci95": 0.117429
+          },
+          "los_p95": {
+            "diff": -6.240516,
+            "ci95": 0.29049
+          },
+          "profit_per_hour": {
+            "diff": 84.535936,
+            "ci95": 5.128794
+          },
+          "served": {
+            "diff": 21.97,
+            "ci95": 2.122761
+          },
+          "util": {
+            "diff": 0.025346,
+            "ci95": 0.002506
+          },
+          "wage_per_hour": {
+            "diff": 0.0,
+            "ci95": 0.0
+          },
+          "balk_rate": {
+            "diff": -0.036292,
+            "ci95": 0.003341
+          }
+        },
+        "note": "same headcount and the same wage bill; only the skill matrix changes"
+      },
+      {
+        "name": "skill_cross_trained_minus_dedicated",
+        "comparison": "skill_cross_trained - skill_dedicated",
+        "reps": 100,
+        "metrics": {
+          "mean_los": {
+            "diff": -0.003805,
+            "ci95": 0.006079
+          },
+          "los_p95": {
+            "diff": -0.02174,
+            "ci95": 0.017743
+          },
+          "profit_per_hour": {
+            "diff": 0.166961,
+            "ci95": 0.22169
+          },
+          "served": {
+            "diff": 0.08,
+            "ci95": 0.143893
+          },
+          "util": {
+            "diff": 1.9e-05,
+            "ci95": 0.000215
+          },
+          "wage_per_hour": {
+            "diff": 0.0,
+            "ci95": 0.0
+          },
+          "balk_rate": {
+            "diff": -0.000166,
+            "ci95": 0.000245
+          }
+        },
+        "note": "same headcount and the same wage bill; only the skill matrix changes"
+      }
+    ],
+    "shifts": [
+      {
+        "configuration": "no_shift",
+        "description": "5 staff, everyone on shift for the whole day, no breaks",
+        "headcount": 5,
+        "reps": 60,
+        "station_util": {
+          "bread": 0.019626,
+          "ice": 0.102295,
+          "order": 0.316118,
+          "tea": 0.638216
+        },
+        "pool_util": {
+          "barista": 0.672315,
+          "cashier": 0.335743
+        },
+        "metrics": {
+          "wage_per_hour": 125.0,
+          "util": 0.537686,
+          "mean_los": 3.815147,
+          "los_p95": 8.409817,
+          "peak_hour_los": 5.188036,
+          "balk_rate": 0.089042,
+          "abandon_rate": 0.089614,
+          "served": 567.883333,
+          "profit_per_hour": 285.597931,
+          "revenue_per_hour": 545.958333,
+          "staff_minutes_available": 2400.0
+        },
+        "ci95": {
+          "mean_los": 0.090474,
+          "los_p95": 0.24474,
+          "peak_hour_los": 0.197215,
+          "served": 4.524926,
+          "profit_per_hour": 4.293961
+        },
+        "hourly": [
+          {
+            "hour_start": 0.0,
+            "included": false,
+            "arrivals": 37.2833,
+            "served": 0.0,
+            "busy_minutes": 78.3117,
+            "busy_ratio": 0.261,
+            "mean_los": null
+          },
+          {
+            "hour_start": 60.0,
+            "included": true,
+            "arrivals": 126.5333,
+            "served": 102.45,
+            "busy_minutes": 223.9822,
+            "busy_ratio": 0.7466,
+            "mean_los": 4.0979
+          },
+          {
+            "hour_start": 120.0,
+            "included": true,
+            "arrivals": 125.0,
+            "served": 108.15,
+            "busy_minutes": 229.3626,
+            "busy_ratio": 0.7645,
+            "mean_los": 4.6062
+          },
+          {
+            "hour_start": 180.0,
+            "included": true,
+            "arrivals": 41.3333,
+            "served": 47.05,
+            "busy_minutes": 98.1816,
+            "busy_ratio": 0.3273,
+            "mean_los": 3.0393
+          },
+          {
+            "hour_start": 240.0,
+            "included": true,
+            "arrivals": 43.2167,
+            "served": 42.8833,
+            "busy_minutes": 90.9652,
+            "busy_ratio": 0.3032,
+            "mean_los": 2.2688
+          },
+          {
+            "hour_start": 300.0,
+            "included": true,
+            "arrivals": 115.9167,
+            "served": 100.7167,
+            "busy_minutes": 215.8611,
+            "busy_ratio": 0.7195,
+            "mean_los": 3.7726
+          },
+          {
+            "hour_start": 360.0,
+            "included": true,
+            "arrivals": 119.9667,
+            "served": 104.95,
+            "busy_minutes": 224.4518,
+            "busy_ratio": 0.7482,
+            "mean_los": 4.1904
+          },
+          {
+            "hour_start": 420.0,
+            "included": true,
+            "arrivals": 57.9167,
+            "served": 61.6833,
+            "busy_minutes": 129.3308,
+            "busy_ratio": 0.4311,
+            "mean_los": 2.9668
+          }
+        ],
+        "peak_window_los": {
+          "min60-180": 4.3589,
+          "min300-420": 3.9858
+        }
+      },
+      {
+        "configuration": "staggered_break",
+        "description": "same 5 staff with staggered 30-minute breaks (index-shifted)",
+        "headcount": 5,
+        "reps": 60,
+        "station_util": {
+          "bread": 0.01838,
+          "ice": 0.095954,
+          "order": 0.294989,
+          "tea": 0.594603
+        },
+        "pool_util": {
+          "barista": 0.626588,
+          "cashier": 0.31337
+        },
+        "metrics": {
+          "wage_per_hour": 117.1875,
+          "util": 0.534721,
+          "mean_los": 4.660597,
+          "los_p95": 11.789819,
+          "peak_hour_los": 7.373999,
+          "balk_rate": 0.149901,
+          "abandon_rate": 0.150497,
+          "served": 527.383333,
+          "profit_per_hour": 236.234789,
+          "revenue_per_hour": 506.9625,
+          "staff_minutes_available": 2250.0
+        },
+        "ci95": {
+          "mean_los": 0.100377,
+          "los_p95": 0.316348,
+          "peak_hour_los": 0.26061,
+          "served": 4.339338,
+          "profit_per_hour": 4.187642
+        },
+        "hourly": [
+          {
+            "hour_start": 0.0,
+            "included": false,
+            "arrivals": 37.2833,
+            "served": 0.0,
+            "busy_minutes": 78.3117,
+            "busy_ratio": 0.261,
+            "mean_los": null
+          },
+          {
+            "hour_start": 60.0,
+            "included": true,
+            "arrivals": 126.5333,
+            "served": 102.45,
+            "busy_minutes": 223.9822,
+            "busy_ratio": 0.7466,
+            "mean_los": 4.0979
+          },
+          {
+            "hour_start": 120.0,
+            "included": true,
+            "arrivals": 125.0,
+            "served": 108.15,
+            "busy_minutes": 229.3626,
+            "busy_ratio": 0.7645,
+            "mean_los": 4.6062
+          },
+          {
+            "hour_start": 180.0,
+            "included": true,
+            "arrivals": 41.3333,
+            "served": 47.05,
+            "busy_minutes": 98.1737,
+            "busy_ratio": 0.3272,
+            "mean_los": 3.0393
+          },
+          {
+            "hour_start": 240.0,
+            "included": true,
+            "arrivals": 43.2167,
+            "served": 42.3333,
+            "busy_minutes": 89.5803,
+            "busy_ratio": 0.2986,
+            "mean_los": 2.4733
+          },
+          {
+            "hour_start": 300.0,
+            "included": true,
+            "arrivals": 115.9167,
+            "served": 75.6833,
+            "busy_minutes": 160.2325,
+            "busy_ratio": 0.5341,
+            "mean_los": 6.4895
+          },
+          {
+            "hour_start": 360.0,
+            "included": true,
+            "arrivals": 119.9667,
+            "served": 89.7167,
+            "busy_minutes": 193.0211,
+            "busy_ratio": 0.6434,
+            "mean_los": 6.8909
+          },
+          {
+            "hour_start": 420.0,
+            "included": true,
+            "arrivals": 57.9167,
+            "served": 62.0,
+            "busy_minutes": 130.458,
+            "busy_ratio": 0.4349,
+            "mean_los": 2.9617
+          }
+        ],
+        "peak_window_los": {
+          "min60-180": 4.3589,
+          "min300-420": 6.7072
+        }
+      },
+      {
+        "configuration": "mid_shift_barista",
+        "description": "same 5 staff plus a 6th barista joining at minute 240",
+        "headcount": 6,
+        "reps": 60,
+        "station_util": {
+          "bread": 0.019869,
+          "ice": 0.103849,
+          "order": 0.320521,
+          "tea": 0.648438
+        },
+        "pool_util": {
+          "barista": 0.585475,
+          "cashier": 0.340389
+        },
+        "metrics": {
+          "wage_per_hour": 137.5,
+          "util": 0.496353,
+          "mean_los": 3.812848,
+          "los_p95": 8.479652,
+          "peak_hour_los": 5.243553,
+          "balk_rate": 0.07589,
+          "abandon_rate": 0.076535,
+          "served": 576.633333,
+          "profit_per_hour": 279.365335,
+          "revenue_per_hour": 554.270833,
+          "staff_minutes_available": 2640.0
+        },
+        "ci95": {
+          "mean_los": 0.093307,
+          "los_p95": 0.246376,
+          "peak_hour_los": 0.213925,
+          "served": 4.697627,
+          "profit_per_hour": 4.242921
+        },
+        "hourly": [
+          {
+            "hour_start": 0.0,
+            "included": false,
+            "arrivals": 37.2833,
+            "served": 0.0,
+            "busy_minutes": 78.3117,
+            "busy_ratio": 0.261,
+            "mean_los": null
+          },
+          {
+            "hour_start": 60.0,
+            "included": true,
+            "arrivals": 126.5333,
+            "served": 102.45,
+            "busy_minutes": 223.9822,
+            "busy_ratio": 0.7466,
+            "mean_los": 4.0979
+          },
+          {
+            "hour_start": 120.0,
+            "included": true,
+            "arrivals": 125.0,
+            "served": 108.15,
+            "busy_minutes": 229.3626,
+            "busy_ratio": 0.7645,
+            "mean_los": 4.6062
+          },
+          {
+            "hour_start": 180.0,
+            "included": true,
+            "arrivals": 41.3333,
+            "served": 47.05,
+            "busy_minutes": 98.1816,
+            "busy_ratio": 0.3273,
+            "mean_los": 3.0393
+          },
+          {
+            "hour_start": 240.0,
+            "included": true,
+            "arrivals": 43.2167,
+            "served": 42.9667,
+            "busy_minutes": 91.046,
+            "busy_ratio": 0.3035,
+            "mean_los": 2.2525
+          },
+          {
+            "hour_start": 300.0,
+            "included": true,
+            "arrivals": 115.9167,
+            "served": 103.8167,
+            "busy_minutes": 223.3241,
+            "busy_ratio": 0.7444,
+            "mean_los": 3.7338
+          },
+          {
+            "hour_start": 360.0,
+            "included": true,
+            "arrivals": 119.9667,
+            "served": 109.75,
+            "busy_minutes": 235.1605,
+            "busy_ratio": 0.7839,
+            "mean_los": 4.2022
+          },
+          {
+            "hour_start": 420.0,
+            "included": true,
+            "arrivals": 57.9167,
+            "served": 62.45,
+            "busy_minutes": 131.0024,
+            "busy_ratio": 0.4367,
+            "mean_los": 2.9615
+          }
+        ],
+        "peak_window_los": {
+          "min60-180": 4.3589,
+          "min300-420": 3.9745
+        }
+      }
+    ],
+    "shifts_paired": [
+      {
+        "name": "shift_staggered_break_minus_no_shift",
+        "comparison": "shift_staggered_break - shift_no_shift",
+        "reps": 60,
+        "metrics": {
+          "mean_los": {
+            "diff": 0.845449,
+            "ci95": 0.047487
+          },
+          "los_p95": {
+            "diff": 3.380002,
+            "ci95": 0.367026
+          },
+          "peak_hour_los": {
+            "diff": 2.185963,
+            "ci95": 0.288698
+          },
+          "served": {
+            "diff": -40.5,
+            "ci95": 1.850317
+          },
+          "profit_per_hour": {
+            "diff": -49.363142,
+            "ci95": 2.519389
+          },
+          "wage_per_hour": {
+            "diff": -7.8125,
+            "ci95": 0.0
+          },
+          "balk_rate": {
+            "diff": 0.060859,
+            "ci95": 0.002725
+          }
+        },
+        "note": "versus the no-shift/no-break baseline on common random numbers; the mid-shift variant has one more barista and therefore a higher wage bill"
+      },
+      {
+        "name": "shift_mid_shift_barista_minus_no_shift",
+        "comparison": "shift_mid_shift_barista - shift_no_shift",
+        "reps": 60,
+        "metrics": {
+          "mean_los": {
+            "diff": -0.0023,
+            "ci95": 0.030397
+          },
+          "los_p95": {
+            "diff": 0.069835,
+            "ci95": 0.092896
+          },
+          "peak_hour_los": {
+            "diff": 0.055516,
+            "ci95": 0.082304
+          },
+          "served": {
+            "diff": 8.75,
+            "ci95": 1.129306
+          },
+          "profit_per_hour": {
+            "diff": -6.232596,
+            "ci95": 1.601276
+          },
+          "wage_per_hour": {
+            "diff": 12.5,
+            "ci95": 0.0
+          },
+          "balk_rate": {
+            "diff": -0.013152,
+            "ci95": 0.001583
+          }
+        },
+        "note": "versus the no-shift/no-break baseline on common random numbers; the mid-shift variant has one more barista and therefore a higher wage bill"
+      }
+    ]
+  },
+  "series": {
+    "tea_capacity": {
+      "by_lambda": {
+        "lambda_0.6": [
+          {
+            "capacity": 1,
+            "tea_util": 0.841686,
+            "barista_pool_util": 0.889179,
+            "order_util": 0.142234,
+            "ice_util": 0.047492,
+            "los_p95": 16.031592,
+            "profit_per_hour": 53.451214
+          },
+          {
+            "capacity": 2,
+            "tea_util": 0.446428,
+            "barista_pool_util": 0.471308,
+            "order_util": 0.149229,
+            "ice_util": 0.04976,
+            "los_p95": 4.422198,
+            "profit_per_hour": 103.270916
+          },
+          {
+            "capacity": 3,
+            "tea_util": 0.297893,
+            "barista_pool_util": 0.314484,
+            "order_util": 0.149276,
+            "ice_util": 0.049775,
+            "los_p95": 3.496467,
+            "profit_per_hour": 82.305531
+          },
+          {
+            "capacity": 4,
+            "tea_util": 0.22348,
+            "barista_pool_util": 0.235923,
+            "order_util": 0.149276,
+            "ice_util": 0.049775,
+            "los_p95": 3.358933,
+            "profit_per_hour": 58.010126
+          }
+        ],
+        "lambda_0.9": [
+          {
+            "capacity": 1,
+            "tea_util": 0.939577,
+            "barista_pool_util": 0.993142,
+            "order_util": 0.162526,
+            "ice_util": 0.053566,
+            "los_p95": 27.276463,
+            "profit_per_hour": -65.31755
+          },
+          {
+            "capacity": 2,
+            "tea_util": 0.666312,
+            "barista_pool_util": 0.703445,
+            "order_util": 0.223047,
+            "ice_util": 0.074265,
+            "los_p95": 6.56723,
+            "profit_per_hour": 188.969334
+          },
+          {
+            "capacity": 3,
+            "tea_util": 0.447786,
+            "barista_pool_util": 0.472651,
+            "order_util": 0.224234,
+            "ice_util": 0.074596,
+            "los_p95": 3.865661,
+            "profit_per_hour": 183.794007
+          },
+          {
+            "capacity": 4,
+            "tea_util": 0.336018,
+            "barista_pool_util": 0.354655,
+            "order_util": 0.224281,
+            "ice_util": 0.07455,
+            "los_p95": 3.459755,
+            "profit_per_hour": 161.714354
+          }
+        ],
+        "lambda_1.2": [
+          {
+            "capacity": 1,
+            "tea_util": 0.941328,
+            "barista_pool_util": 0.99547,
+            "order_util": 0.164705,
+            "ice_util": 0.054142,
+            "los_p95": 34.274573,
+            "profit_per_hour": -148.234309
+          },
+          {
+            "capacity": 2,
+            "tea_util": 0.85243,
+            "barista_pool_util": 0.900351,
+            "order_util": 0.287307,
+            "ice_util": 0.095842,
+            "los_p95": 10.701641,
+            "profit_per_hour": 219.926519
+          },
+          {
+            "capacity": 3,
+            "tea_util": 0.595839,
+            "barista_pool_util": 0.629136,
+            "order_util": 0.29962,
+            "ice_util": 0.099893,
+            "los_p95": 4.609795,
+            "profit_per_hour": 281.324159
+          },
+          {
+            "capacity": 4,
+            "tea_util": 0.448685,
+            "barista_pool_util": 0.473656,
+            "order_util": 0.300068,
+            "ice_util": 0.099883,
+            "los_p95": 3.646401,
+            "profit_per_hour": 265.490667
+          }
+        ]
+      }
+    },
+    "strategy": {
+      "profit_by_policy": [
+        {
+          "scenario": "network_tea_bottleneck",
+          "policy": "synchro_plain",
+          "profit_per_hour": 53.152411,
+          "mean_los": 6.640908,
+          "los_p95": 15.52826
+        },
+        {
+          "scenario": "network_tea_bottleneck",
+          "policy": "synchro_fast",
+          "profit_per_hour": 54.480257,
+          "mean_los": 6.560508,
+          "los_p95": 15.789869
+        },
+        {
+          "scenario": "network_tea_bottleneck",
+          "policy": "split_plain",
+          "profit_per_hour": 51.140845,
+          "mean_los": 6.761882,
+          "los_p95": 15.877354
+        },
+        {
+          "scenario": "network_tea_bottleneck",
+          "policy": "split_fast",
+          "profit_per_hour": 53.451214,
+          "mean_los": 6.618413,
+          "los_p95": 16.031592
+        },
+        {
+          "scenario": "ice_cream_bottleneck",
+          "policy": "synchro_plain",
+          "profit_per_hour": 164.677624,
+          "mean_los": 4.163555,
+          "los_p95": 8.227794
+        },
+        {
+          "scenario": "ice_cream_bottleneck",
+          "policy": "synchro_fast",
+          "profit_per_hour": 166.379508,
+          "mean_los": 4.114419,
+          "los_p95": 8.510847
+        },
+        {
+          "scenario": "ice_cream_bottleneck",
+          "policy": "split_plain",
+          "profit_per_hour": 180.660933,
+          "mean_los": 3.638533,
+          "los_p95": 7.6192
+        },
+        {
+          "scenario": "ice_cream_bottleneck",
+          "policy": "split_fast",
+          "profit_per_hour": 183.668871,
+          "mean_los": 3.549601,
+          "los_p95": 7.269458
+        }
+      ],
+      "fast_priority_value": [
+        {
+          "scenario": "network_tea_bottleneck",
+          "split_label": "synchro",
+          "split_mix": false,
+          "profit_per_hour": {
+            "diff": 1.327846,
+            "ci95": 0.992559
+          },
+          "mean_los": {
+            "diff": -0.080399,
+            "ci95": 0.06143
+          },
+          "los_p95": {
+            "diff": 0.261609,
+            "ci95": 0.179298
+          },
+          "balk_rate": {
+            "diff": -0.001704,
+            "ci95": 0.000954
+          }
+        },
+        {
+          "scenario": "network_tea_bottleneck",
+          "split_label": "split",
+          "split_mix": true,
+          "profit_per_hour": {
+            "diff": 2.310369,
+            "ci95": 0.602455
+          },
+          "mean_los": {
+            "diff": -0.143469,
+            "ci95": 0.039537
+          },
+          "los_p95": {
+            "diff": 0.154238,
+            "ci95": 0.123664
+          },
+          "balk_rate": {
+            "diff": -0.002233,
+            "ci95": 0.000756
+          }
+        },
+        {
+          "scenario": "ice_cream_bottleneck",
+          "split_label": "synchro",
+          "split_mix": false,
+          "profit_per_hour": {
+            "diff": 1.701884,
+            "ci95": 0.759488
+          },
+          "mean_los": {
+            "diff": -0.049136,
+            "ci95": 0.023368
+          },
+          "los_p95": {
+            "diff": 0.283053,
+            "ci95": 0.115823
+          },
+          "balk_rate": {
+            "diff": -0.00154,
+            "ci95": 0.000786
+          }
+        },
+        {
+          "scenario": "ice_cream_bottleneck",
+          "split_label": "split",
+          "split_mix": true,
+          "profit_per_hour": {
+            "diff": 3.007938,
+            "ci95": 0.710138
+          },
+          "mean_los": {
+            "diff": -0.088931,
+            "ci95": 0.020802
+          },
+          "los_p95": {
+            "diff": -0.349742,
+            "ci95": 0.154119
+          },
+          "balk_rate": {
+            "diff": -0.002394,
+            "ci95": 0.000707
+          }
+        }
+      ],
+      "split_value": [
+        {
+          "scenario": "network_tea_bottleneck",
+          "fast_label": "plain",
+          "fast_priority": false,
+          "profit_per_hour": {
+            "diff": -2.011566,
+            "ci95": 1.311489
+          },
+          "mean_los": {
+            "diff": 0.120974,
+            "ci95": 0.0809
+          },
+          "mix_ice_hand": {
+            "diff": -6.68261,
+            "ci95": 0.318642
+          },
+          "los_p95": {
+            "diff": 0.349094,
+            "ci95": 0.253696
+          }
+        },
+        {
+          "scenario": "network_tea_bottleneck",
+          "fast_label": "fast",
+          "fast_priority": true,
+          "profit_per_hour": {
+            "diff": -1.029043,
+            "ci95": 1.177985
+          },
+          "mean_los": {
+            "diff": 0.057904,
+            "ci95": 0.071769
+          },
+          "mix_ice_hand": {
+            "diff": -6.912867,
+            "ci95": 0.352898
+          },
+          "los_p95": {
+            "diff": 0.241723,
+            "ci95": 0.260288
+          }
+        },
+        {
+          "scenario": "ice_cream_bottleneck",
+          "fast_label": "plain",
+          "fast_priority": false,
+          "profit_per_hour": {
+            "diff": 15.983309,
+            "ci95": 1.044353
+          },
+          "mean_los": {
+            "diff": -0.525023,
+            "ci95": 0.033353
+          },
+          "mix_ice_hand": {
+            "diff": -2.323562,
+            "ci95": 0.040741
+          },
+          "los_p95": {
+            "diff": -0.608594,
+            "ci95": 0.191367
+          }
+        },
+        {
+          "scenario": "ice_cream_bottleneck",
+          "fast_label": "fast",
+          "fast_priority": true,
+          "profit_per_hour": {
+            "diff": 17.289363,
+            "ci95": 0.740662
+          },
+          "mean_los": {
+            "diff": -0.564818,
+            "ci95": 0.023878
+          },
+          "mix_ice_hand": {
+            "diff": -2.281669,
+            "ci95": 0.05473
+          },
+          "los_p95": {
+            "diff": -1.241389,
+            "ci95": 0.133893
+          }
+        }
+      ]
+    },
+    "skills": {
+      "profit": [
+        {
+          "configuration": "dedicated",
+          "profit_per_hour": 219.959163,
+          "mean_los": 4.652463,
+          "los_p95": 10.71456,
+          "wage_per_hour": 100.0
+        },
+        {
+          "configuration": "generalist",
+          "profit_per_hour": 304.495099,
+          "mean_los": 2.421316,
+          "los_p95": 4.474044,
+          "wage_per_hour": 100.0
+        },
+        {
+          "configuration": "cross_trained",
+          "profit_per_hour": 220.126124,
+          "mean_los": 4.648658,
+          "los_p95": 10.69282,
+          "wage_per_hour": 100.0
+        }
+      ]
+    },
+    "shifts": {
+      "hourly_los": {
+        "no_shift": [
+          null,
+          4.0979,
+          4.6062,
+          3.0393,
+          2.2688,
+          3.7726,
+          4.1904,
+          2.9668
+        ],
+        "staggered_break": [
+          null,
+          4.0979,
+          4.6062,
+          3.0393,
+          2.4733,
+          6.4895,
+          6.8909,
+          2.9617
+        ],
+        "mid_shift_barista": [
+          null,
+          4.0979,
+          4.6062,
+          3.0393,
+          2.2525,
+          3.7338,
+          4.2022,
+          2.9615
+        ]
+      },
+      "hourly_busy_ratio": {
+        "no_shift": [
+          0.261,
+          0.7466,
+          0.7645,
+          0.3273,
+          0.3032,
+          0.7195,
+          0.7482,
+          0.4311
+        ],
+        "staggered_break": [
+          0.261,
+          0.7466,
+          0.7645,
+          0.3272,
+          0.2986,
+          0.5341,
+          0.6434,
+          0.4349
+        ],
+        "mid_shift_barista": [
+          0.261,
+          0.7466,
+          0.7645,
+          0.3273,
+          0.3035,
+          0.7444,
+          0.7839,
+          0.4367
+        ]
+      },
+      "hourly_arrivals": [
+        37.2833,
+        126.5333,
+        125.0,
+        41.3333,
+        43.2167,
+        115.9167,
+        119.9667,
+        57.9167
+      ],
+      "peak_hours": [
+        1,
+        5
+      ],
+      "peak_windows": [
+        [
+          60.0,
+          180.0
+        ],
+        [
+          300.0,
+          420.0
+        ]
+      ],
+      "peak_window_los": {
+        "no_shift": {
+          "min60-180": 4.3589,
+          "min300-420": 3.9858
+        },
+        "staggered_break": {
+          "min60-180": 4.3589,
+          "min300-420": 6.7072
+        },
+        "mid_shift_barista": {
+          "min60-180": 4.3589,
+          "min300-420": 3.9745
+        }
+      },
+      "peak_hour_los": {
+        "no_shift": 5.188036,
+        "staggered_break": 7.373999,
+        "mid_shift_barista": 5.243553
+      }
+    }
+  },
+  "findings": {
+    "bottleneck_migration": {
+      "critical_capacity_by_lambda": {
+        "lambda_0.6": 3,
+        "lambda_0.9": 3,
+        "lambda_1.2": 4
+      },
+      "tea_remains_top_station_by_lambda": {
+        "lambda_0.6": true,
+        "lambda_0.9": true,
+        "lambda_1.2": true
+      },
+      "fixed_labour_tea_util_by_capacity": {
+        "lambda_0.9": {
+          "1": 0.993208,
+          "2": 0.666312,
+          "3": 0.444208,
+          "4": 0.333156
+        },
+        "lambda_1.2": {
+          "1": 0.995335,
+          "2": 0.85243,
+          "3": 0.568287,
+          "4": 0.426215
+        }
+      },
+      "fixed_labour_first_capacity_with_no_further_los_gain": {
+        "lambda_0.9": 2,
+        "lambda_1.2": 2
+      },
+      "note": "With staff synced to stations the tea station stays the busiest station for every capacity, but each extra station pays for itself only up to the computed critical capacity; beyond it the shared barista pool and the order counter take over the queue. The fixed-labour companion is the clean picture of the migration: with the barista count held fixed, tea station utilisation collapses as slots are added while mean waiting, p95 and profit are bit-identical, because the labour pool is now the constraint."
+    },
+    "strategy_by_bottleneck": {
+      "fast_priority_value": [
+        {
+          "scenario": "network_tea_bottleneck",
+          "split_label": "synchro",
+          "split_mix": false,
+          "profit_per_hour": {
+            "diff": 1.327846,
+            "ci95": 0.992559
+          },
+          "mean_los": {
+            "diff": -0.080399,
+            "ci95": 0.06143
+          },
+          "los_p95": {
+            "diff": 0.261609,
+            "ci95": 0.179298
+          },
+          "balk_rate": {
+            "diff": -0.001704,
+            "ci95": 0.000954
+          }
+        },
+        {
+          "scenario": "network_tea_bottleneck",
+          "split_label": "split",
+          "split_mix": true,
+          "profit_per_hour": {
+            "diff": 2.310369,
+            "ci95": 0.602455
+          },
+          "mean_los": {
+            "diff": -0.143469,
+            "ci95": 0.039537
+          },
+          "los_p95": {
+            "diff": 0.154238,
+            "ci95": 0.123664
+          },
+          "balk_rate": {
+            "diff": -0.002233,
+            "ci95": 0.000756
+          }
+        },
+        {
+          "scenario": "ice_cream_bottleneck",
+          "split_label": "synchro",
+          "split_mix": false,
+          "profit_per_hour": {
+            "diff": 1.701884,
+            "ci95": 0.759488
+          },
+          "mean_los": {
+            "diff": -0.049136,
+            "ci95": 0.023368
+          },
+          "los_p95": {
+            "diff": 0.283053,
+            "ci95": 0.115823
+          },
+          "balk_rate": {
+            "diff": -0.00154,
+            "ci95": 0.000786
+          }
+        },
+        {
+          "scenario": "ice_cream_bottleneck",
+          "split_label": "split",
+          "split_mix": true,
+          "profit_per_hour": {
+            "diff": 3.007938,
+            "ci95": 0.710138
+          },
+          "mean_los": {
+            "diff": -0.088931,
+            "ci95": 0.020802
+          },
+          "los_p95": {
+            "diff": -0.349742,
+            "ci95": 0.154119
+          },
+          "balk_rate": {
+            "diff": -0.002394,
+            "ci95": 0.000707
+          }
+        }
+      ],
+      "note": "Fast-item priority is worth much less when the tea station is the bottleneck than when the ice-cream machine is: the fast lane only helps customers whose own station has slack."
+    },
+    "skill_matrix": {
+      "generalist_minus_dedicated_profit": {
+        "diff": 84.535936,
+        "ci95": 5.128794
+      },
+      "cross_trained_minus_dedicated_profit": {
+        "diff": 0.166961,
+        "ci95": 0.22169
+      },
+      "note": "Same headcount and the same wage bill in all three cells, so the difference is pure queueing: a single flexible pool captures the pooling gain, one-way cross-training into the under-loaded task does not."
+    },
+    "shifts": {
+      "peak_hour_los": {
+        "no_shift": 5.188036,
+        "staggered_break": 7.373999,
+        "mid_shift_barista": 5.243553
+      },
+      "peak_window_los": {
+        "no_shift": {
+          "min60-180": 4.3589,
+          "min300-420": 3.9858
+        },
+        "staggered_break": {
+          "min60-180": 4.3589,
+          "min300-420": 6.7072
+        },
+        "mid_shift_barista": {
+          "min60-180": 4.3589,
+          "min300-420": 3.9745
+        }
+      },
+      "note": "Breaks near a peak cost more than they save: a staggered 30-minute break removes capacity exactly when the peak needs it, so the peak-hour wait and the p95 jump and profit falls by more than the unpaid break saves in wages. Adding a barista mid-shift raises served and lowers balking, but the afternoon peak wait is essentially unchanged because the tea station, not headcount, is the binding resource at the peak; the extra wage line therefore costs money. Before minute 240 the mid-shift variant is identical to the no-shift baseline (the extra barista is not on shift and the balk estimate only counts staff on shift), so the morning peak is unchanged by construction rather than by luck."
+    }
+  }
+}

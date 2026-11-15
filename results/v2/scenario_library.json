@@ -1,0 +1,5337 @@
+{
+  "meta": {
+    "experiment": "scenario_library",
+    "schema_version": 1,
+    "package_version": "2.0.0",
+    "python_version": "3.14.5",
+    "engine": "bubble_tea_sim.engine.Simulation (stdlib only)",
+    "scenario_library": [
+      "baseline_flat",
+      "bread_counter_bottleneck",
+      "campus_rush",
+      "cbd_commute",
+      "exam_week",
+      "flagship_five_staff",
+      "ice_cream_bottleneck",
+      "inventory_generous",
+      "inventory_lean",
+      "late_night_study",
+      "mall_weekend",
+      "network_tea_bottleneck",
+      "peak_pricing",
+      "rainy_delivery",
+      "strict_sla_fairness",
+      "tiny_two_staff"
+    ],
+    "notes": "One block per scenario in data/scenarios/. Provenance is copied from the JSON file; config.describe() and the layer description come from the loaded SimConfig. 100 replicates per scenario, first seed 0, stride 1. Flow conservation and finiteness are asserted for every replicate, so a scenario that fails would abort this script instead of appearing here. The balk decision uses the engine's wait estimate divided by the number of staff units ON SHIFT at the arrival instant (shift windows and breaks are coverage-checked), so scenarios with late shift starts, breaks or a mid-shift joiner are not credited with absent staff; the stationary legacy path keeps the full worker count so the v1 anchors stay bit-identical. Note: sla.fairness_cap_minutes in a scenario file is an alias for the policy starvation cap, so peak_pricing/strict_sla_fairness behave as their provenance describes.",
+    "reps": 100,
+    "seed": 0,
+    "seed_stride": 1,
+    "scenario_count": 16,
+    "total_replicates": 1600,
+    "elapsed_seconds": 33.7
+  },
+  "tables": {
+    "scenarios": [
+      {
+        "name": "baseline_flat",
+        "title": "v1 baseline: flat demand, one clerk pool, fixed service times",
+        "provenance": {
+          "source": "Course 5006 project assumptions (report and experiment ledger)",
+          "method": "Direct copy of the v1 configuration; the loader must reproduce the v1 anchors bit-for-bit",
+          "uncertainty": "high",
+          "notes": "This file intentionally enables none of the v2 layers; it exists to prove backward compatibility."
+        },
+        "legacy_compat": true,
+        "config": {
+          "name": "baseline_flat",
+          "workers": 3,
+          "arrival_rate": 1.25,
+          "sim_minutes": 480.0,
+          "warmup_minutes": 60.0,
+          "mix": {
+            "tea": 0.55,
+            "bread": 0.2,
+            "ice": 0.05,
+            "mix": 0.2
+          },
+          "service_time_mean": 2.11665,
+          "utilization": 0.8819374999999999,
+          "policy": "synchro"
+        },
+        "layers": {
+          "demand": {
+            "segments": [
+              [
+                0.0,
+                1.0
+              ]
+            ],
+            "peak_multiplier": 1.0,
+            "daily_mean_multiplier": 1.0,
+            "flat": true
+          },
+          "batches": null,
+          "classes": [
+            {
+              "name": "regular",
+              "weight": 1.0,
+              "priority": 1,
+              "delivery": false,
+              "balk_mean": null,
+              "renege_mean": null,
+              "own_mix": false
+            }
+          ],
+          "variability": {
+            "kind": "fixed",
+            "order_cv": 0.0,
+            "tea_cv": 0.0,
+            "bread_cv": 0.0,
+            "ice_cv": 0.0
+          },
+          "network": null,
+          "inventory": null,
+          "pricing": null,
+          "sla": null,
+          "policy": {
+            "split_mix": false,
+            "fast_priority": false,
+            "starvation_cap": null,
+            "mix_ice_priority": "jump"
+          }
+        },
+        "reps": 100,
+        "means": {
+          "abandon_rate": 0.0,
+          "arrivals": 600.4,
+          "balk_rate": 0.0,
+          "balked": 0.0,
+          "busy_minutes": 1272.5094,
+          "class_regular_mean_los": 4.721383,
+          "class_regular_p95_los": 10.038001,
+          "class_regular_served": 524.06,
+          "count_bread": 104.6,
+          "count_ice": 26.68,
+          "count_mix": 105.29,
+          "count_tea": 287.49,
+          "fairness_gap": 0.0,
+          "flow_time_total": 2494.643774,
+          "ingredient_cost_per_hour": 0.0,
+          "los_bread": 3.382401,
+          "los_ice": 3.334894,
+          "los_mix": 5.439649,
+          "los_p50": 4.06117,
+          "los_p90": 8.765341,
+          "los_p95": 10.038001,
+          "los_tea": 5.074686,
+          "mean_busy_ratio": 0.879231,
+          "mean_los": 4.721383,
+          "mean_price_factor": 1.0,
+          "mix_ice_hand": 5.439649,
+          "mix_los": 5.439649,
+          "peak_busy_ratio": 0.979311,
+          "peak_hour_arrivals": 87.13,
+          "peak_hour_los": 7.767477,
+          "profit_per_hour": 273.307264,
+          "purchase_cost": 0.0,
+          "renege_rate": 0.0,
+          "reneged": 0.0,
+          "revenue_per_hour": 504.2225,
+          "revenue_total": 4033.78,
+          "served": 524.06,
+          "served_all": 600.4,
+          "served_rate": 1.0,
+          "sla_attainment": 0.0,
+          "sla_compensation_total": 0.0,
+          "staff_minutes_available": 1440.0,
+          "starvation_events": 0.0,
+          "stockout_losses": 0.0,
+          "stockout_rate": 0.0,
+          "stranded": 0.0,
+          "util": 0.883687,
+          "wage_per_hour": 75.0,
+          "waiting_cost_total": 1247.321887,
+          "waste_units": 0.0
+        },
+        "ci95": {
+          "abandon_rate": 0.0,
+          "arrivals": 4.674206,
+          "balk_rate": 0.0,
+          "fairness_gap": 0.0,
+          "los_p50": 0.247963,
+          "los_p90": 0.65919,
+          "los_p95": 0.730524,
+          "mean_busy_ratio": 0.007349,
+          "mean_los": 0.279212,
+          "mix_los": 0.289717,
+          "peak_busy_ratio": 0.005904,
+          "peak_hour_los": 0.690663,
+          "profit_per_hour": 7.764652,
+          "renege_rate": 0.0,
+          "revenue_per_hour": 4.179173,
+          "served": 4.267855,
+          "sla_attainment": 0.0,
+          "stockout_rate": 0.0,
+          "util": 0.007254,
+          "wage_per_hour": 0.0,
+          "waste_units": 0.0
+        },
+        "validation": {
+          "flow_conservation": true,
+          "all_metrics_finite": true,
+          "reps": 100
+        }
+      },
+      {
+        "name": "bread_counter_bottleneck",
+        "title": "Bread counter bottleneck: one toaster slot, bread-heavy order mix",
+        "provenance": {
+          "source": "Synthetic: Course 5006 service-time structure with an assumed single-slot toaster/warmer, plus teaching-case ranges for bakery-attach rates",
+          "method": "Bread make time raised to 1.5 min per portion at a single-slot counter, bread share raised to 45% of orders, two cashiers and two tea slots so the bread counter is the structural bottleneck",
+          "uncertainty": "high",
+          "notes": "Not field-measured. The bread counter and the tills are staffed by the same cashier role, so adding a second bread slot is an equipment decision, not a hiring one; the network study uses this to separate equipment capacity from labour capacity."
+        },
+        "legacy_compat": false,
+        "config": {
+          "name": "bread_counter_bottleneck",
+          "workers": 4,
+          "arrival_rate": 0.85,
+          "sim_minutes": 480.0,
+          "warmup_minutes": 60.0,
+          "mix": {
+            "tea": 0.3,
+            "bread": 0.45,
+            "ice": 0.05,
+            "mix": 0.2
+          },
+          "service_time_mean": 2.25825,
+          "utilization": 0.47987812499999993,
+          "policy": "synchro+fast-priority"
+        },
+        "layers": {
+          "demand": {
+            "segments": [
+              [
+                0.0,
+                1.0
+              ]
+            ],
+            "peak_multiplier": 1.0,
+            "daily_mean_multiplier": 1.0,
+            "flat": true
+          },
+          "batches": {
+            "probability": 0.1,
+            "sizes": [
+              [
+                2,
+                0.7
+              ],
+              [
+                3,
+                0.3
+              ]
+            ],
+            "expected_arrival_size": 1.13
+          },
+          "classes": [
+            {
+              "name": "regular",
+              "weight": 0.9,
+              "priority": 1,
+              "delivery": false,
+              "balk_mean": 9.0,
+              "renege_mean": 16.0,
+              "own_mix": false
+            },
+            {
+              "name": "delivery",
+              "weight": 0.1,
+              "priority": 1,
+              "delivery": true,
+              "balk_mean": null,
+              "renege_mean": null,
+              "own_mix": false
+            }
+          ],
+          "variability": {
+            "kind": "lognormal",
+            "order_cv": 0.12,
+            "tea_cv": 0.3,
+            "bread_cv": 0.35,
+            "ice_cv": 0.25
+          },
+          "network": {
+            "stations": [
+              {
+                "name": "order",
+                "capacity": 2,
+                "skill": "cashier"
+              },
+              {
+                "name": "tea",
+                "capacity": 2,
+                "skill": "barista"
+              },
+              {
+                "name": "ice",
+                "capacity": 1,
+                "skill": "barista"
+              },
+              {
+                "name": "bread",
+                "capacity": 1,
+                "skill": "cashier"
+              }
+            ],
+            "staff": {
+              "roles": [
+                "cashier",
+                "barista"
+              ],
+              "counts": [
+                2,
+                2
+              ],
+              "skills": [
+                [
+                  "cashier"
+                ],
+                [
+                  "barista"
+                ]
+              ],
+              "windows": [
+                {
+                  "role": "cashier",
+                  "start": 0.0,
+                  "end": 480.0
+                },
+                {
+                  "role": "cashier",
+                  "start": 0.0,
+                  "end": 480.0
+                },
+                {
+                  "role": "barista",
+                  "start": 0.0,
+                  "end": 480.0
+                },
+                {
+                  "role": "barista",
+                  "start": 0.0,
+                  "end": 480.0
+                }
+              ],
+              "breaks": []
+            },
+            "routes": [
+              [
+                "tea",
+                "tea"
+              ],
+              [
+                "mix_tea",
+                "tea"
+              ],
+              [
+                "ice",
+                "ice"
+              ],
+              [
+                "mix_ice",
+                "ice"
+              ],
+              [
+                "bread",
+                "bread"
+              ]
+            ]
+          },
+          "inventory": null,
+          "pricing": null,
+          "sla": null,
+          "policy": {
+            "split_mix": false,
+            "fast_priority": true,
+            "starvation_cap": null,
+            "mix_ice_priority": "jump"
+          }
+        },
+        "reps": 100,
+        "means": {
+          "abandon_rate": 0.021202,
+          "arrivals": 457.5,
+          "balk_rate": 0.020145,
+          "balked": 9.3,
+          "busy_minutes": 1006.877384,
+          "class_delivery_mean_los": 3.338811,
+          "class_delivery_p95_los": 6.317384,
+          "class_delivery_served": 39.66,
+          "class_regular_mean_los": 3.272244,
+          "class_regular_p95_los": 6.351428,
+          "class_regular_served": 348.85,
+          "count_bread": 174.16,
+          "count_ice": 19.14,
+          "count_mix": 78.75,
+          "count_tea": 116.46,
+          "fairness_gap": 0.234956,
+          "flow_time_total": 1275.721548,
+          "ingredient_cost_per_hour": 0.0,
+          "los_bread": 3.554617,
+          "los_ice": 1.240072,
+          "los_mix": 3.431211,
+          "los_p50": 2.921702,
+          "los_p90": 5.323934,
+          "los_p95": 6.384416,
+          "los_tea": 3.077755,
+          "mean_busy_ratio": 0.526284,
+          "mean_los": 3.278646,
+          "mean_price_factor": 1.0,
+          "mix_ice_hand": 3.431211,
+          "mix_los": 3.431211,
+          "peak_busy_ratio": 0.622429,
+          "peak_hour_arrivals": 68.58,
+          "peak_hour_los": 4.026556,
+          "pool_barista_util": 0.503027,
+          "pool_cashier_util": 0.545804,
+          "profit_per_hour": 170.569903,
+          "purchase_cost": 0.0,
+          "renege_rate": 0.001057,
+          "reneged": 0.49,
+          "revenue_per_hour": 350.3025,
+          "revenue_total": 2802.42,
+          "served": 388.51,
+          "served_all": 445.11,
+          "served_rate": 0.9731,
+          "sla_attainment": 0.0,
+          "sla_compensation_total": 0.0,
+          "staff_minutes_available": 1920.0,
+          "starvation_events": 0.0,
+          "station_bread_util": 0.625731,
+          "station_ice_util": 0.077648,
+          "station_order_util": 0.232938,
+          "station_tea_util": 0.464203,
+          "stockout_losses": 0.0,
+          "stockout_rate": 0.0,
+          "stranded": 2.6,
+          "top_station_util": 0.625731,
+          "util": 0.524415,
+          "wage_per_hour": 100.0,
+          "waiting_cost_total": 637.860774,
+          "waste_units": 0.0
+        },
+        "ci95": {
+          "abandon_rate": 0.001749,
+          "arrivals": 4.330195,
+          "balk_rate": 0.001681,
+          "fairness_gap": 0.040077,
+          "los_p50": 0.018949,
+          "los_p90": 0.130289,
+          "los_p95": 0.186086,
+          "mean_busy_ratio": 0.005842,
+          "mean_los": 0.043421,
+          "mix_los": 0.031242,
+          "peak_busy_ratio": 0.008845,
+          "peak_hour_los": 0.114635,
+          "profit_per_hour": 2.845354,
+          "renege_rate": 0.000315,
+          "revenue_per_hour": 3.857296,
+          "served": 4.011172,
+          "sla_attainment": 0.0,
+          "station_bread_util": 0.009083,
+          "station_ice_util": 0.001263,
+          "station_order_util": 0.002072,
+          "station_tea_util": 0.006832,
+          "stockout_rate": 0.0,
+          "util": 0.00515,
+          "wage_per_hour": 0.0,
+          "waste_units": 0.0
+        },
+        "validation": {
+          "flow_conservation": true,
+          "all_metrics_finite": true,
+          "reps": 100
+        },
+        "station_util": {
+          "bread": 0.625731,
+          "ice": 0.077648,
+          "order": 0.232938,
+          "tea": 0.464203
+        },
+        "top_station": "bread",
+        "pool_util": {
+          "barista": 0.503027,
+          "cashier": 0.545804
+        }
+      },
+      {
+        "name": "campus_rush",
+        "title": "Campus shop: lunch and after-class peaks, group orders",
+        "provenance": {
+          "source": "Course 5006 assumptions (order mix, service times, prices) + typical queuing-shop peak-to-average ranges reported in operations-management teaching cases",
+          "method": "Synthetic: peak multipliers and batch sizes chosen to bracket a campus day; daily mean normalised to the quoted arrival rate",
+          "uncertainty": "high",
+          "notes": "Not field-measured. Peaks are 1.6-1.7x the daily mean; batch arrivals represent student groups. Three tea stations + three baristas make the peaks feasible but tight."
+        },
+        "legacy_compat": false,
+        "config": {
+          "name": "campus_rush",
+          "workers": 5,
+          "arrival_rate": 1.010989010989011,
+          "sim_minutes": 480.0,
+          "warmup_minutes": 60.0,
+          "mix": {
+            "tea": 0.55,
+            "bread": 0.2,
+            "ice": 0.05,
+            "mix": 0.2
+          },
+          "service_time_mean": 2.11665,
+          "utilization": 0.427981978021978,
+          "policy": "synchro+fast-priority"
+        },
+        "layers": {
+          "demand": {
+            "segments": [
+              [
+                0.0,
+                0.5
+              ],
+              [
+                60.0,
+                1.7
+              ],
+              [
+                180.0,
+                0.6
+              ],
+              [
+                300.0,
+                1.6
+              ],
+              [
+                420.0,
+                0.8
+              ]
+            ],
+            "peak_multiplier": 1.7,
+            "daily_mean_multiplier": 1.1375,
+            "flat": false
+          },
+          "batches": {
+            "probability": 0.15,
+            "sizes": [
+              [
+                2,
+                0.6
+              ],
+              [
+                3,
+                0.3
+              ],
+              [
+                4,
+                0.1
+              ]
+            ],
+            "expected_arrival_size": 1.225
+          },
+          "classes": [
+            {
+              "name": "regular",
+              "weight": 0.72,
+              "priority": 1,
+              "delivery": false,
+              "balk_mean": 9.0,
+              "renege_mean": 16.0,
+              "own_mix": false
+            },
+            {
+              "name": "student",
+              "weight": 0.2,
+              "priority": 1,
+              "delivery": false,
+              "balk_mean": 5.0,
+              "renege_mean": 9.0,
+              "own_mix": true
+            },
+            {
+              "name": "delivery",
+              "weight": 0.08,
+              "priority": 1,
+              "delivery": true,
+              "balk_mean": null,
+              "renege_mean": null,
+              "own_mix": false
+            }
+          ],
+          "variability": {
+            "kind": "lognormal",
+            "order_cv": 0.1,
+            "tea_cv": 0.35,
+            "bread_cv": 0.15,
+            "ice_cv": 0.25
+          },
+          "network": {
+            "stations": [
+              {
+                "name": "order",
+                "capacity": 2,
+                "skill": "cashier"
+              },
+              {
+                "name": "tea",
+                "capacity": 3,
+                "skill": "barista"
+              },
+              {
+                "name": "ice",
+                "capacity": 1,
+                "skill": "barista"
+              },
+              {
+                "name": "bread",
+                "capacity": 2,
+                "skill": "cashier"
+              }
+            ],
+            "staff": {
+              "roles": [
+                "cashier",
+                "barista"
+              ],
+              "counts": [
+                2,
+                3
+              ],
+              "skills": [
+                [
+                  "cashier"
+                ],
+                [
+                  "barista"
+                ]
+              ],
+              "windows": [
+                {
+                  "role": "cashier",
+                  "start": 0.0,
+                  "end": 480.0
+                },
+                {
+                  "role": "cashier",
+                  "start": 0.0,
+                  "end": 480.0
+                },
+                {
+                  "role": "barista",
+                  "start": 0.0,
+                  "end": 480.0
+                },
+                {
+                  "role": "barista",
+                  "start": 0.0,
+                  "end": 480.0
+                },
+                {
+                  "role": "barista",
+                  "start": 60.0,
+                  "end": 480.0
+                }
+              ],
+              "breaks": [
+                {
+                  "role": "cashier",
+                  "start": 240.0,
+                  "end": 270.0
+                },
+                {
+                  "role": "barista",
+                  "start": 300.0,
+                  "end": 330.0
+                }
+              ]
+            },
+            "routes": [
+              [
+                "tea",
+                "tea"
+              ],
+              [
+                "mix_tea",
+                "tea"
+              ],
+              [
+                "ice",
+                "ice"
+              ],
+              [
+                "mix_ice",
+                "ice"
+              ],
+              [
+                "bread",
+                "bread"
+              ]
+            ]
+          },
+          "inventory": null,
+          "pricing": null,
+          "sla": null,
+          "policy": {
+            "split_mix": false,
+            "fast_priority": true,
+            "starvation_cap": null,
+            "mix_ice_priority": "jump"
+          }
+        },
+        "reps": 100,
+        "means": {
+          "abandon_rate": 0.152138,
+          "arrivals": 668.56,
+          "balk_rate": 0.15156,
+          "balked": 101.7,
+          "busy_minutes": 1203.178861,
+          "class_delivery_mean_los": 5.098773,
+          "class_delivery_p95_los": 12.201129,
+          "class_delivery_served": 50.7,
+          "class_regular_mean_los": 4.735784,
+          "class_regular_p95_los": 11.894636,
+          "class_regular_served": 396.91,
+          "class_student_mean_los": 4.124985,
+          "class_student_p95_los": 9.595253,
+          "class_student_served": 81.21,
+          "count_bread": 98.87,
+          "count_ice": 27.88,
+          "count_mix": 101.82,
+          "count_tea": 300.25,
+          "fairness_gap": 1.09767,
+          "flow_time_total": 2472.242653,
+          "ingredient_cost_per_hour": 0.0,
+          "los_bread": 0.811553,
+          "los_ice": 1.346146,
+          "los_mix": 6.158697,
+          "los_p50": 3.790909,
+          "los_p90": 9.952537,
+          "los_p95": 11.813868,
+          "los_tea": 5.751304,
+          "mean_busy_ratio": 0.537704,
+          "mean_los": 4.677318,
+          "mean_price_factor": 1.0,
+          "mix_ice_hand": 6.158697,
+          "mix_los": 6.158697,
+          "peak_busy_ratio": 0.776735,
+          "peak_hour_arrivals": 136.41,
+          "peak_hour_los": 7.468726,
+          "pool_barista_util": 0.65384,
+          "pool_cashier_util": 0.313416,
+          "profit_per_hour": 240.069834,
+          "purchase_cost": 0.0,
+          "renege_rate": 0.000578,
+          "reneged": 0.39,
+          "revenue_per_hour": 508.6475,
+          "revenue_total": 4069.18,
+          "served": 528.82,
+          "served_all": 564.66,
+          "served_rate": 0.845163,
+          "sla_attainment": 0.0,
+          "sla_compensation_total": 0.0,
+          "staff_minutes_available": 2190.0,
+          "starvation_events": 0.0,
+          "station_bread_util": 0.018353,
+          "station_ice_util": 0.096176,
+          "station_order_util": 0.295063,
+          "station_tea_util": 0.594538,
+          "stockout_losses": 0.0,
+          "stockout_rate": 0.0,
+          "stranded": 1.81,
+          "top_station_util": 0.594538,
+          "util": 0.549397,
+          "wage_per_hour": 114.0625,
+          "waiting_cost_total": 1236.121326,
+          "waste_units": 0.0
+        },
+        "ci95": {
+          "abandon_rate": 0.004863,
+          "arrivals": 5.329372,
+          "balk_rate": 0.004857,
+          "fairness_gap": 0.110664,
+          "los_p50": 0.099601,
+          "los_p90": 0.193027,
+          "los_p95": 0.250143,
+          "mean_busy_ratio": 0.003303,
+          "mean_los": 0.076406,
+          "mix_los": 0.107265,
+          "peak_busy_ratio": 0.005085,
+          "peak_hour_los": 0.20239,
+          "profit_per_hour": 3.295118,
+          "renege_rate": 0.000204,
+          "revenue_per_hour": 3.156693,
+          "served": 3.390111,
+          "sla_attainment": 0.0,
+          "station_bread_util": 0.000381,
+          "station_ice_util": 0.001565,
+          "station_order_util": 0.001986,
+          "station_tea_util": 0.003934,
+          "stockout_rate": 0.0,
+          "util": 0.003432,
+          "wage_per_hour": 0.0,
+          "waste_units": 0.0
+        },
+        "validation": {
+          "flow_conservation": true,
+          "all_metrics_finite": true,
+          "reps": 100
+        },
+        "station_util": {
+          "bread": 0.018353,
+          "ice": 0.096176,
+          "order": 0.295063,
+          "tea": 0.594538
+        },
+        "top_station": "tea",
+        "pool_util": {
+          "barista": 0.65384,
+          "cashier": 0.313416
+        }
+      },
+      {
+        "name": "cbd_commute",
+        "title": "CBD commuter shop: short morning grab-and-go peak plus a lunch peak",
+        "provenance": {
+          "source": "Synthetic, anchored on the Course 5006 parameter set (order mix, make times, prices) and on teaching-case ranges for commuter-district peak-to-average ratios",
+          "method": "Piecewise-constant demand from an assumed commuter day (soft open, sharp 120-minute morning peak, midday trough, lunch peak, soft close); daily mean normalised to the quoted rate; stations and staff sized so the peaks are feasible but tight",
+          "uncertainty": "high",
+          "notes": "Not field-measured. The morning peak is shorter and sharper than the lunch peak; peak segments run ~1.8x the daily mean. Ten-hour modelled day so both peaks fit. Batches are small (commuters rarely arrive in groups)."
+        },
+        "legacy_compat": false,
+        "config": {
+          "name": "cbd_commute",
+          "workers": 5,
+          "arrival_rate": 1.0101010101010102,
+          "sim_minutes": 600.0,
+          "warmup_minutes": 60.0,
+          "mix": {
+            "tea": 0.55,
+            "bread": 0.2,
+            "ice": 0.05,
+            "mix": 0.2
+          },
+          "service_time_mean": 2.11665,
+          "utilization": 0.42760606060606066,
+          "policy": "synchro+fast-priority"
+        },
+        "layers": {
+          "demand": {
+            "segments": [
+              [
+                0.0,
+                0.4
+              ],
+              [
+                120.0,
+                1.8
+              ],
+              [
+                240.0,
+                0.55
+              ],
+              [
+                360.0,
+                1.5
+              ],
+              [
+                480.0,
+                0.7
+              ]
+            ],
+            "peak_multiplier": 1.8,
+            "daily_mean_multiplier": 0.99,
+            "flat": false
+          },
+          "batches": {
+            "probability": 0.1,
+            "sizes": [
+              [
+                2,
+                0.7
+              ],
+              [
+                3,
+                0.3
+              ]
+            ],
+            "expected_arrival_size": 1.13
+          },
+          "classes": [
+            {
+              "name": "regular",
+              "weight": 0.85,
+              "priority": 1,
+              "delivery": false,
+              "balk_mean": 8.0,
+              "renege_mean": 15.0,
+              "own_mix": false
+            },
+            {
+              "name": "office",
+              "weight": 0.1,
+              "priority": 1,
+              "delivery": false,
+              "balk_mean": 5.0,
+              "renege_mean": 10.0,
+              "own_mix": true
+            },
+            {
+              "name": "delivery",
+              "weight": 0.05,
+              "priority": 1,
+              "delivery": true,
+              "balk_mean": null,
+              "renege_mean": null,
+              "own_mix": false
+            }
+          ],
+          "variability": {
+            "kind": "lognormal",
+            "order_cv": 0.12,
+            "tea_cv": 0.35,
+            "bread_cv": 0.18,
+            "ice_cv": 0.25
+          },
+          "network": {
+            "stations": [
+              {
+                "name": "order",
+                "capacity": 2,
+                "skill": "cashier"
+              },
+              {
+                "name": "tea",
+                "capacity": 3,
+                "skill": "barista"
+              },
+              {
+                "name": "ice",
+                "capacity": 1,
+                "skill": "barista"
+              },
+              {
+                "name": "bread",
+                "capacity": 2,
+                "skill": "cashier"
+              }
+            ],
+            "staff": {
+              "roles": [
+                "cashier",
+                "barista"
+              ],
+              "counts": [
+                2,
+                3
+              ],
+              "skills": [
+                [
+                  "cashier"
+                ],
+                [
+                  "barista"
+                ]
+              ],
+              "windows": [
+                {
+                  "role": "cashier",
+                  "start": 0.0,
+                  "end": 600.0
+                },
+                {
+                  "role": "cashier",
+                  "start": 0.0,
+                  "end": 600.0
+                },
+                {
+                  "role": "barista",
+                  "start": 0.0,
+                  "end": 600.0
+                },
+                {
+                  "role": "barista",
+                  "start": 0.0,
+                  "end": 600.0
+                },
+                {
+                  "role": "barista",
+                  "start": 120.0,
+                  "end": 600.0
+                }
+              ],
+              "breaks": []
+            },
+            "routes": [
+              [
+                "tea",
+                "tea"
+              ],
+              [
+                "mix_tea",
+                "tea"
+              ],
+              [
+                "ice",
+                "ice"
+              ],
+              [
+                "mix_ice",
+                "ice"
+              ],
+              [
+                "bread",
+                "bread"
+              ]
+            ]
+          },
+          "inventory": null,
+          "pricing": null,
+          "sla": null,
+          "policy": {
+            "split_mix": false,
+            "fast_priority": true,
+            "starvation_cap": null,
+            "mix_ice_priority": "jump"
+          }
+        },
+        "reps": 100,
+        "means": {
+          "abandon_rate": 0.062029,
+          "arrivals": 675.97,
+          "balk_rate": 0.061433,
+          "balked": 41.88,
+          "busy_minutes": 1348.250637,
+          "class_delivery_mean_los": 3.411336,
+          "class_delivery_p95_los": 7.279947,
+          "class_delivery_served": 32.41,
+          "class_office_mean_los": 3.393766,
+          "class_office_p95_los": 6.718729,
+          "class_office_served": 54.49,
+          "class_regular_mean_los": 3.274651,
+          "class_regular_p95_los": 7.330593,
+          "class_regular_served": 518.03,
+          "count_bread": 115.92,
+          "count_ice": 29.34,
+          "count_mix": 119.51,
+          "count_tea": 340.16,
+          "fairness_gap": 0.530104,
+          "flow_time_total": 1992.796995,
+          "ingredient_cost_per_hour": 0.0,
+          "los_bread": 0.758353,
+          "los_ice": 1.196377,
+          "los_mix": 4.350992,
+          "los_p50": 2.93215,
+          "los_p90": 6.310891,
+          "los_p95": 7.318552,
+          "los_tea": 3.959401,
+          "mean_busy_ratio": 0.478474,
+          "mean_los": 3.292141,
+          "mean_price_factor": 1.0,
+          "mix_ice_hand": 4.350992,
+          "mix_los": 4.350992,
+          "peak_busy_ratio": 0.774655,
+          "peak_hour_arrivals": 129.77,
+          "peak_hour_los": 4.674739,
+          "pool_barista_util": 0.601944,
+          "pool_cashier_util": 0.280821,
+          "profit_per_hour": 247.41815,
+          "purchase_cost": 0.0,
+          "renege_rate": 0.000596,
+          "reneged": 0.4,
+          "revenue_per_hour": 467.058,
+          "revenue_total": 4670.58,
+          "served": 604.93,
+          "served_all": 632.07,
+          "served_rate": 0.935579,
+          "sla_attainment": 0.0,
+          "sla_compensation_total": 0.0,
+          "staff_minutes_available": 2880.0,
+          "starvation_events": 0.0,
+          "station_bread_util": 0.016814,
+          "station_ice_util": 0.085993,
+          "station_order_util": 0.264007,
+          "station_tea_util": 0.53315,
+          "stockout_losses": 0.0,
+          "stockout_rate": 0.0,
+          "stranded": 1.62,
+          "top_station_util": 0.53315,
+          "util": 0.468143,
+          "wage_per_hour": 120.0,
+          "waiting_cost_total": 996.398498,
+          "waste_units": 0.0
+        },
+        "ci95": {
+          "abandon_rate": 0.00401,
+          "arrivals": 5.501349,
+          "balk_rate": 0.00403,
+          "fairness_gap": 0.061067,
+          "los_p50": 0.032646,
+          "los_p90": 0.156215,
+          "los_p95": 0.176548,
+          "mean_busy_ratio": 0.003441,
+          "mean_los": 0.060068,
+          "mix_los": 0.083305,
+          "peak_busy_ratio": 0.004323,
+          "peak_hour_los": 0.148749,
+          "profit_per_hour": 2.497727,
+          "renege_rate": 0.000208,
+          "revenue_per_hour": 3.123546,
+          "served": 4.044769,
+          "sla_attainment": 0.0,
+          "station_bread_util": 0.000294,
+          "station_ice_util": 0.001211,
+          "station_order_util": 0.001758,
+          "station_tea_util": 0.004095,
+          "stockout_rate": 0.0,
+          "util": 0.003252,
+          "wage_per_hour": 0.0,
+          "waste_units": 0.0
+        },
+        "validation": {
+          "flow_conservation": true,
+          "all_metrics_finite": true,
+          "reps": 100
+        },
+        "station_util": {
+          "bread": 0.016814,
+          "ice": 0.085993,
+          "order": 0.264007,
+          "tea": 0.53315
+        },
+        "top_station": "tea",
+        "pool_util": {
+          "barista": 0.601944,
+          "cashier": 0.280821
+        }
+      },
+      {
+        "name": "exam_week",
+        "title": "Exam week: a much sharper student peak, extra rented tea slots",
+        "provenance": {
+          "source": "Synthetic, anchored on the Course 5006 parameter set and on teaching-case ranges for event-driven demand spikes",
+          "method": "Same campus structure as campus_rush but with 2.0x peak-to-mean demand shape and shorter peak windows; an extra rented tea slot and a sixth staff member are added so the shop still serves most of the peak",
+          "uncertainty": "high",
+          "notes": "Not field-measured. Peak multiplier 2.4 on a daily mean of ~1.21 multipliers gives a peak-to-mean ratio near 2.0: the peak hour looks like a normal campus rush but the daily average is much lower, so average utilisation looks safe while abandonment spikes. Same five staff and three tea slots as campus_rush (no extra capacity is bought for the two-week window)."
+        },
+        "legacy_compat": false,
+        "config": {
+          "name": "exam_week",
+          "workers": 5,
+          "arrival_rate": 0.6620689655172415,
+          "sim_minutes": 480.0,
+          "warmup_minutes": 60.0,
+          "mix": {
+            "tea": 0.55,
+            "bread": 0.2,
+            "ice": 0.05,
+            "mix": 0.2
+          },
+          "service_time_mean": 2.11665,
+          "utilization": 0.2802736551724138,
+          "policy": "synchro+fast-priority"
+        },
+        "layers": {
+          "demand": {
+            "segments": [
+              [
+                0.0,
+                0.35
+              ],
+              [
+                60.0,
+                2.4
+              ],
+              [
+                150.0,
+                0.5
+              ],
+              [
+                300.0,
+                2.2
+              ],
+              [
+                400.0,
+                0.6
+              ]
+            ],
+            "peak_multiplier": 2.4,
+            "daily_mean_multiplier": 1.2083333333333333,
+            "flat": false
+          },
+          "batches": {
+            "probability": 0.2,
+            "sizes": [
+              [
+                2,
+                0.55
+              ],
+              [
+                3,
+                0.3
+              ],
+              [
+                4,
+                0.15
+              ]
+            ],
+            "expected_arrival_size": 1.32
+          },
+          "classes": [
+            {
+              "name": "regular",
+              "weight": 0.55,
+              "priority": 1,
+              "delivery": false,
+              "balk_mean": 8.0,
+              "renege_mean": 15.0,
+              "own_mix": false
+            },
+            {
+              "name": "student",
+              "weight": 0.4,
+              "priority": 1,
+              "delivery": false,
+              "balk_mean": 4.0,
+              "renege_mean": 8.0,
+              "own_mix": true
+            },
+            {
+              "name": "delivery",
+              "weight": 0.05,
+              "priority": 1,
+              "delivery": true,
+              "balk_mean": null,
+              "renege_mean": null,
+              "own_mix": false
+            }
+          ],
+          "variability": {
+            "kind": "lognormal",
+            "order_cv": 0.12,
+            "tea_cv": 0.35,
+            "bread_cv": 0.18,
+            "ice_cv": 0.25
+          },
+          "network": {
+            "stations": [
+              {
+                "name": "order",
+                "capacity": 2,
+                "skill": "cashier"
+              },
+              {
+                "name": "tea",
+                "capacity": 3,
+                "skill": "barista"
+              },
+              {
+                "name": "ice",
+                "capacity": 1,
+                "skill": "barista"
+              },
+              {
+                "name": "bread",
+                "capacity": 2,
+                "skill": "cashier"
+              }
+            ],
+            "staff": {
+              "roles": [
+                "cashier",
+                "barista"
+              ],
+              "counts": [
+                2,
+                3
+              ],
+              "skills": [
+                [
+                  "cashier"
+                ],
+                [
+                  "barista"
+                ]
+              ],
+              "windows": [
+                {
+                  "role": "cashier",
+                  "start": 0.0,
+                  "end": 480.0
+                },
+                {
+                  "role": "cashier",
+                  "start": 0.0,
+                  "end": 480.0
+                },
+                {
+                  "role": "barista",
+                  "start": 0.0,
+                  "end": 480.0
+                },
+                {
+                  "role": "barista",
+                  "start": 0.0,
+                  "end": 480.0
+                },
+                {
+                  "role": "barista",
+                  "start": 60.0,
+                  "end": 480.0
+                }
+              ],
+              "breaks": []
+            },
+            "routes": [
+              [
+                "tea",
+                "tea"
+              ],
+              [
+                "mix_tea",
+                "tea"
+              ],
+              [
+                "ice",
+                "ice"
+              ],
+              [
+                "mix_ice",
+                "ice"
+              ],
+              [
+                "bread",
+                "bread"
+              ]
+            ]
+          },
+          "inventory": null,
+          "pricing": null,
+          "sla": null,
+          "policy": {
+            "split_mix": false,
+            "fast_priority": true,
+            "starvation_cap": null,
+            "mix_ice_priority": "jump"
+          }
+        },
+        "reps": 100,
+        "means": {
+          "abandon_rate": 0.125503,
+          "arrivals": 502.77,
+          "balk_rate": 0.124756,
+          "balked": 63.31,
+          "busy_minutes": 947.678173,
+          "class_delivery_mean_los": 3.360146,
+          "class_delivery_p95_los": 6.729732,
+          "class_delivery_served": 24.12,
+          "class_regular_mean_los": 3.279049,
+          "class_regular_p95_los": 6.902638,
+          "class_regular_served": 251.94,
+          "class_student_mean_los": 3.170983,
+          "class_student_p95_los": 6.165952,
+          "class_student_served": 143.67,
+          "count_bread": 72.65,
+          "count_ice": 20.25,
+          "count_mix": 75.87,
+          "count_tea": 250.96,
+          "fairness_gap": 0.508453,
+          "flow_time_total": 1363.88837,
+          "ingredient_cost_per_hour": 0.0,
+          "los_bread": 0.794436,
+          "los_ice": 1.240428,
+          "los_mix": 4.237501,
+          "los_p50": 2.995572,
+          "los_p90": 5.905996,
+          "los_p95": 6.733169,
+          "los_tea": 3.814276,
+          "mean_busy_ratio": 0.43257,
+          "mean_los": 3.247169,
+          "mean_price_factor": 1.0,
+          "mix_ice_hand": 4.237501,
+          "mix_los": 4.237501,
+          "peak_busy_ratio": 0.726215,
+          "peak_hour_arrivals": 128.37,
+          "peak_hour_los": 4.128838,
+          "pool_barista_util": 0.518464,
+          "pool_cashier_util": 0.241872,
+          "profit_per_hour": 198.229477,
+          "purchase_cost": 0.0,
+          "renege_rate": 0.000747,
+          "reneged": 0.37,
+          "revenue_per_hour": 405.3475,
+          "revenue_total": 3242.78,
+          "served": 419.73,
+          "served_all": 438.22,
+          "served_rate": 0.872767,
+          "sla_attainment": 0.0,
+          "sla_compensation_total": 0.0,
+          "staff_minutes_available": 2340.0,
+          "starvation_events": 0.0,
+          "station_bread_util": 0.013153,
+          "station_ice_util": 0.069581,
+          "station_order_util": 0.228719,
+          "station_tea_util": 0.473668,
+          "stockout_losses": 0.0,
+          "stockout_rate": 0.0,
+          "stranded": 0.87,
+          "top_station_util": 0.473668,
+          "util": 0.404991,
+          "wage_per_hour": 121.875,
+          "waiting_cost_total": 681.944185,
+          "waste_units": 0.0
+        },
+        "ci95": {
+          "abandon_rate": 0.005069,
+          "arrivals": 6.030398,
+          "balk_rate": 0.005054,
+          "fairness_gap": 0.06968,
+          "los_p50": 0.036591,
+          "los_p90": 0.122733,
+          "los_p95": 0.142817,
+          "mean_busy_ratio": 0.003954,
+          "mean_los": 0.051668,
+          "mix_los": 0.065413,
+          "peak_busy_ratio": 0.006585,
+          "peak_hour_los": 0.108407,
+          "profit_per_hour": 2.746757,
+          "renege_rate": 0.000326,
+          "revenue_per_hour": 3.661269,
+          "served": 3.769022,
+          "sla_attainment": 0.0,
+          "station_bread_util": 0.000304,
+          "station_ice_util": 0.001187,
+          "station_order_util": 0.002006,
+          "station_tea_util": 0.0046,
+          "stockout_rate": 0.0,
+          "util": 0.003639,
+          "wage_per_hour": 0.0,
+          "waste_units": 0.0
+        },
+        "validation": {
+          "flow_conservation": true,
+          "all_metrics_finite": true,
+          "reps": 100
+        },
+        "station_util": {
+          "bread": 0.013153,
+          "ice": 0.069581,
+          "order": 0.228719,
+          "tea": 0.473668
+        },
+        "top_station": "tea",
+        "pool_util": {
+          "barista": 0.518464,
+          "cashier": 0.241872
+        }
+      },
+      {
+        "name": "flagship_five_staff",
+        "title": "Flagship branch: five staff, two ice slots, two bread counters, steady traffic",
+        "provenance": {
+          "source": "Synthetic, anchored on the Course 5006 parameter set and on teaching-case ranges for a high-volume flagship branch",
+          "method": "Higher daily mean than the campus shop with a lunch peak, two ice slots and two bread counters so the extra capacity is visible in the station table; five staff with staggered breaks",
+          "uncertainty": "high",
+          "notes": "Not field-measured. Nine-hour day (540 min). The design intent is a shop where labour is the planned constraint and equipment is deliberately over-provisioned, the mirror image of network_tea_bottleneck and bread_counter_bottleneck."
+        },
+        "legacy_compat": false,
+        "config": {
+          "name": "flagship_five_staff",
+          "workers": 5,
+          "arrival_rate": 1.3928571428571428,
+          "sim_minutes": 540.0,
+          "warmup_minutes": 60.0,
+          "mix": {
+            "tea": 0.55,
+            "bread": 0.2,
+            "ice": 0.05,
+            "mix": 0.2
+          },
+          "service_time_mean": 2.11665,
+          "utilization": 0.5896382142857142,
+          "policy": "synchro"
+        },
+        "layers": {
+          "demand": {
+            "segments": [
+              [
+                0.0,
+                0.6
+              ],
+              [
+                120.0,
+                1.3
+              ],
+              [
+                240.0,
+                0.8
+              ],
+              [
+                360.0,
+                1.2
+              ],
+              [
+                480.0,
+                0.6
+              ]
+            ],
+            "peak_multiplier": 1.3,
+            "daily_mean_multiplier": 0.9333333333333333,
+            "flat": false
+          },
+          "batches": {
+            "probability": 0.1,
+            "sizes": [
+              [
+                2,
+                0.7
+              ],
+              [
+                3,
+                0.3
+              ]
+            ],
+            "expected_arrival_size": 1.13
+          },
+          "classes": [
+            {
+              "name": "regular",
+              "weight": 0.85,
+              "priority": 1,
+              "delivery": false,
+              "balk_mean": 9.0,
+              "renege_mean": 16.0,
+              "own_mix": false
+            },
+            {
+              "name": "delivery",
+              "weight": 0.15,
+              "priority": 1,
+              "delivery": true,
+              "balk_mean": null,
+              "renege_mean": null,
+              "own_mix": false
+            }
+          ],
+          "variability": {
+            "kind": "lognormal",
+            "order_cv": 0.12,
+            "tea_cv": 0.3,
+            "bread_cv": 0.15,
+            "ice_cv": 0.25
+          },
+          "network": {
+            "stations": [
+              {
+                "name": "order",
+                "capacity": 2,
+                "skill": "cashier"
+              },
+              {
+                "name": "tea",
+                "capacity": 3,
+                "skill": "barista"
+              },
+              {
+                "name": "ice",
+                "capacity": 2,
+                "skill": "barista"
+              },
+              {
+                "name": "bread",
+                "capacity": 2,
+                "skill": "cashier"
+              }
+            ],
+            "staff": {
+              "roles": [
+                "cashier",
+                "barista"
+              ],
+              "counts": [
+                2,
+                3
+              ],
+              "skills": [
+                [
+                  "cashier"
+                ],
+                [
+                  "barista"
+                ]
+              ],
+              "windows": [
+                {
+                  "role": "cashier",
+                  "start": 0.0,
+                  "end": 540.0
+                },
+                {
+                  "role": "cashier",
+                  "start": 0.0,
+                  "end": 540.0
+                },
+                {
+                  "role": "barista",
+                  "start": 0.0,
+                  "end": 540.0
+                },
+                {
+                  "role": "barista",
+                  "start": 0.0,
+                  "end": 540.0
+                },
+                {
+                  "role": "barista",
+                  "start": 0.0,
+                  "end": 540.0
+                }
+              ],
+              "breaks": [
+                {
+                  "role": "cashier",
+                  "start": 300.0,
+                  "end": 330.0
+                },
+                {
+                  "role": "barista",
+                  "start": 360.0,
+                  "end": 390.0
+                }
+              ]
+            },
+            "routes": [
+              [
+                "tea",
+                "tea"
+              ],
+              [
+                "mix_tea",
+                "tea"
+              ],
+              [
+                "ice",
+                "ice"
+              ],
+              [
+                "mix_ice",
+                "ice"
+              ],
+              [
+                "bread",
+                "bread"
+              ]
+            ]
+          },
+          "inventory": null,
+          "pricing": null,
+          "sla": null,
+          "policy": {
+            "split_mix": false,
+            "fast_priority": false,
+            "starvation_cap": null,
+            "mix_ice_priority": "jump"
+          }
+        },
+        "reps": 100,
+        "means": {
+          "abandon_rate": 0.103539,
+          "arrivals": 790.42,
+          "balk_rate": 0.102912,
+          "balked": 81.7,
+          "busy_minutes": 1495.373394,
+          "class_delivery_mean_los": 5.081764,
+          "class_delivery_p95_los": 12.923785,
+          "class_delivery_served": 109.81,
+          "class_regular_mean_los": 4.570153,
+          "class_regular_p95_los": 11.939208,
+          "class_regular_served": 540.51,
+          "count_bread": 130.13,
+          "count_ice": 32.62,
+          "count_mix": 129.76,
+          "count_tea": 357.81,
+          "fairness_gap": 0.563217,
+          "flow_time_total": 3029.253717,
+          "ingredient_cost_per_hour": 0.0,
+          "los_bread": 0.977552,
+          "los_ice": 3.790675,
+          "los_mix": 5.921875,
+          "los_p50": 3.569254,
+          "los_p90": 10.057886,
+          "los_p95": 12.226301,
+          "los_tea": 5.613965,
+          "mean_busy_ratio": 0.574136,
+          "mean_los": 4.657729,
+          "mean_price_factor": 1.0,
+          "mix_ice_hand": 5.921875,
+          "mix_los": 5.921875,
+          "peak_busy_ratio": 0.786238,
+          "peak_hour_arrivals": 131.92,
+          "peak_hour_los": 8.376321,
+          "pool_barista_util": 0.689991,
+          "pool_cashier_util": 0.349618,
+          "profit_per_hour": 269.885905,
+          "purchase_cost": 0.0,
+          "renege_rate": 0.000627,
+          "reneged": 0.49,
+          "revenue_per_hour": 556.233333,
+          "revenue_total": 5006.1,
+          "served": 650.32,
+          "served_all": 706.61,
+          "served_rate": 0.894415,
+          "sla_attainment": 0.0,
+          "sla_compensation_total": 0.0,
+          "staff_minutes_available": 2550.0,
+          "starvation_events": 0.0,
+          "station_bread_util": 0.021745,
+          "station_ice_util": 0.054526,
+          "station_order_util": 0.327873,
+          "station_tea_util": 0.653641,
+          "stockout_losses": 0.0,
+          "stockout_rate": 0.0,
+          "stranded": 1.62,
+          "top_station_util": 0.653641,
+          "util": 0.586421,
+          "wage_per_hour": 118.055556,
+          "waiting_cost_total": 1514.626858,
+          "waste_units": 0.0
+        },
+        "ci95": {
+          "abandon_rate": 0.004086,
+          "arrivals": 6.131431,
+          "balk_rate": 0.004097,
+          "fairness_gap": 0.082699,
+          "los_p50": 0.068374,
+          "los_p90": 0.231477,
+          "los_p95": 0.293415,
+          "mean_busy_ratio": 0.003413,
+          "mean_los": 0.075736,
+          "mix_los": 0.104199,
+          "peak_busy_ratio": 0.004644,
+          "peak_hour_los": 0.247504,
+          "profit_per_hour": 3.379141,
+          "renege_rate": 0.00021,
+          "revenue_per_hour": 3.349096,
+          "served": 4.087011,
+          "sla_attainment": 0.0,
+          "station_bread_util": 0.000372,
+          "station_ice_util": 0.000787,
+          "station_order_util": 0.002168,
+          "station_tea_util": 0.004078,
+          "stockout_rate": 0.0,
+          "util": 0.003485,
+          "wage_per_hour": 0.0,
+          "waste_units": 0.0
+        },
+        "validation": {
+          "flow_conservation": true,
+          "all_metrics_finite": true,
+          "reps": 100
+        },
+        "station_util": {
+          "bread": 0.021745,
+          "ice": 0.054526,
+          "order": 0.327873,
+          "tea": 0.653641
+        },
+        "top_station": "tea",
+        "pool_util": {
+          "barista": 0.689991,
+          "cashier": 0.349618
+        }
+      },
+      {
+        "name": "ice_cream_bottleneck",
+        "title": "Ice-cream machine bottleneck: one slow soft-serve slot, iced and mixed orders dominate",
+        "provenance": {
+          "source": "Synthetic: Course 5006 service-time structure with an assumed slow soft-serve machine, plus teaching-case ranges for cold-drink shares in warm weather",
+          "method": "Ice make time raised to 1.2 min per portion (soft-serve draw plus topping), ice/mixed share raised to 60% of orders, one ice slot; tea capacity and staff left generous so the ice slot is the structural bottleneck",
+          "uncertainty": "high",
+          "notes": "Not field-measured. Designed as the counterpart of network_tea_bottleneck: same shop, different binding equipment. Used by the network study to test whether fast-item priority is still worth it when the bottleneck is not the tea station."
+        },
+        "legacy_compat": false,
+        "config": {
+          "name": "ice_cream_bottleneck",
+          "workers": 5,
+          "arrival_rate": 0.9,
+          "sim_minutes": 480.0,
+          "warmup_minutes": 60.0,
+          "mix": {
+            "tea": 0.3,
+            "bread": 0.1,
+            "ice": 0.15,
+            "mix": 0.45
+          },
+          "service_time_mean": 2.7367,
+          "utilization": 0.492606,
+          "policy": "split+fast-priority"
+        },
+        "layers": {
+          "demand": {
+            "segments": [
+              [
+                0.0,
+                1.0
+              ]
+            ],
+            "peak_multiplier": 1.0,
+            "daily_mean_multiplier": 1.0,
+            "flat": true
+          },
+          "batches": {
+            "probability": 0.1,
+            "sizes": [
+              [
+                2,
+                0.7
+              ],
+              [
+                3,
+                0.3
+              ]
+            ],
+            "expected_arrival_size": 1.13
+          },
+          "classes": [
+            {
+              "name": "regular",
+              "weight": 0.9,
+              "priority": 1,
+              "delivery": false,
+              "balk_mean": 9.0,
+              "renege_mean": 16.0,
+              "own_mix": false
+            },
+            {
+              "name": "delivery",
+              "weight": 0.1,
+              "priority": 1,
+              "delivery": true,
+              "balk_mean": null,
+              "renege_mean": null,
+              "own_mix": false
+            }
+          ],
+          "variability": {
+            "kind": "lognormal",
+            "order_cv": 0.12,
+            "tea_cv": 0.3,
+            "bread_cv": 0.18,
+            "ice_cv": 0.35
+          },
+          "network": {
+            "stations": [
+              {
+                "name": "order",
+                "capacity": 2,
+                "skill": "cashier"
+              },
+              {
+                "name": "tea",
+                "capacity": 3,
+                "skill": "barista"
+              },
+              {
+                "name": "ice",
+                "capacity": 1,
+                "skill": "barista"
+              },
+              {
+                "name": "bread",
+                "capacity": 2,
+                "skill": "cashier"
+              }
+            ],
+            "staff": {
+              "roles": [
+                "cashier",
+                "barista"
+              ],
+              "counts": [
+                2,
+                3
+              ],
+              "skills": [
+                [
+                  "cashier"
+                ],
+                [
+                  "barista"
+                ]
+              ],
+              "windows": [
+                {
+                  "role": "cashier",
+                  "start": 0.0,
+                  "end": 480.0
+                },
+                {
+                  "role": "cashier",
+                  "start": 0.0,
+                  "end": 480.0
+                },
+                {
+                  "role": "barista",
+                  "start": 0.0,
+                  "end": 480.0
+                },
+                {
+                  "role": "barista",
+                  "start": 0.0,
+                  "end": 480.0
+                },
+                {
+                  "role": "barista",
+                  "start": 0.0,
+                  "end": 480.0
+                }
+              ],
+              "breaks": []
+            },
+            "routes": [
+              [
+                "tea",
+                "tea"
+              ],
+              [
+                "mix_tea",
+                "tea"
+              ],
+              [
+                "ice",
+                "ice"
+              ],
+              [
+                "mix_ice",
+                "ice"
+              ],
+              [
+                "bread",
+                "bread"
+              ]
+            ]
+          },
+          "inventory": null,
+          "pricing": null,
+          "sla": null,
+          "policy": {
+            "split_mix": true,
+            "fast_priority": true,
+            "starvation_cap": null,
+            "mix_ice_priority": "jump"
+          }
+        },
+        "reps": 100,
+        "means": {
+          "abandon_rate": 0.027622,
+          "arrivals": 483.65,
+          "balk_rate": 0.02654,
+          "balked": 12.95,
+          "busy_minutes": 1282.575995,
+          "class_delivery_mean_los": 3.611895,
+          "class_delivery_p95_los": 7.148911,
+          "class_delivery_served": 41.96,
+          "class_regular_mean_los": 3.543034,
+          "class_regular_p95_los": 7.243679,
+          "class_regular_served": 366.33,
+          "count_bread": 41.12,
+          "count_ice": 59.81,
+          "count_mix": 185.18,
+          "count_tea": 122.18,
+          "fairness_gap": 0.25652,
+          "flow_time_total": 1452.458064,
+          "ingredient_cost_per_hour": 0.0,
+          "los_bread": 0.714691,
+          "los_ice": 3.421206,
+          "los_mix": 4.199762,
+          "los_p50": 3.133719,
+          "los_p90": 6.207206,
+          "los_p95": 7.269458,
+          "los_tea": 3.566107,
+          "mean_busy_ratio": 0.53663,
+          "mean_los": 3.549601,
+          "mean_price_factor": 1.0,
+          "mix_ice_hand": 3.44735,
+          "mix_los": 4.199762,
+          "peak_busy_ratio": 0.63128,
+          "peak_hour_arrivals": 72.47,
+          "peak_hour_los": 4.647116,
+          "pool_barista_util": 0.722038,
+          "pool_cashier_util": 0.25296,
+          "profit_per_hour": 183.668871,
+          "purchase_cost": 0.0,
+          "renege_rate": 0.001082,
+          "reneged": 0.52,
+          "revenue_per_hour": 399.4475,
+          "revenue_total": 3195.58,
+          "served": 408.29,
+          "served_all": 467.42,
+          "served_rate": 0.966691,
+          "sla_attainment": 0.0,
+          "sla_compensation_total": 0.0,
+          "staff_minutes_available": 2400.0,
+          "starvation_events": 0.0,
+          "station_bread_util": 0.008223,
+          "station_ice_util": 0.702207,
+          "station_order_util": 0.244738,
+          "station_tea_util": 0.487969,
+          "stockout_losses": 0.0,
+          "stockout_rate": 0.0,
+          "stranded": 2.76,
+          "top_station_util": 0.702207,
+          "util": 0.534407,
+          "wage_per_hour": 125.0,
+          "waiting_cost_total": 726.229032,
+          "waste_units": 0.0
+        },
+        "ci95": {
+          "abandon_rate": 0.002039,
+          "arrivals": 4.393434,
+          "balk_rate": 0.002038,
+          "fairness_gap": 0.041822,
+          "los_p50": 0.054179,
+          "los_p90": 0.157024,
+          "los_p95": 0.197554,
+          "mean_busy_ratio": 0.005299,
+          "mean_los": 0.062413,
+          "mix_los": 0.080775,
+          "peak_busy_ratio": 0.00793,
+          "peak_hour_los": 0.152627,
+          "profit_per_hour": 2.435588,
+          "renege_rate": 0.000313,
+          "revenue_per_hour": 3.7755,
+          "served": 3.920056,
+          "sla_attainment": 0.0,
+          "station_bread_util": 0.000232,
+          "station_ice_util": 0.008048,
+          "station_order_util": 0.002058,
+          "station_tea_util": 0.004643,
+          "stockout_rate": 0.0,
+          "util": 0.004611,
+          "wage_per_hour": 0.0,
+          "waste_units": 0.0
+        },
+        "validation": {
+          "flow_conservation": true,
+          "all_metrics_finite": true,
+          "reps": 100
+        },
+        "station_util": {
+          "bread": 0.008223,
+          "ice": 0.702207,
+          "order": 0.244738,
+          "tea": 0.487969
+        },
+        "top_station": "ice",
+        "pool_util": {
+          "barista": 0.722038,
+          "cashier": 0.25296
+        }
+      },
+      {
+        "name": "inventory_generous",
+        "title": "Generous inventory: high stock cover, short lead times, visible perishable waste",
+        "provenance": {
+          "source": "Synthetic, anchored on the Course 5006 Lecture 4 (BOM/MRP/CRP) assumptions and on teaching-case (s, S) ranges",
+          "method": "Same BOM and product structure as inventory_lean, but with 2-3x the stock cover, 30-minute replenishment lead times and a shorter pearl shelf life so the policy is generous against stock-outs yet still wastes perishables",
+          "uncertainty": "high",
+          "notes": "Not field-measured. Deliberate contrast to inventory_lean: fill rate should sit at (or near) 1.0 while waste is non-zero, which is the trade-off the inventory study is after. The 360-minute pearl shelf life and the large opening lots are the mechanism that makes over-stocking visible: a generous (s, S) policy buys availability with opening stock and perishable waste."
+        },
+        "legacy_compat": false,
+        "config": {
+          "name": "inventory_generous",
+          "workers": 3,
+          "arrival_rate": 1.15,
+          "sim_minutes": 480.0,
+          "warmup_minutes": 60.0,
+          "mix": {
+            "tea": 0.55,
+            "bread": 0.2,
+            "ice": 0.05,
+            "mix": 0.2
+          },
+          "service_time_mean": 2.11665,
+          "utilization": 0.8113825,
+          "policy": "synchro"
+        },
+        "layers": {
+          "demand": {
+            "segments": [
+              [
+                0.0,
+                1.0
+              ]
+            ],
+            "peak_multiplier": 1.0,
+            "daily_mean_multiplier": 1.0,
+            "flat": true
+          },
+          "batches": null,
+          "classes": [
+            {
+              "name": "regular",
+              "weight": 1.0,
+              "priority": 1,
+              "delivery": false,
+              "balk_mean": null,
+              "renege_mean": null,
+              "own_mix": false
+            }
+          ],
+          "variability": {
+            "kind": "lognormal",
+            "order_cv": 0.0,
+            "tea_cv": 0.3,
+            "bread_cv": 0.1,
+            "ice_cv": 0.2
+          },
+          "network": null,
+          "inventory": {
+            "stockout_policy": "lose",
+            "ingredients": [
+              {
+                "name": "tea_kit",
+                "initial_stock": 380.0,
+                "reorder_point": 150.0,
+                "order_quantity": 250.0,
+                "lead_time_minutes": 30.0,
+                "unit_cost": 1.2,
+                "shelf_life_minutes": null
+              },
+              {
+                "name": "pearls",
+                "initial_stock": 220.0,
+                "reorder_point": 160.0,
+                "order_quantity": 220.0,
+                "lead_time_minutes": 30.0,
+                "unit_cost": 0.6,
+                "shelf_life_minutes": 360
+              },
+              {
+                "name": "ice_mix",
+                "initial_stock": 200.0,
+                "reorder_point": 80.0,
+                "order_quantity": 150.0,
+                "lead_time_minutes": 30.0,
+                "unit_cost": 0.5,
+                "shelf_life_minutes": 480
+              },
+              {
+                "name": "bread_unit",
+                "initial_stock": 180.0,
+                "reorder_point": 70.0,
+                "order_quantity": 140.0,
+                "lead_time_minutes": 30.0,
+                "unit_cost": 0.4,
+                "shelf_life_minutes": null
+              }
+            ],
+            "recipes": [
+              {
+                "product": "tea",
+                "components": [
+                  [
+                    "tea_kit",
+                    1.0
+                  ],
+                  [
+                    "pearls",
+                    0.5
+                  ]
+                ]
+              },
+              {
+                "product": "bread",
+                "components": [
+                  [
+                    "bread_unit",
+                    1.0
+                  ]
+                ]
+              },
+              {
+                "product": "ice",
+                "components": [
+                  [
+                    "ice_mix",
+                    1.0
+                  ]
+                ]
+              },
+              {
+                "product": "mix",
+                "components": [
+                  [
+                    "tea_kit",
+                    1.0
+                  ],
+                  [
+                    "pearls",
+                    0.5
+                  ],
+                  [
+                    "ice_mix",
+                    1.0
+                  ]
+                ]
+              }
+            ]
+          },
+          "pricing": null,
+          "sla": null,
+          "policy": {
+            "split_mix": false,
+            "fast_priority": false,
+            "starvation_cap": null,
+            "mix_ice_priority": "jump"
+          }
+        },
+        "reps": 100,
+        "means": {
+          "abandon_rate": 0.0,
+          "arrivals": 554.03,
+          "balk_rate": 0.0,
+          "balked": 0.0,
+          "busy_minutes": 1175.523813,
+          "class_regular_mean_los": 3.680983,
+          "class_regular_p95_los": 7.826765,
+          "class_regular_served": 483.59,
+          "count_bread": 96.48,
+          "count_ice": 23.9,
+          "count_mix": 97.78,
+          "count_tea": 265.43,
+          "fairness_gap": 0.0,
+          "fill_rate": 1.0,
+          "flow_time_total": 1790.171612,
+          "ingredient_cost_per_hour": 162.915,
+          "los_bread": 2.249194,
+          "los_ice": 2.437837,
+          "los_mix": 4.397102,
+          "los_p50": 3.236841,
+          "los_p90": 6.722906,
+          "los_p95": 7.826765,
+          "los_tea": 4.047211,
+          "mean_busy_ratio": 0.813368,
+          "mean_los": 3.680983,
+          "mean_price_factor": 1.0,
+          "mix_ice_hand": 4.397102,
+          "mix_los": 4.397102,
+          "peak_busy_ratio": 0.937959,
+          "peak_hour_arrivals": 81.23,
+          "peak_hour_los": 5.615288,
+          "profit_per_hour": 116.189274,
+          "purchase_cost": 1303.32,
+          "renege_rate": 0.0,
+          "reneged": 0.0,
+          "revenue_per_hour": 465.99,
+          "revenue_total": 3727.92,
+          "served": 483.59,
+          "served_all": 554.03,
+          "served_rate": 1.0,
+          "sla_attainment": 0.0,
+          "sla_compensation_total": 0.0,
+          "staff_minutes_available": 1440.0,
+          "starvation_events": 0.0,
+          "stockout_losses": 0.0,
+          "stockout_rate": 0.0,
+          "stranded": 0.0,
+          "util": 0.816336,
+          "wage_per_hour": 75.0,
+          "waiting_cost_total": 895.085806,
+          "waste_units": 63.965
+        },
+        "ci95": {
+          "abandon_rate": 0.0,
+          "arrivals": 4.820307,
+          "balk_rate": 0.0,
+          "fairness_gap": 0.0,
+          "fill_rate": 0.0,
+          "los_p50": 0.112991,
+          "los_p90": 0.344902,
+          "los_p95": 0.402644,
+          "mean_busy_ratio": 0.007945,
+          "mean_los": 0.138061,
+          "mix_los": 0.144482,
+          "peak_busy_ratio": 0.009163,
+          "peak_hour_los": 0.402573,
+          "profit_per_hour": 3.466889,
+          "renege_rate": 0.0,
+          "revenue_per_hour": 4.204496,
+          "served": 4.415083,
+          "sla_attainment": 0.0,
+          "stockout_rate": 0.0,
+          "util": 0.007707,
+          "wage_per_hour": 0.0,
+          "waste_units": 1.860859
+        },
+        "validation": {
+          "flow_conservation": true,
+          "all_metrics_finite": true,
+          "reps": 100
+        }
+      },
+      {
+        "name": "inventory_lean",
+        "title": "Lean inventory: pearls perish, deliveries take two hours",
+        "provenance": {
+          "source": "Course 5006 Lecture 4 (BOM/MRP/CRP) assumptions + synthetic replenishment parameters",
+          "method": "Synthetic: (s, S) review with 2-hour lead time and a 4-hour pearl shelf life; recipes are one kit per component",
+          "uncertainty": "high",
+          "notes": "Designed so that stock-outs and pearl waste actually occur at the modelled demand; not calibrated to a real supplier."
+        },
+        "legacy_compat": false,
+        "config": {
+          "name": "inventory_lean",
+          "workers": 3,
+          "arrival_rate": 1.15,
+          "sim_minutes": 480.0,
+          "warmup_minutes": 60.0,
+          "mix": {
+            "tea": 0.55,
+            "bread": 0.2,
+            "ice": 0.05,
+            "mix": 0.2
+          },
+          "service_time_mean": 2.11665,
+          "utilization": 0.8113825,
+          "policy": "synchro"
+        },
+        "layers": {
+          "demand": {
+            "segments": [
+              [
+                0.0,
+                1.0
+              ]
+            ],
+            "peak_multiplier": 1.0,
+            "daily_mean_multiplier": 1.0,
+            "flat": true
+          },
+          "batches": null,
+          "classes": [
+            {
+              "name": "regular",
+              "weight": 1.0,
+              "priority": 1,
+              "delivery": false,
+              "balk_mean": null,
+              "renege_mean": null,
+              "own_mix": false
+            }
+          ],
+          "variability": {
+            "kind": "lognormal",
+            "order_cv": 0.0,
+            "tea_cv": 0.3,
+            "bread_cv": 0.1,
+            "ice_cv": 0.2
+          },
+          "network": null,
+          "inventory": {
+            "stockout_policy": "lose",
+            "ingredients": [
+              {
+                "name": "tea_kit",
+                "initial_stock": 300.0,
+                "reorder_point": 120.0,
+                "order_quantity": 250.0,
+                "lead_time_minutes": 60.0,
+                "unit_cost": 1.2,
+                "shelf_life_minutes": null
+              },
+              {
+                "name": "pearls",
+                "initial_stock": 80.0,
+                "reorder_point": 25.0,
+                "order_quantity": 60.0,
+                "lead_time_minutes": 60.0,
+                "unit_cost": 0.6,
+                "shelf_life_minutes": 240
+              },
+              {
+                "name": "ice_mix",
+                "initial_stock": 120.0,
+                "reorder_point": 35.0,
+                "order_quantity": 90.0,
+                "lead_time_minutes": 90.0,
+                "unit_cost": 0.5,
+                "shelf_life_minutes": 480
+              },
+              {
+                "name": "bread_unit",
+                "initial_stock": 140.0,
+                "reorder_point": 50.0,
+                "order_quantity": 110.0,
+                "lead_time_minutes": 60.0,
+                "unit_cost": 0.4,
+                "shelf_life_minutes": null
+              }
+            ],
+            "recipes": [
+              {
+                "product": "tea",
+                "components": [
+                  [
+                    "tea_kit",
+                    1.0
+                  ],
+                  [
+                    "pearls",
+                    0.5
+                  ]
+                ]
+              },
+              {
+                "product": "bread",
+                "components": [
+                  [
+                    "bread_unit",
+                    1.0
+                  ]
+                ]
+              },
+              {
+                "product": "ice",
+                "components": [
+                  [
+                    "ice_mix",
+                    1.0
+                  ]
+                ]
+              },
+              {
+                "product": "mix",
+                "components": [
+                  [
+                    "tea_kit",
+                    1.0
+                  ],
+                  [
+                    "pearls",
+                    0.5
+                  ],
+                  [
+                    "ice_mix",
+                    1.0
+                  ]
+                ]
+              }
+            ]
+          },
+          "pricing": null,
+          "sla": null,
+          "policy": {
+            "split_mix": false,
+            "fast_priority": false,
+            "starvation_cap": null,
+            "mix_ice_priority": "jump"
+          }
+        },
+        "reps": 100,
+        "means": {
+          "abandon_rate": 0.019782,
+          "arrivals": 554.03,
+          "balk_rate": 0.0,
+          "balked": 0.0,
+          "busy_minutes": 1147.20525,
+          "class_regular_mean_los": 3.525304,
+          "class_regular_p95_los": 7.605226,
+          "class_regular_served": 472.41,
+          "count_bread": 96.48,
+          "count_ice": 23.88,
+          "count_mix": 94.8,
+          "count_tea": 257.25,
+          "fairness_gap": 0.0,
+          "fill_rate": 0.980218,
+          "flow_time_total": 1670.237396,
+          "ingredient_cost_per_hour": 129.765,
+          "los_bread": 2.069296,
+          "los_ice": 2.283452,
+          "los_mix": 4.26586,
+          "los_p50": 3.091234,
+          "los_p90": 6.458656,
+          "los_p95": 7.605226,
+          "los_tea": 3.911045,
+          "mean_busy_ratio": 0.791758,
+          "mean_los": 3.525304,
+          "mean_price_factor": 1.0,
+          "mix_ice_hand": 4.26586,
+          "mix_los": 4.26586,
+          "peak_busy_ratio": 0.919244,
+          "peak_hour_arrivals": 81.23,
+          "peak_hour_los": 5.316704,
+          "profit_per_hour": 144.925163,
+          "purchase_cost": 1038.12,
+          "renege_rate": 0.0,
+          "reneged": 0.0,
+          "revenue_per_hour": 454.08,
+          "revenue_total": 3632.64,
+          "served": 472.41,
+          "served_all": 542.85,
+          "served_rate": 0.980218,
+          "sla_attainment": 0.0,
+          "sla_compensation_total": 0.0,
+          "staff_minutes_available": 1440.0,
+          "starvation_events": 0.0,
+          "stockout_losses": 11.18,
+          "stockout_rate": 0.019782,
+          "stranded": 0.0,
+          "util": 0.79667,
+          "wage_per_hour": 75.0,
+          "waiting_cost_total": 835.118698,
+          "waste_units": 0.0
+        },
+        "ci95": {
+          "abandon_rate": 0.003025,
+          "arrivals": 4.820307,
+          "balk_rate": 0.0,
+          "fairness_gap": 0.0,
+          "fill_rate": 0.003025,
+          "los_p50": 0.066276,
+          "los_p90": 0.290158,
+          "los_p95": 0.367758,
+          "mean_busy_ratio": 0.006254,
+          "mean_los": 0.10464,
+          "mix_los": 0.11587,
+          "peak_busy_ratio": 0.009094,
+          "peak_hour_los": 0.348794,
+          "profit_per_hour": 3.464621,
+          "renege_rate": 0.0,
+          "revenue_per_hour": 3.282381,
+          "served": 3.588253,
+          "sla_attainment": 0.0,
+          "stockout_rate": 0.003025,
+          "util": 0.00617,
+          "wage_per_hour": 0.0,
+          "waste_units": 0.0
+        },
+        "validation": {
+          "flow_conservation": true,
+          "all_metrics_finite": true,
+          "reps": 100
+        }
+      },
+      {
+        "name": "late_night_study",
+        "title": "Late-night study cafe: low, long traffic with a midnight bump",
+        "provenance": {
+          "source": "Synthetic, anchored on the Course 5006 parameter set and on teaching-case ranges for all-night study venues",
+          "method": "Twelve-hour modelled night with a small daily mean, two peaks (early evening and around midnight) and long quiet stretches; one cashier and one barista on shift for the whole night",
+          "uncertainty": "high",
+          "notes": "Not field-measured. The point of the scenario is the opposite of the campus rush: utilisation stays low, waiting is near the process floor, and the binding constraint is staffing (a single barista) rather than demand. Long run (720 min) makes the low-rate Poisson noise relatively less dominant."
+        },
+        "legacy_compat": false,
+        "config": {
+          "name": "late_night_study",
+          "workers": 2,
+          "arrival_rate": 0.38888888888888884,
+          "sim_minutes": 720.0,
+          "warmup_minutes": 60.0,
+          "mix": {
+            "tea": 0.55,
+            "bread": 0.2,
+            "ice": 0.05,
+            "mix": 0.2
+          },
+          "service_time_mean": 2.11665,
+          "utilization": 0.4115708333333333,
+          "policy": "synchro"
+        },
+        "layers": {
+          "demand": {
+            "segments": [
+              [
+                0.0,
+                0.6
+              ],
+              [
+                120.0,
+                1.4
+              ],
+              [
+                300.0,
+                0.5
+              ],
+              [
+                420.0,
+                1.2
+              ],
+              [
+                600.0,
+                0.4
+              ]
+            ],
+            "peak_multiplier": 1.4,
+            "daily_mean_multiplier": 0.9,
+            "flat": false
+          },
+          "batches": {
+            "probability": 0.08,
+            "sizes": [
+              [
+                2,
+                0.8
+              ],
+              [
+                3,
+                0.2
+              ]
+            ],
+            "expected_arrival_size": 1.096
+          },
+          "classes": [
+            {
+              "name": "regular",
+              "weight": 0.88,
+              "priority": 1,
+              "delivery": false,
+              "balk_mean": 12.0,
+              "renege_mean": 20.0,
+              "own_mix": false
+            },
+            {
+              "name": "student",
+              "weight": 0.12,
+              "priority": 1,
+              "delivery": false,
+              "balk_mean": 8.0,
+              "renege_mean": 15.0,
+              "own_mix": true
+            }
+          ],
+          "variability": {
+            "kind": "lognormal",
+            "order_cv": 0.1,
+            "tea_cv": 0.3,
+            "bread_cv": 0.15,
+            "ice_cv": 0.2
+          },
+          "network": {
+            "stations": [
+              {
+                "name": "order",
+                "capacity": 1,
+                "skill": "cashier"
+              },
+              {
+                "name": "tea",
+                "capacity": 1,
+                "skill": "barista"
+              },
+              {
+                "name": "ice",
+                "capacity": 1,
+                "skill": "barista"
+              },
+              {
+                "name": "bread",
+                "capacity": 1,
+                "skill": "cashier"
+              }
+            ],
+            "staff": {
+              "roles": [
+                "cashier",
+                "barista"
+              ],
+              "counts": [
+                1,
+                1
+              ],
+              "skills": [
+                [
+                  "cashier"
+                ],
+                [
+                  "barista"
+                ]
+              ],
+              "windows": [
+                {
+                  "role": "cashier",
+                  "start": 0.0,
+                  "end": 720.0
+                },
+                {
+                  "role": "barista",
+                  "start": 0.0,
+                  "end": 720.0
+                }
+              ],
+              "breaks": []
+            },
+            "routes": [
+              [
+                "tea",
+                "tea"
+              ],
+              [
+                "mix_tea",
+                "tea"
+              ],
+              [
+                "ice",
+                "ice"
+              ],
+              [
+                "mix_ice",
+                "ice"
+              ],
+              [
+                "bread",
+                "bread"
+              ]
+            ]
+          },
+          "inventory": null,
+          "pricing": null,
+          "sla": null,
+          "policy": {
+            "split_mix": false,
+            "fast_priority": false,
+            "starvation_cap": null,
+            "mix_ice_priority": "jump"
+          }
+        },
+        "reps": 100,
+        "means": {
+          "abandon_rate": 0.042162,
+          "arrivals": 274.11,
+          "balk_rate": 0.041877,
+          "balked": 11.6,
+          "busy_minutes": 552.5308,
+          "class_regular_mean_los": 4.48261,
+          "class_regular_p95_los": 11.140476,
+          "class_regular_served": 218.14,
+          "class_student_mean_los": 4.051736,
+          "class_student_p95_los": 9.577361,
+          "class_student_served": 28.67,
+          "count_bread": 51.69,
+          "count_ice": 10.88,
+          "count_mix": 46.84,
+          "count_tea": 137.4,
+          "fairness_gap": 0.614145,
+          "flow_time_total": 1093.930597,
+          "ingredient_cost_per_hour": 0.0,
+          "los_bread": 0.977713,
+          "los_ice": 3.903905,
+          "los_mix": 5.642195,
+          "los_p50": 3.45824,
+          "los_p90": 9.337625,
+          "los_p95": 11.047301,
+          "los_tea": 5.34711,
+          "mean_busy_ratio": 0.394972,
+          "mean_los": 4.431239,
+          "mean_price_factor": 1.0,
+          "mix_ice_hand": 5.642195,
+          "mix_los": 5.642195,
+          "peak_busy_ratio": 0.6326,
+          "peak_hour_arrivals": 41.66,
+          "peak_hour_los": 7.281398,
+          "pool_barista_util": 0.572384,
+          "pool_cashier_util": 0.19502,
+          "profit_per_hour": 62.711225,
+          "purchase_cost": 0.0,
+          "renege_rate": 0.000285,
+          "reneged": 0.08,
+          "revenue_per_hour": 158.291667,
+          "revenue_total": 1899.5,
+          "served": 246.81,
+          "served_all": 262.19,
+          "served_rate": 0.956963,
+          "sla_attainment": 0.0,
+          "sla_compensation_total": 0.0,
+          "staff_minutes_available": 1440.0,
+          "starvation_events": 0.0,
+          "station_bread_util": 0.012746,
+          "station_ice_util": 0.028204,
+          "station_order_util": 0.182274,
+          "station_tea_util": 0.54418,
+          "stockout_losses": 0.0,
+          "stockout_rate": 0.0,
+          "stranded": 0.24,
+          "top_station_util": 0.54418,
+          "util": 0.383702,
+          "wage_per_hour": 50.0,
+          "waiting_cost_total": 546.965298,
+          "waste_units": 0.0
+        },
+        "ci95": {
+          "abandon_rate": 0.004303,
+          "arrivals": 2.866218,
+          "balk_rate": 0.004284,
+          "fairness_gap": 0.095585,
+          "los_p50": 0.101417,
+          "los_p90": 0.338099,
+          "los_p95": 0.388639,
+          "mean_busy_ratio": 0.003866,
+          "mean_los": 0.12627,
+          "mix_los": 0.168328,
+          "peak_busy_ratio": 0.006759,
+          "peak_hour_los": 0.339878,
+          "profit_per_hour": 1.61711,
+          "renege_rate": 0.000218,
+          "revenue_per_hour": 1.583658,
+          "served": 2.370476,
+          "sla_attainment": 0.0,
+          "station_bread_util": 0.000305,
+          "station_ice_util": 0.000745,
+          "station_order_util": 0.001787,
+          "station_tea_util": 0.005855,
+          "stockout_rate": 0.0,
+          "util": 0.003798,
+          "wage_per_hour": 0.0,
+          "waste_units": 0.0
+        },
+        "validation": {
+          "flow_conservation": true,
+          "all_metrics_finite": true,
+          "reps": 100
+        },
+        "station_util": {
+          "bread": 0.012746,
+          "ice": 0.028204,
+          "order": 0.182274,
+          "tea": 0.54418
+        },
+        "top_station": "tea",
+        "pool_util": {
+          "barista": 0.572384,
+          "cashier": 0.19502
+        }
+      },
+      {
+        "name": "mall_weekend",
+        "title": "Weekend mall shop: afternoon and evening family peaks, group orders",
+        "provenance": {
+          "source": "Synthetic, anchored on the Course 5006 parameter set and on teaching-case ranges for shopping-centre weekend traffic",
+          "method": "Piecewise-constant demand with a slow opening, afternoon peak, dinner dip and evening peak; daily mean normalised to the quoted rate; batch arrivals model families and friend groups; four baristas and three tea slots so the evening peak is tight but finite",
+          "uncertainty": "high",
+          "notes": "Not field-measured. Twelve-hour modelled day (720 min). Group orders (20% of arrivals, mean 2.5 people) are the main reason the peak rate exceeds the daily mean on a per-person basis. Two ice slots represent a larger mall counter."
+        },
+        "legacy_compat": false,
+        "config": {
+          "name": "mall_weekend",
+          "workers": 6,
+          "arrival_rate": 0.9344262295081968,
+          "sim_minutes": 720.0,
+          "warmup_minutes": 60.0,
+          "mix": {
+            "tea": 0.55,
+            "bread": 0.2,
+            "ice": 0.05,
+            "mix": 0.2
+          },
+          "service_time_mean": 2.11665,
+          "utilization": 0.3296422131147541,
+          "policy": "synchro"
+        },
+        "layers": {
+          "demand": {
+            "segments": [
+              [
+                0.0,
+                0.3
+              ],
+              [
+                180.0,
+                0.6
+              ],
+              [
+                240.0,
+                1.5
+              ],
+              [
+                420.0,
+                0.9
+              ],
+              [
+                480.0,
+                1.6
+              ],
+              [
+                660.0,
+                0.5
+              ]
+            ],
+            "peak_multiplier": 1.6,
+            "daily_mean_multiplier": 1.0166666666666666,
+            "flat": false
+          },
+          "batches": {
+            "probability": 0.2,
+            "sizes": [
+              [
+                2,
+                0.6
+              ],
+              [
+                3,
+                0.3
+              ],
+              [
+                4,
+                0.1
+              ]
+            ],
+            "expected_arrival_size": 1.3
+          },
+          "classes": [
+            {
+              "name": "regular",
+              "weight": 0.7,
+              "priority": 1,
+              "delivery": false,
+              "balk_mean": 9.0,
+              "renege_mean": 16.0,
+              "own_mix": false
+            },
+            {
+              "name": "family",
+              "weight": 0.25,
+              "priority": 1,
+              "delivery": false,
+              "balk_mean": 6.0,
+              "renege_mean": 12.0,
+              "own_mix": true
+            },
+            {
+              "name": "delivery",
+              "weight": 0.05,
+              "priority": 1,
+              "delivery": true,
+              "balk_mean": null,
+              "renege_mean": null,
+              "own_mix": false
+            }
+          ],
+          "variability": {
+            "kind": "lognormal",
+            "order_cv": 0.15,
+            "tea_cv": 0.35,
+            "bread_cv": 0.2,
+            "ice_cv": 0.3
+          },
+          "network": {
+            "stations": [
+              {
+                "name": "order",
+                "capacity": 2,
+                "skill": "cashier"
+              },
+              {
+                "name": "tea",
+                "capacity": 3,
+                "skill": "barista"
+              },
+              {
+                "name": "ice",
+                "capacity": 2,
+                "skill": "barista"
+              },
+              {
+                "name": "bread",
+                "capacity": 2,
+                "skill": "cashier"
+              }
+            ],
+            "staff": {
+              "roles": [
+                "cashier",
+                "barista"
+              ],
+              "counts": [
+                2,
+                4
+              ],
+              "skills": [
+                [
+                  "cashier"
+                ],
+                [
+                  "barista"
+                ]
+              ],
+              "windows": [
+                {
+                  "role": "cashier",
+                  "start": 0.0,
+                  "end": 720.0
+                },
+                {
+                  "role": "cashier",
+                  "start": 0.0,
+                  "end": 720.0
+                },
+                {
+                  "role": "barista",
+                  "start": 0.0,
+                  "end": 720.0
+                },
+                {
+                  "role": "barista",
+                  "start": 180.0,
+                  "end": 720.0
+                },
+                {
+                  "role": "barista",
+                  "start": 180.0,
+                  "end": 720.0
+                },
+                {
+                  "role": "barista",
+                  "start": 420.0,
+                  "end": 720.0
+                }
+              ],
+              "breaks": [
+                {
+                  "role": "cashier",
+                  "start": 300.0,
+                  "end": 330.0
+                },
+                {
+                  "role": "barista",
+                  "start": 360.0,
+                  "end": 390.0
+                }
+              ]
+            },
+            "routes": [
+              [
+                "tea",
+                "tea"
+              ],
+              [
+                "mix_tea",
+                "tea"
+              ],
+              [
+                "ice",
+                "ice"
+              ],
+              [
+                "mix_ice",
+                "ice"
+              ],
+              [
+                "bread",
+                "bread"
+              ]
+            ]
+          },
+          "inventory": null,
+          "pricing": null,
+          "sla": null,
+          "policy": {
+            "split_mix": false,
+            "fast_priority": false,
+            "starvation_cap": null,
+            "mix_ice_priority": "jump"
+          }
+        },
+        "reps": 100,
+        "means": {
+          "abandon_rate": 0.081741,
+          "arrivals": 883.5,
+          "balk_rate": 0.081281,
+          "balked": 72.28,
+          "busy_minutes": 1666.732412,
+          "class_delivery_mean_los": 4.036581,
+          "class_delivery_p95_los": 9.182423,
+          "class_delivery_served": 44.1,
+          "class_family_mean_los": 3.222784,
+          "class_family_p95_los": 7.742404,
+          "class_family_served": 180.04,
+          "class_regular_mean_los": 3.829271,
+          "class_regular_p95_los": 8.9021,
+          "class_regular_served": 564.53,
+          "count_bread": 156.19,
+          "count_ice": 66.9,
+          "count_mix": 158.21,
+          "count_tea": 407.37,
+          "fairness_gap": 0.869931,
+          "flow_time_total": 2921.13156,
+          "ingredient_cost_per_hour": 0.0,
+          "los_bread": 1.219822,
+          "los_ice": 1.902995,
+          "los_mix": 4.830234,
+          "los_p50": 3.152712,
+          "los_p90": 7.220151,
+          "los_p95": 8.741986,
+          "los_tea": 4.508467,
+          "mean_busy_ratio": 0.410293,
+          "mean_los": 3.702414,
+          "mean_price_factor": 1.0,
+          "mix_ice_hand": 4.830234,
+          "mix_los": 4.830234,
+          "peak_busy_ratio": 0.668914,
+          "peak_hour_arrivals": 130.89,
+          "peak_hour_los": 6.324238,
+          "pool_barista_util": 0.587841,
+          "pool_cashier_util": 0.300184,
+          "profit_per_hour": 254.286185,
+          "purchase_cost": 0.0,
+          "renege_rate": 0.000459,
+          "reneged": 0.41,
+          "revenue_per_hour": 492.666667,
+          "revenue_total": 5912.0,
+          "served": 788.67,
+          "served_all": 809.79,
+          "served_rate": 0.917099,
+          "sla_attainment": 0.0,
+          "sla_compensation_total": 0.0,
+          "staff_minutes_available": 3360.0,
+          "starvation_events": 0.0,
+          "station_bread_util": 0.018556,
+          "station_ice_util": 0.053321,
+          "station_order_util": 0.281629,
+          "station_tea_util": 0.535965,
+          "stockout_losses": 0.0,
+          "stockout_rate": 0.0,
+          "stranded": 1.02,
+          "top_station_util": 0.535965,
+          "util": 0.496051,
+          "wage_per_hour": 116.666667,
+          "waiting_cost_total": 1460.56578,
+          "waste_units": 0.0
+        },
+        "ci95": {
+          "abandon_rate": 0.003924,
+          "arrivals": 7.513453,
+          "balk_rate": 0.00392,
+          "fairness_gap": 0.068577,
+          "los_p50": 0.039517,
+          "los_p90": 0.158814,
+          "los_p95": 0.22849,
+          "mean_busy_ratio": 0.002874,
+          "mean_los": 0.054785,
+          "mix_los": 0.082444,
+          "peak_busy_ratio": 0.006138,
+          "peak_hour_los": 0.242592,
+          "profit_per_hour": 2.700774,
+          "renege_rate": 0.000171,
+          "revenue_per_hour": 3.353613,
+          "served": 5.432187,
+          "sla_attainment": 0.0,
+          "station_bread_util": 0.000325,
+          "station_ice_util": 0.00069,
+          "station_order_util": 0.001943,
+          "station_tea_util": 0.003944,
+          "stockout_rate": 0.0,
+          "util": 0.00345,
+          "wage_per_hour": 0.0,
+          "waste_units": 0.0
+        },
+        "validation": {
+          "flow_conservation": true,
+          "all_metrics_finite": true,
+          "reps": 100
+        },
+        "station_util": {
+          "bread": 0.018556,
+          "ice": 0.053321,
+          "order": 0.281629,
+          "tea": 0.535965
+        },
+        "top_station": "tea",
+        "pool_util": {
+          "barista": 0.587841,
+          "cashier": 0.300184
+        }
+      },
+      {
+        "name": "network_tea_bottleneck",
+        "title": "Single tea station as the bottleneck (staff-rich, equipment-poor)",
+        "provenance": {
+          "source": "Course 5006 flow rates + synthetic capacity assumption",
+          "method": "Synthetic: one tea station and one barista, two cashiers and two order counters; demand flat so the bottleneck is structural, not demand-driven",
+          "uncertainty": "high",
+          "notes": "Designed to test whether fast-item triage still helps when the tea station is the binding constraint."
+        },
+        "legacy_compat": false,
+        "config": {
+          "name": "network_tea_bottleneck",
+          "workers": 3,
+          "arrival_rate": 0.6,
+          "sim_minutes": 480.0,
+          "warmup_minutes": 60.0,
+          "mix": {
+            "tea": 0.55,
+            "bread": 0.2,
+            "ice": 0.05,
+            "mix": 0.2
+          },
+          "service_time_mean": 2.11665,
+          "utilization": 0.42333,
+          "policy": "split+fast-priority"
+        },
+        "layers": {
+          "demand": {
+            "segments": [
+              [
+                0.0,
+                1.0
+              ]
+            ],
+            "peak_multiplier": 1.0,
+            "daily_mean_multiplier": 1.0,
+            "flat": true
+          },
+          "batches": null,
+          "classes": [
+            {
+              "name": "regular",
+              "weight": 0.85,
+              "priority": 1,
+              "delivery": false,
+              "balk_mean": 10.0,
+              "renege_mean": 18.0,
+              "own_mix": false
+            },
+            {
+              "name": "delivery",
+              "weight": 0.15,
+              "priority": 1,
+              "delivery": true,
+              "balk_mean": null,
+              "renege_mean": null,
+              "own_mix": false
+            }
+          ],
+          "variability": {
+            "kind": "lognormal",
+            "order_cv": 0.0,
+            "tea_cv": 0.3,
+            "bread_cv": 0.1,
+            "ice_cv": 0.2
+          },
+          "network": {
+            "stations": [
+              {
+                "name": "order",
+                "capacity": 2,
+                "skill": "cashier"
+              },
+              {
+                "name": "tea",
+                "capacity": 1,
+                "skill": "barista"
+              },
+              {
+                "name": "ice",
+                "capacity": 1,
+                "skill": "barista"
+              },
+              {
+                "name": "bread",
+                "capacity": 2,
+                "skill": "cashier"
+              }
+            ],
+            "staff": {
+              "roles": [
+                "cashier",
+                "barista"
+              ],
+              "counts": [
+                2,
+                1
+              ],
+              "skills": [
+                [
+                  "cashier"
+                ],
+                [
+                  "barista"
+                ]
+              ],
+              "windows": [
+                {
+                  "role": "cashier",
+                  "start": 0.0,
+                  "end": 480.0
+                },
+                {
+                  "role": "cashier",
+                  "start": 0.0,
+                  "end": 480.0
+                },
+                {
+                  "role": "barista",
+                  "start": 0.0,
+                  "end": 480.0
+                }
+              ],
+              "breaks": []
+            },
+            "routes": [
+              [
+                "tea",
+                "tea"
+              ],
+              [
+                "mix_tea",
+                "tea"
+              ],
+              [
+                "ice",
+                "ice"
+              ],
+              [
+                "mix_ice",
+                "ice"
+              ],
+              [
+                "bread",
+                "bread"
+              ]
+            ]
+          },
+          "inventory": null,
+          "pricing": null,
+          "sla": null,
+          "policy": {
+            "split_mix": true,
+            "fast_priority": true,
+            "starvation_cap": null,
+            "mix_ice_priority": "jump"
+          }
+        },
+        "reps": 100,
+        "means": {
+          "abandon_rate": 0.047345,
+          "arrivals": 287.0,
+          "balk_rate": 0.046223,
+          "balked": 13.54,
+          "busy_minutes": 572.420366,
+          "class_delivery_mean_los": 6.921124,
+          "class_delivery_p95_los": 16.287591,
+          "class_delivery_served": 37.19,
+          "class_regular_mean_los": 6.559771,
+          "class_regular_p95_los": 15.83302,
+          "class_regular_served": 197.66,
+          "count_bread": 47.52,
+          "count_ice": 11.96,
+          "count_mix": 47.05,
+          "count_tea": 128.32,
+          "fairness_gap": 0.739593,
+          "flow_time_total": 1556.980578,
+          "ingredient_cost_per_hour": 0.0,
+          "los_bread": 0.674127,
+          "los_ice": 1.798832,
+          "los_mix": 8.750194,
+          "los_p50": 5.765642,
+          "los_p90": 13.964696,
+          "los_p95": 16.031592,
+          "los_tea": 8.439658,
+          "mean_busy_ratio": 0.399845,
+          "mean_los": 6.618413,
+          "mean_price_factor": 1.0,
+          "mix_ice_hand": 1.792911,
+          "mix_los": 8.750194,
+          "peak_busy_ratio": 0.446229,
+          "peak_hour_arrivals": 43.95,
+          "peak_hour_los": 10.750379,
+          "pool_barista_util": 0.889179,
+          "pool_cashier_util": 0.151682,
+          "profit_per_hour": 53.451214,
+          "purchase_cost": 0.0,
+          "renege_rate": 0.001121,
+          "reneged": 0.32,
+          "revenue_per_hour": 225.7625,
+          "revenue_total": 1806.1,
+          "served": 234.85,
+          "served_all": 269.8,
+          "served_rate": 0.941072,
+          "sla_attainment": 0.0,
+          "sla_compensation_total": 0.0,
+          "staff_minutes_available": 1440.0,
+          "starvation_events": 0.0,
+          "station_bread_util": 0.009447,
+          "station_ice_util": 0.047492,
+          "station_order_util": 0.142234,
+          "station_tea_util": 0.841686,
+          "stockout_losses": 0.0,
+          "stockout_rate": 0.0,
+          "stranded": 3.34,
+          "top_station_util": 0.841686,
+          "util": 0.397514,
+          "wage_per_hour": 75.0,
+          "waiting_cost_total": 778.490289,
+          "waste_units": 0.0
+        },
+        "ci95": {
+          "abandon_rate": 0.005063,
+          "arrivals": 3.257447,
+          "balk_rate": 0.005057,
+          "fairness_gap": 0.114056,
+          "los_p50": 0.298308,
+          "los_p90": 0.589091,
+          "los_p95": 0.654739,
+          "mean_busy_ratio": 0.003463,
+          "mean_los": 0.28049,
+          "mix_los": 0.360414,
+          "peak_busy_ratio": 0.002356,
+          "peak_hour_los": 0.627131,
+          "profit_per_hour": 3.856069,
+          "renege_rate": 0.000377,
+          "revenue_per_hour": 2.329009,
+          "served": 2.509418,
+          "sla_attainment": 0.0,
+          "station_bread_util": 0.000258,
+          "station_ice_util": 0.00113,
+          "station_order_util": 0.001265,
+          "station_tea_util": 0.006943,
+          "stockout_rate": 0.0,
+          "util": 0.003055,
+          "wage_per_hour": 0.0,
+          "waste_units": 0.0
+        },
+        "validation": {
+          "flow_conservation": true,
+          "all_metrics_finite": true,
+          "reps": 100
+        },
+        "station_util": {
+          "bread": 0.009447,
+          "ice": 0.047492,
+          "order": 0.142234,
+          "tea": 0.841686
+        },
+        "top_station": "tea",
+        "pool_util": {
+          "barista": 0.889179,
+          "cashier": 0.151682
+        }
+      },
+      {
+        "name": "peak_pricing",
+        "title": "Peak pricing: +30% inside the two demand peaks, elastic demand response",
+        "provenance": {
+          "source": "Synthetic, anchored on the Course 5006 campus demand shape and on teaching-case ranges for food-service peak surcharges and price elasticities",
+          "method": "campus_rush demand shape with a +30% price inside the two peak windows and a constant-elasticity response (elasticity -1.2, i.e. a 30% surcharge removes about 27% of peak demand); the quoted arrival rate is the no-pricing daily mean, so the realised mean is lower",
+          "uncertainty": "high",
+          "notes": "Not field-measured. The elasticity is an assumption, not an estimate; the point is the mechanism (peak demand deflation) and the trade-off between peak waiting relief and revenue. Because the price layer changes the realised daily mean, compare it against campus_rush on served/profit/p95, not on the quoted arrival rate."
+        },
+        "legacy_compat": false,
+        "config": {
+          "name": "peak_pricing",
+          "workers": 5,
+          "arrival_rate": 1.010989010989011,
+          "sim_minutes": 480.0,
+          "warmup_minutes": 60.0,
+          "mix": {
+            "tea": 0.55,
+            "bread": 0.2,
+            "ice": 0.05,
+            "mix": 0.2
+          },
+          "service_time_mean": 2.11665,
+          "utilization": 0.427981978021978,
+          "policy": "synchro+fast-priority"
+        },
+        "layers": {
+          "demand": {
+            "segments": [
+              [
+                0.0,
+                0.5
+              ],
+              [
+                60.0,
+                1.7
+              ],
+              [
+                180.0,
+                0.6
+              ],
+              [
+                300.0,
+                1.6
+              ],
+              [
+                420.0,
+                0.8
+              ]
+            ],
+            "peak_multiplier": 1.7,
+            "daily_mean_multiplier": 1.1375,
+            "flat": false
+          },
+          "batches": {
+            "probability": 0.15,
+            "sizes": [
+              [
+                2,
+                0.6
+              ],
+              [
+                3,
+                0.3
+              ],
+              [
+                4,
+                0.1
+              ]
+            ],
+            "expected_arrival_size": 1.225
+          },
+          "classes": [
+            {
+              "name": "regular",
+              "weight": 0.72,
+              "priority": 1,
+              "delivery": false,
+              "balk_mean": 9.0,
+              "renege_mean": 16.0,
+              "own_mix": false
+            },
+            {
+              "name": "student",
+              "weight": 0.2,
+              "priority": 1,
+              "delivery": false,
+              "balk_mean": 5.0,
+              "renege_mean": 9.0,
+              "own_mix": true
+            },
+            {
+              "name": "delivery",
+              "weight": 0.08,
+              "priority": 1,
+              "delivery": true,
+              "balk_mean": null,
+              "renege_mean": null,
+              "own_mix": false
+            }
+          ],
+          "variability": {
+            "kind": "lognormal",
+            "order_cv": 0.1,
+            "tea_cv": 0.35,
+            "bread_cv": 0.15,
+            "ice_cv": 0.25
+          },
+          "network": {
+            "stations": [
+              {
+                "name": "order",
+                "capacity": 2,
+                "skill": "cashier"
+              },
+              {
+                "name": "tea",
+                "capacity": 3,
+                "skill": "barista"
+              },
+              {
+                "name": "ice",
+                "capacity": 1,
+                "skill": "barista"
+              },
+              {
+                "name": "bread",
+                "capacity": 2,
+                "skill": "cashier"
+              }
+            ],
+            "staff": {
+              "roles": [
+                "cashier",
+                "barista"
+              ],
+              "counts": [
+                2,
+                3
+              ],
+              "skills": [
+                [
+                  "cashier"
+                ],
+                [
+                  "barista"
+                ]
+              ],
+              "windows": [
+                {
+                  "role": "cashier",
+                  "start": 0.0,
+                  "end": 480.0
+                },
+                {
+                  "role": "cashier",
+                  "start": 0.0,
+                  "end": 480.0
+                },
+                {
+                  "role": "barista",
+                  "start": 0.0,
+                  "end": 480.0
+                },
+                {
+                  "role": "barista",
+                  "start": 0.0,
+                  "end": 480.0
+                },
+                {
+                  "role": "barista",
+                  "start": 60.0,
+                  "end": 480.0
+                }
+              ],
+              "breaks": [
+                {
+                  "role": "cashier",
+                  "start": 240.0,
+                  "end": 270.0
+                },
+                {
+                  "role": "barista",
+                  "start": 300.0,
+                  "end": 330.0
+                }
+              ]
+            },
+            "routes": [
+              [
+                "tea",
+                "tea"
+              ],
+              [
+                "mix_tea",
+                "tea"
+              ],
+              [
+                "ice",
+                "ice"
+              ],
+              [
+                "mix_ice",
+                "ice"
+              ],
+              [
+                "bread",
+                "bread"
+              ]
+            ]
+          },
+          "inventory": null,
+          "pricing": {
+            "peak_windows": [
+              [
+                60.0,
+                180.0
+              ],
+              [
+                300.0,
+                420.0
+              ]
+            ],
+            "peak_price_multiplier": 1.3,
+            "elasticity": -1.2
+          },
+          "sla": null,
+          "policy": {
+            "split_mix": false,
+            "fast_priority": true,
+            "starvation_cap": null,
+            "mix_ice_priority": "jump"
+          }
+        },
+        "reps": 100,
+        "means": {
+          "abandon_rate": 0.056434,
+          "arrivals": 542.64,
+          "balk_rate": 0.055621,
+          "balked": 30.49,
+          "busy_minutes": 1087.590632,
+          "class_delivery_mean_los": 3.596551,
+          "class_delivery_p95_los": 8.620261,
+          "class_delivery_served": 39.94,
+          "class_regular_mean_los": 3.4274,
+          "class_regular_p95_los": 8.527265,
+          "class_regular_served": 346.57,
+          "class_student_mean_los": 3.307292,
+          "class_student_p95_los": 7.249799,
+          "class_student_served": 86.71,
+          "count_bread": 88.63,
+          "count_ice": 24.41,
+          "count_mix": 89.98,
+          "count_tea": 270.2,
+          "fairness_gap": 0.55867,
+          "flow_time_total": 1619.89247,
+          "ingredient_cost_per_hour": 0.0,
+          "los_bread": 0.790708,
+          "los_ice": 1.251598,
+          "los_mix": 4.511473,
+          "los_p50": 2.908099,
+          "los_p90": 6.852789,
+          "los_p95": 8.426303,
+          "los_tea": 4.1127,
+          "mean_busy_ratio": 0.481873,
+          "mean_los": 3.420364,
+          "mean_price_factor": 1.207344,
+          "mix_ice_hand": 4.511473,
+          "mix_los": 4.511473,
+          "peak_busy_ratio": 0.660649,
+          "peak_hour_arrivals": 100.96,
+          "peak_hour_los": 5.274456,
+          "pool_barista_util": 0.591268,
+          "pool_cashier_util": 0.282959,
+          "profit_per_hour": 334.293471,
+          "purchase_cost": 0.0,
+          "renege_rate": 0.000813,
+          "reneged": 0.43,
+          "revenue_per_hour": 549.59925,
+          "revenue_total": 4396.794,
+          "served": 473.22,
+          "served_all": 509.53,
+          "served_rate": 0.939491,
+          "sla_attainment": 0.0,
+          "sla_compensation_total": 0.0,
+          "staff_minutes_available": 2190.0,
+          "starvation_events": 0.0,
+          "station_bread_util": 0.016544,
+          "station_ice_util": 0.085009,
+          "station_order_util": 0.266415,
+          "station_tea_util": 0.538295,
+          "stockout_losses": 0.0,
+          "stockout_rate": 0.0,
+          "stranded": 2.19,
+          "top_station_util": 0.538295,
+          "util": 0.496617,
+          "wage_per_hour": 114.0625,
+          "waiting_cost_total": 809.946235,
+          "waste_units": 0.0
+        },
+        "ci95": {
+          "abandon_rate": 0.004007,
+          "arrivals": 5.91447,
+          "balk_rate": 0.004027,
+          "fairness_gap": 0.07893,
+          "los_p50": 0.025056,
+          "los_p90": 0.240616,
+          "los_p95": 0.320438,
+          "mean_busy_ratio": 0.004774,
+          "mean_los": 0.070667,
+          "mix_los": 0.095263,
+          "peak_busy_ratio": 0.009271,
+          "peak_hour_los": 0.219338,
+          "profit_per_hour": 4.136871,
+          "renege_rate": 0.000341,
+          "revenue_per_hour": 5.140408,
+          "served": 4.544274,
+          "sla_attainment": 0.0,
+          "station_bread_util": 0.000319,
+          "station_ice_util": 0.00173,
+          "station_order_util": 0.002552,
+          "station_tea_util": 0.005766,
+          "stockout_rate": 0.0,
+          "util": 0.005025,
+          "wage_per_hour": 0.0,
+          "waste_units": 0.0
+        },
+        "validation": {
+          "flow_conservation": true,
+          "all_metrics_finite": true,
+          "reps": 100
+        },
+        "station_util": {
+          "bread": 0.016544,
+          "ice": 0.085009,
+          "order": 0.266415,
+          "tea": 0.538295
+        },
+        "top_station": "tea",
+        "pool_util": {
+          "barista": 0.591268,
+          "cashier": 0.282959
+        }
+      },
+      {
+        "name": "rainy_delivery",
+        "title": "Rainy weekday, delivery-dominant: walk-in demand falls, rider orders take over",
+        "provenance": {
+          "source": "Synthetic, anchored on the Course 5006 parameter set and on teaching-case ranges for rainy-day channel shift",
+          "method": "Flat-ish baseline demand with a mild lunch bump; half of all arrivals are delivery orders (no balking, higher icy/mixed mix, top queue priority), the walk-in half has low patience; two ice slots because cold drinks dominate on a wet day",
+          "uncertainty": "high",
+          "notes": "Not field-measured. Rain is modelled only as a channel mix shift, not as a change in total demand. The delivery class carries a heavier mixed/iced order mix, which raises make work per customer relative to a dry walk-in day. Delivery orders never balk and never renege by construction of the engine."
+        },
+        "legacy_compat": false,
+        "config": {
+          "name": "rainy_delivery",
+          "workers": 5,
+          "arrival_rate": 1.2,
+          "sim_minutes": 480.0,
+          "warmup_minutes": 60.0,
+          "mix": {
+            "tea": 0.55,
+            "bread": 0.2,
+            "ice": 0.05,
+            "mix": 0.2
+          },
+          "service_time_mean": 2.11665,
+          "utilization": 0.507996,
+          "policy": "split"
+        },
+        "layers": {
+          "demand": {
+            "segments": [
+              [
+                0.0,
+                0.9
+              ],
+              [
+                120.0,
+                1.25
+              ],
+              [
+                240.0,
+                0.85
+              ],
+              [
+                360.0,
+                1.2
+              ],
+              [
+                420.0,
+                0.8
+              ]
+            ],
+            "peak_multiplier": 1.25,
+            "daily_mean_multiplier": 1.0,
+            "flat": false
+          },
+          "batches": null,
+          "classes": [
+            {
+              "name": "delivery",
+              "weight": 0.5,
+              "priority": 1,
+              "delivery": true,
+              "balk_mean": null,
+              "renege_mean": null,
+              "own_mix": true
+            },
+            {
+              "name": "walk_in",
+              "weight": 0.5,
+              "priority": 1,
+              "delivery": false,
+              "balk_mean": 6.0,
+              "renege_mean": 12.0,
+              "own_mix": true
+            }
+          ],
+          "variability": {
+            "kind": "lognormal",
+            "order_cv": 0.15,
+            "tea_cv": 0.35,
+            "bread_cv": 0.18,
+            "ice_cv": 0.3
+          },
+          "network": {
+            "stations": [
+              {
+                "name": "order",
+                "capacity": 2,
+                "skill": "cashier"
+              },
+              {
+                "name": "tea",
+                "capacity": 3,
+                "skill": "barista"
+              },
+              {
+                "name": "ice",
+                "capacity": 2,
+                "skill": "barista"
+              },
+              {
+                "name": "bread",
+                "capacity": 2,
+                "skill": "cashier"
+              }
+            ],
+            "staff": {
+              "roles": [
+                "cashier",
+                "barista"
+              ],
+              "counts": [
+                2,
+                3
+              ],
+              "skills": [
+                [
+                  "cashier"
+                ],
+                [
+                  "barista"
+                ]
+              ],
+              "windows": [
+                {
+                  "role": "cashier",
+                  "start": 0.0,
+                  "end": 480.0
+                },
+                {
+                  "role": "cashier",
+                  "start": 0.0,
+                  "end": 480.0
+                },
+                {
+                  "role": "barista",
+                  "start": 0.0,
+                  "end": 480.0
+                },
+                {
+                  "role": "barista",
+                  "start": 0.0,
+                  "end": 480.0
+                },
+                {
+                  "role": "barista",
+                  "start": 0.0,
+                  "end": 480.0
+                }
+              ],
+              "breaks": []
+            },
+            "routes": [
+              [
+                "tea",
+                "tea"
+              ],
+              [
+                "mix_tea",
+                "tea"
+              ],
+              [
+                "ice",
+                "ice"
+              ],
+              [
+                "mix_ice",
+                "ice"
+              ],
+              [
+                "bread",
+                "bread"
+              ]
+            ]
+          },
+          "inventory": null,
+          "pricing": null,
+          "sla": null,
+          "policy": {
+            "split_mix": true,
+            "fast_priority": false,
+            "starvation_cap": null,
+            "mix_ice_priority": "jump"
+          }
+        },
+        "reps": 100,
+        "means": {
+          "abandon_rate": 0.021523,
+          "arrivals": 575.95,
+          "balk_rate": 0.020968,
+          "balked": 12.16,
+          "busy_minutes": 1237.09944,
+          "class_delivery_mean_los": 2.950428,
+          "class_delivery_p95_los": 5.478073,
+          "class_delivery_served": 253.79,
+          "class_walk_in_mean_los": 2.448627,
+          "class_walk_in_p95_los": 5.037035,
+          "class_walk_in_served": 243.11,
+          "count_bread": 74.53,
+          "count_ice": 37.76,
+          "count_mix": 150.33,
+          "count_tea": 234.28,
+          "fairness_gap": 0.501801,
+          "flow_time_total": 1345.696791,
+          "ingredient_cost_per_hour": 0.0,
+          "los_bread": 0.742566,
+          "los_ice": 1.481888,
+          "los_mix": 3.289322,
+          "los_p50": 2.618742,
+          "los_p90": 4.535857,
+          "los_p95": 5.312664,
+          "los_tea": 3.151096,
+          "mean_busy_ratio": 0.52242,
+          "mean_los": 2.705868,
+          "mean_price_factor": 1.0,
+          "mix_ice_hand": 1.07634,
+          "mix_los": 3.289322,
+          "peak_busy_ratio": 0.67874,
+          "peak_hour_arrivals": 97.91,
+          "peak_hour_los": 3.440126,
+          "pool_barista_util": 0.653739,
+          "pool_cashier_util": 0.308037,
+          "profit_per_hour": 278.423951,
+          "purchase_cost": 0.0,
+          "renege_rate": 0.000555,
+          "reneged": 0.32,
+          "revenue_per_hour": 487.53,
+          "revenue_total": 3900.24,
+          "served": 496.9,
+          "served_all": 561.55,
+          "served_rate": 0.975152,
+          "sla_attainment": 0.0,
+          "sla_compensation_total": 0.0,
+          "staff_minutes_available": 2400.0,
+          "starvation_events": 0.0,
+          "station_bread_util": 0.014647,
+          "station_ice_util": 0.073776,
+          "station_order_util": 0.29339,
+          "station_tea_util": 0.604555,
+          "stockout_losses": 0.0,
+          "stockout_rate": 0.0,
+          "stranded": 1.92,
+          "top_station_util": 0.604555,
+          "util": 0.515458,
+          "wage_per_hour": 125.0,
+          "waiting_cost_total": 672.848396,
+          "waste_units": 0.0
+        },
+        "ci95": {
+          "abandon_rate": 0.001655,
+          "arrivals": 4.834447,
+          "balk_rate": 0.001652,
+          "fairness_gap": 0.030067,
+          "los_p50": 0.018048,
+          "los_p90": 0.097221,
+          "los_p95": 0.134401,
+          "mean_busy_ratio": 0.004592,
+          "mean_los": 0.037592,
+          "mix_los": 0.041079,
+          "peak_busy_ratio": 0.006834,
+          "peak_hour_los": 0.109975,
+          "profit_per_hour": 3.093369,
+          "renege_rate": 0.000215,
+          "revenue_per_hour": 4.104798,
+          "served": 4.115453,
+          "sla_attainment": 0.0,
+          "station_bread_util": 0.000342,
+          "station_ice_util": 0.001053,
+          "station_order_util": 0.002369,
+          "station_tea_util": 0.00538,
+          "stockout_rate": 0.0,
+          "util": 0.004223,
+          "wage_per_hour": 0.0,
+          "waste_units": 0.0
+        },
+        "validation": {
+          "flow_conservation": true,
+          "all_metrics_finite": true,
+          "reps": 100
+        },
+        "station_util": {
+          "bread": 0.014647,
+          "ice": 0.073776,
+          "order": 0.29339,
+          "tea": 0.604555
+        },
+        "top_station": "tea",
+        "pool_util": {
+          "barista": 0.653739,
+          "cashier": 0.308037
+        }
+      },
+      {
+        "name": "strict_sla_fairness",
+        "title": "Strict SLA with a fairness cap: 4-minute promise, 3-unit compensation, 2-minute ageing cap",
+        "provenance": {
+          "source": "Synthetic, anchored on the Course 5006 campus demand shape and on teaching-case service-guarantee / compensation policies",
+          "method": "campus_rush load with a 4-minute SLA target and 3-unit per-late-customer compensation, plus a 2-minute starvation cap so any job (including the low-priority tea queue) is aged to the top after two minutes; split delivery keeps the ice component of mixed orders moving",
+          "uncertainty": "high",
+          "notes": "Not field-measured. The SLA promise is deliberately stricter than the process can hold at the peak, so the interesting output is the compensation bill and the gap between classes, not a 100% attainment rate. The ageing cap is the fairness mechanism: it trades some fast-item speed for bounded worst-case waiting."
+        },
+        "legacy_compat": false,
+        "config": {
+          "name": "strict_sla_fairness",
+          "workers": 5,
+          "arrival_rate": 1.010989010989011,
+          "sim_minutes": 480.0,
+          "warmup_minutes": 60.0,
+          "mix": {
+            "tea": 0.55,
+            "bread": 0.2,
+            "ice": 0.05,
+            "mix": 0.2
+          },
+          "service_time_mean": 2.11665,
+          "utilization": 0.427981978021978,
+          "policy": "split+fast-priority+fairness-cap>2m"
+        },
+        "layers": {
+          "demand": {
+            "segments": [
+              [
+                0.0,
+                0.5
+              ],
+              [
+                60.0,
+                1.7
+              ],
+              [
+                180.0,
+                0.6
+              ],
+              [
+                300.0,
+                1.6
+              ],
+              [
+                420.0,
+                0.8
+              ]
+            ],
+            "peak_multiplier": 1.7,
+            "daily_mean_multiplier": 1.1375,
+            "flat": false
+          },
+          "batches": {
+            "probability": 0.15,
+            "sizes": [
+              [
+                2,
+                0.6
+              ],
+              [
+                3,
+                0.3
+              ],
+              [
+                4,
+                0.1
+              ]
+            ],
+            "expected_arrival_size": 1.225
+          },
+          "classes": [
+            {
+              "name": "regular",
+              "weight": 0.72,
+              "priority": 1,
+              "delivery": false,
+              "balk_mean": 9.0,
+              "renege_mean": 16.0,
+              "own_mix": false
+            },
+            {
+              "name": "student",
+              "weight": 0.2,
+              "priority": 1,
+              "delivery": false,
+              "balk_mean": 5.0,
+              "renege_mean": 9.0,
+              "own_mix": true
+            },
+            {
+              "name": "delivery",
+              "weight": 0.08,
+              "priority": 0,
+              "delivery": true,
+              "balk_mean": null,
+              "renege_mean": null,
+              "own_mix": false
+            }
+          ],
+          "variability": {
+            "kind": "lognormal",
+            "order_cv": 0.1,
+            "tea_cv": 0.35,
+            "bread_cv": 0.15,
+            "ice_cv": 0.25
+          },
+          "network": {
+            "stations": [
+              {
+                "name": "order",
+                "capacity": 2,
+                "skill": "cashier"
+              },
+              {
+                "name": "tea",
+                "capacity": 3,
+                "skill": "barista"
+              },
+              {
+                "name": "ice",
+                "capacity": 1,
+                "skill": "barista"
+              },
+              {
+                "name": "bread",
+                "capacity": 2,
+                "skill": "cashier"
+              }
+            ],
+            "staff": {
+              "roles": [
+                "cashier",
+                "barista"
+              ],
+              "counts": [
+                2,
+                3
+              ],
+              "skills": [
+                [
+                  "cashier"
+                ],
+                [
+                  "barista"
+                ]
+              ],
+              "windows": [
+                {
+                  "role": "cashier",
+                  "start": 0.0,
+                  "end": 480.0
+                },
+                {
+                  "role": "cashier",
+                  "start": 0.0,
+                  "end": 480.0
+                },
+                {
+                  "role": "barista",
+                  "start": 0.0,
+                  "end": 480.0
+                },
+                {
+                  "role": "barista",
+                  "start": 0.0,
+                  "end": 480.0
+                },
+                {
+                  "role": "barista",
+                  "start": 60.0,
+                  "end": 480.0
+                }
+              ],
+              "breaks": [
+                {
+                  "role": "cashier",
+                  "start": 240.0,
+                  "end": 270.0
+                },
+                {
+                  "role": "barista",
+                  "start": 300.0,
+                  "end": 330.0
+                }
+              ]
+            },
+            "routes": [
+              [
+                "tea",
+                "tea"
+              ],
+              [
+                "mix_tea",
+                "tea"
+              ],
+              [
+                "ice",
+                "ice"
+              ],
+              [
+                "mix_ice",
+                "ice"
+              ],
+              [
+                "bread",
+                "bread"
+              ]
+            ]
+          },
+          "inventory": null,
+          "pricing": null,
+          "sla": {
+            "target_minutes": 4.0,
+            "compensation": 3.0,
+            "fairness_cap_minutes": 2.0
+          },
+          "policy": {
+            "split_mix": true,
+            "fast_priority": true,
+            "starvation_cap": 2.0,
+            "mix_ice_priority": "jump"
+          }
+        },
+        "reps": 100,
+        "means": {
+          "abandon_rate": 0.152525,
+          "arrivals": 668.56,
+          "balk_rate": 0.151933,
+          "balked": 101.94,
+          "busy_minutes": 1204.592905,
+          "class_delivery_mean_los": 4.819517,
+          "class_delivery_p95_los": 11.639566,
+          "class_delivery_served": 50.69,
+          "class_regular_mean_los": 4.76977,
+          "class_regular_p95_los": 11.547777,
+          "class_regular_served": 396.69,
+          "class_student_mean_los": 4.170623,
+          "class_student_p95_los": 9.373946,
+          "class_student_served": 81.12,
+          "count_bread": 98.71,
+          "count_ice": 27.92,
+          "count_mix": 101.96,
+          "count_tea": 299.91,
+          "fairness_gap": 0.913737,
+          "flow_time_total": 2474.362883,
+          "ingredient_cost_per_hour": 0.0,
+          "los_bread": 0.816001,
+          "los_ice": 3.661991,
+          "los_mix": 5.8534,
+          "los_p50": 3.966377,
+          "los_p90": 9.625364,
+          "los_p95": 11.432948,
+          "los_tea": 5.64839,
+          "mean_busy_ratio": 0.538443,
+          "mean_los": 4.683899,
+          "mean_price_factor": 1.0,
+          "mix_ice_hand": 3.676524,
+          "mix_los": 5.8534,
+          "peak_busy_ratio": 0.776511,
+          "peak_hour_arrivals": 136.41,
+          "peak_hour_los": 7.538648,
+          "pool_barista_util": 0.655008,
+          "pool_cashier_util": 0.31321,
+          "profit_per_hour": 142.94607,
+          "purchase_cost": 0.0,
+          "renege_rate": 0.000592,
+          "reneged": 0.4,
+          "revenue_per_hour": 508.3725,
+          "revenue_total": 4066.98,
+          "served": 528.5,
+          "served_all": 564.38,
+          "served_rate": 0.844725,
+          "sla_attainment": 0.51201,
+          "sla_compensation_total": 773.73,
+          "staff_minutes_available": 2190.0,
+          "starvation_events": 283.88,
+          "station_bread_util": 0.018299,
+          "station_ice_util": 0.096355,
+          "station_order_util": 0.29491,
+          "station_tea_util": 0.595598,
+          "stockout_losses": 0.0,
+          "stockout_rate": 0.0,
+          "stranded": 1.84,
+          "top_station_util": 0.595598,
+          "util": 0.550042,
+          "wage_per_hour": 114.0625,
+          "waiting_cost_total": 1237.181441,
+          "waste_units": 0.0
+        },
+        "ci95": {
+          "abandon_rate": 0.004941,
+          "arrivals": 5.329372,
+          "balk_rate": 0.004909,
+          "fairness_gap": 0.089234,
+          "los_p50": 0.099856,
+          "los_p90": 0.18061,
+          "los_p95": 0.257229,
+          "mean_busy_ratio": 0.003381,
+          "mean_los": 0.073845,
+          "mix_los": 0.103536,
+          "peak_busy_ratio": 0.005478,
+          "peak_hour_los": 0.20685,
+          "profit_per_hour": 4.417638,
+          "renege_rate": 0.000215,
+          "revenue_per_hour": 3.340433,
+          "served": 3.491173,
+          "sla_attainment": 0.010596,
+          "station_bread_util": 0.000381,
+          "station_ice_util": 0.001643,
+          "station_order_util": 0.002032,
+          "station_tea_util": 0.003998,
+          "stockout_rate": 0.0,
+          "util": 0.003515,
+          "wage_per_hour": 0.0,
+          "waste_units": 0.0
+        },
+        "validation": {
+          "flow_conservation": true,
+          "all_metrics_finite": true,
+          "reps": 100
+        },
+        "station_util": {
+          "bread": 0.018299,
+          "ice": 0.096355,
+          "order": 0.29491,
+          "tea": 0.595598
+        },
+        "top_station": "tea",
+        "pool_util": {
+          "barista": 0.655008,
+          "cashier": 0.31321
+        }
+      },
+      {
+        "name": "tiny_two_staff",
+        "title": "Two-person corner shop: every station has one slot, both staff are generalists",
+        "provenance": {
+          "source": "Synthetic, anchored on the Course 5006 parameter set and on the teaching-case description of a small owner-operated counter",
+          "method": "Two cross-trained staff with the 'all' skill, one slot per station (single tea machine, single ice machine, one till, one bread warmer); low arrival rate with a lunch bump; daily mean normalised to the quoted rate",
+          "uncertainty": "high",
+          "notes": "Not field-measured. With two generalists the *station* capacities bind before the labour does: the single tea slot is the equipment bottleneck at the lunch bump even though total staff utilisation stays near 60-70%. Good contrast case for the network study."
+        },
+        "legacy_compat": false,
+        "config": {
+          "name": "tiny_two_staff",
+          "workers": 2,
+          "arrival_rate": 0.4645161290322581,
+          "sim_minutes": 480.0,
+          "warmup_minutes": 60.0,
+          "mix": {
+            "tea": 0.55,
+            "bread": 0.2,
+            "ice": 0.05,
+            "mix": 0.2
+          },
+          "service_time_mean": 2.11665,
+          "utilization": 0.4916090322580645,
+          "policy": "synchro+fast-priority"
+        },
+        "layers": {
+          "demand": {
+            "segments": [
+              [
+                0.0,
+                0.7
+              ],
+              [
+                90.0,
+                1.3
+              ],
+              [
+                240.0,
+                0.7
+              ],
+              [
+                330.0,
+                1.2
+              ],
+              [
+                420.0,
+                0.6
+              ]
+            ],
+            "peak_multiplier": 1.3,
+            "daily_mean_multiplier": 0.96875,
+            "flat": false
+          },
+          "batches": {
+            "probability": 0.06,
+            "sizes": [
+              [
+                2,
+                1.0
+              ]
+            ],
+            "expected_arrival_size": 1.06
+          },
+          "classes": [
+            {
+              "name": "regular",
+              "weight": 0.9,
+              "priority": 1,
+              "delivery": false,
+              "balk_mean": 10.0,
+              "renege_mean": 18.0,
+              "own_mix": false
+            },
+            {
+              "name": "delivery",
+              "weight": 0.1,
+              "priority": 1,
+              "delivery": true,
+              "balk_mean": null,
+              "renege_mean": null,
+              "own_mix": false
+            }
+          ],
+          "variability": {
+            "kind": "lognormal",
+            "order_cv": 0.12,
+            "tea_cv": 0.35,
+            "bread_cv": 0.18,
+            "ice_cv": 0.25
+          },
+          "network": {
+            "stations": [
+              {
+                "name": "order",
+                "capacity": 1,
+                "skill": "cashier"
+              },
+              {
+                "name": "tea",
+                "capacity": 1,
+                "skill": "barista"
+              },
+              {
+                "name": "ice",
+                "capacity": 1,
+                "skill": "barista"
+              },
+              {
+                "name": "bread",
+                "capacity": 1,
+                "skill": "cashier"
+              }
+            ],
+            "staff": {
+              "roles": [
+                "clerk"
+              ],
+              "counts": [
+                2
+              ],
+              "skills": [
+                [
+                  "all"
+                ]
+              ],
+              "windows": [
+                {
+                  "role": "clerk",
+                  "start": 0.0,
+                  "end": 480.0
+                },
+                {
+                  "role": "clerk",
+                  "start": 0.0,
+                  "end": 480.0
+                }
+              ],
+              "breaks": []
+            },
+            "routes": [
+              [
+                "tea",
+                "tea"
+              ],
+              [
+                "mix_tea",
+                "tea"
+              ],
+              [
+                "ice",
+                "ice"
+              ],
+              [
+                "mix_ice",
+                "ice"
+              ],
+              [
+                "bread",
+                "bread"
+              ]
+            ]
+          },
+          "inventory": null,
+          "pricing": null,
+          "sla": null,
+          "policy": {
+            "split_mix": false,
+            "fast_priority": true,
+            "starvation_cap": null,
+            "mix_ice_priority": "jump"
+          }
+        },
+        "reps": 100,
+        "means": {
+          "abandon_rate": 0.055283,
+          "arrivals": 226.18,
+          "balk_rate": 0.054523,
+          "balked": 12.51,
+          "busy_minutes": 449.878908,
+          "class_delivery_mean_los": 4.364684,
+          "class_delivery_p95_los": 10.221231,
+          "class_delivery_served": 21.02,
+          "class_regular_mean_los": 4.295741,
+          "class_regular_p95_los": 10.537054,
+          "class_regular_served": 171.06,
+          "count_bread": 39.4,
+          "count_ice": 9.1,
+          "count_mix": 38.49,
+          "count_tea": 105.09,
+          "fairness_gap": 0.676643,
+          "flow_time_total": 828.036213,
+          "ingredient_cost_per_hour": 0.0,
+          "los_bread": 0.803803,
+          "los_ice": 0.98458,
+          "los_mix": 5.700182,
+          "los_p50": 3.497519,
+          "los_p90": 9.054486,
+          "los_p95": 10.658899,
+          "los_tea": 5.369312,
+          "mean_busy_ratio": 0.484778,
+          "mean_los": 4.302145,
+          "mean_price_factor": 1.0,
+          "mix_ice_hand": 5.700182,
+          "mix_los": 5.700182,
+          "peak_busy_ratio": 0.654622,
+          "peak_hour_arrivals": 42.85,
+          "peak_hour_los": 6.538686,
+          "pool_barista_util": 0.349928,
+          "pool_cashier_util": 0.118696,
+          "profit_per_hour": 83.275237,
+          "purchase_cost": 0.0,
+          "renege_rate": 0.00076,
+          "reneged": 0.17,
+          "revenue_per_hour": 185.0275,
+          "revenue_total": 1480.22,
+          "served": 192.08,
+          "served_all": 212.74,
+          "served_rate": 0.941363,
+          "sla_attainment": 0.0,
+          "sla_compensation_total": 0.0,
+          "staff_minutes_available": 960.0,
+          "starvation_events": 0.0,
+          "station_bread_util": 0.014998,
+          "station_ice_util": 0.036828,
+          "station_order_util": 0.222394,
+          "station_tea_util": 0.663028,
+          "stockout_losses": 0.0,
+          "stockout_rate": 0.0,
+          "stranded": 0.76,
+          "top_station_util": 0.663028,
+          "util": 0.468624,
+          "wage_per_hour": 50.0,
+          "waiting_cost_total": 414.018107,
+          "waste_units": 0.0
+        },
+        "ci95": {
+          "abandon_rate": 0.00458,
+          "arrivals": 2.878442,
+          "balk_rate": 0.004563,
+          "fairness_gap": 0.110673,
+          "los_p50": 0.109471,
+          "los_p90": 0.353808,
+          "los_p95": 0.421281,
+          "mean_busy_ratio": 0.006185,
+          "mean_los": 0.13632,
+          "mix_los": 0.17289,
+          "peak_busy_ratio": 0.007735,
+          "peak_hour_los": 0.330905,
+          "profit_per_hour": 1.782681,
+          "renege_rate": 0.000355,
+          "revenue_per_hour": 2.194501,
+          "served": 2.303225,
+          "sla_attainment": 0.0,
+          "station_bread_util": 0.000461,
+          "station_ice_util": 0.000856,
+          "station_order_util": 0.002485,
+          "station_tea_util": 0.009008,
+          "stockout_rate": 0.0,
+          "util": 0.005522,
+          "wage_per_hour": 0.0,
+          "waste_units": 0.0
+        },
+        "validation": {
+          "flow_conservation": true,
+          "all_metrics_finite": true,
+          "reps": 100
+        },
+        "station_util": {
+          "bread": 0.014998,
+          "ice": 0.036828,
+          "order": 0.222394,
+          "tea": 0.663028
+        },
+        "top_station": "tea",
+        "pool_util": {
+          "barista": 0.349928,
+          "cashier": 0.118696
+        }
+      }
+    ],
+    "comparison": [
+      {
+        "name": "baseline_flat",
+        "title": "v1 baseline: flat demand, one clerk pool, fixed service times",
+        "legacy_compat": true,
+        "workers": 3,
+        "quoted_arrival_rate": 1.25,
+        "sim_minutes": 480.0,
+        "peak_multiplier": 1.0,
+        "peak_to_mean": 1.0,
+        "util": 0.883687,
+        "mean_los": 4.721383,
+        "los_p95": 10.038001,
+        "abandon_rate": 0.0,
+        "served": 524.06,
+        "profit_per_hour": 273.307264,
+        "top_station": null,
+        "top_station_util": null
+      },
+      {
+        "name": "bread_counter_bottleneck",
+        "title": "Bread counter bottleneck: one toaster slot, bread-heavy order mix",
+        "legacy_compat": false,
+        "workers": 4,
+        "quoted_arrival_rate": 0.85,
+        "sim_minutes": 480.0,
+        "peak_multiplier": 1.0,
+        "peak_to_mean": 1.0,
+        "util": 0.524415,
+        "mean_los": 3.278646,
+        "los_p95": 6.384416,
+        "abandon_rate": 0.021202,
+        "served": 388.51,
+        "profit_per_hour": 170.569903,
+        "top_station": "bread",
+        "top_station_util": 0.625731
+      },
+      {
+        "name": "campus_rush",
+        "title": "Campus shop: lunch and after-class peaks, group orders",
+        "legacy_compat": false,
+        "workers": 5,
+        "quoted_arrival_rate": 1.010989010989011,
+        "sim_minutes": 480.0,
+        "peak_multiplier": 1.7,
+        "peak_to_mean": 1.4945054945054945,
+        "util": 0.549397,
+        "mean_los": 4.677318,
+        "los_p95": 11.813868,
+        "abandon_rate": 0.152138,
+        "served": 528.82,
+        "profit_per_hour": 240.069834,
+        "top_station": "tea",
+        "top_station_util": 0.594538
+      },
+      {
+        "name": "cbd_commute",
+        "title": "CBD commuter shop: short morning grab-and-go peak plus a lunch peak",
+        "legacy_compat": false,
+        "workers": 5,
+        "quoted_arrival_rate": 1.0101010101010102,
+        "sim_minutes": 600.0,
+        "peak_multiplier": 1.8,
+        "peak_to_mean": 1.8181818181818183,
+        "util": 0.468143,
+        "mean_los": 3.292141,
+        "los_p95": 7.318552,
+        "abandon_rate": 0.062029,
+        "served": 604.93,
+        "profit_per_hour": 247.41815,
+        "top_station": "tea",
+        "top_station_util": 0.53315
+      },
+      {
+        "name": "exam_week",
+        "title": "Exam week: a much sharper student peak, extra rented tea slots",
+        "legacy_compat": false,
+        "workers": 5,
+        "quoted_arrival_rate": 0.6620689655172415,
+        "sim_minutes": 480.0,
+        "peak_multiplier": 2.4,
+        "peak_to_mean": 1.986206896551724,
+        "util": 0.404991,
+        "mean_los": 3.247169,
+        "los_p95": 6.733169,
+        "abandon_rate": 0.125503,
+        "served": 419.73,
+        "profit_per_hour": 198.229477,
+        "top_station": "tea",
+        "top_station_util": 0.473668
+      },
+      {
+        "name": "flagship_five_staff",
+        "title": "Flagship branch: five staff, two ice slots, two bread counters, steady traffic",
+        "legacy_compat": false,
+        "workers": 5,
+        "quoted_arrival_rate": 1.3928571428571428,
+        "sim_minutes": 540.0,
+        "peak_multiplier": 1.3,
+        "peak_to_mean": 1.3928571428571428,
+        "util": 0.586421,
+        "mean_los": 4.657729,
+        "los_p95": 12.226301,
+        "abandon_rate": 0.103539,
+        "served": 650.32,
+        "profit_per_hour": 269.885905,
+        "top_station": "tea",
+        "top_station_util": 0.653641
+      },
+      {
+        "name": "ice_cream_bottleneck",
+        "title": "Ice-cream machine bottleneck: one slow soft-serve slot, iced and mixed orders dominate",
+        "legacy_compat": false,
+        "workers": 5,
+        "quoted_arrival_rate": 0.9,
+        "sim_minutes": 480.0,
+        "peak_multiplier": 1.0,
+        "peak_to_mean": 1.0,
+        "util": 0.534407,
+        "mean_los": 3.549601,
+        "los_p95": 7.269458,
+        "abandon_rate": 0.027622,
+        "served": 408.29,
+        "profit_per_hour": 183.668871,
+        "top_station": "ice",
+        "top_station_util": 0.702207
+      },
+      {
+        "name": "inventory_generous",
+        "title": "Generous inventory: high stock cover, short lead times, visible perishable waste",
+        "legacy_compat": false,
+        "workers": 3,
+        "quoted_arrival_rate": 1.15,
+        "sim_minutes": 480.0,
+        "peak_multiplier": 1.0,
+        "peak_to_mean": 1.0,
+        "util": 0.816336,
+        "mean_los": 3.680983,
+        "los_p95": 7.826765,
+        "abandon_rate": 0.0,
+        "served": 483.59,
+        "profit_per_hour": 116.189274,
+        "top_station": null,
+        "top_station_util": null
+      },
+      {
+        "name": "inventory_lean",
+        "title": "Lean inventory: pearls perish, deliveries take two hours",
+        "legacy_compat": false,
+        "workers": 3,
+        "quoted_arrival_rate": 1.15,
+        "sim_minutes": 480.0,
+        "peak_multiplier": 1.0,
+        "peak_to_mean": 1.0,
+        "util": 0.79667,
+        "mean_los": 3.525304,
+        "los_p95": 7.605226,
+        "abandon_rate": 0.019782,
+        "served": 472.41,
+        "profit_per_hour": 144.925163,
+        "top_station": null,
+        "top_station_util": null
+      },
+      {
+        "name": "late_night_study",
+        "title": "Late-night study cafe: low, long traffic with a midnight bump",
+        "legacy_compat": false,
+        "workers": 2,
+        "quoted_arrival_rate": 0.38888888888888884,
+        "sim_minutes": 720.0,
+        "peak_multiplier": 1.4,
+        "peak_to_mean": 1.5555555555555554,
+        "util": 0.383702,
+        "mean_los": 4.431239,
+        "los_p95": 11.047301,
+        "abandon_rate": 0.042162,
+        "served": 246.81,
+        "profit_per_hour": 62.711225,
+        "top_station": "tea",
+        "top_station_util": 0.54418
+      },
+      {
+        "name": "mall_weekend",
+        "title": "Weekend mall shop: afternoon and evening family peaks, group orders",
+        "legacy_compat": false,
+        "workers": 6,
+        "quoted_arrival_rate": 0.9344262295081968,
+        "sim_minutes": 720.0,
+        "peak_multiplier": 1.6,
+        "peak_to_mean": 1.5737704918032789,
+        "util": 0.496051,
+        "mean_los": 3.702414,
+        "los_p95": 8.741986,
+        "abandon_rate": 0.081741,
+        "served": 788.67,
+        "profit_per_hour": 254.286185,
+        "top_station": "tea",
+        "top_station_util": 0.535965
+      },
+      {
+        "name": "network_tea_bottleneck",
+        "title": "Single tea station as the bottleneck (staff-rich, equipment-poor)",
+        "legacy_compat": false,
+        "workers": 3,
+        "quoted_arrival_rate": 0.6,
+        "sim_minutes": 480.0,
+        "peak_multiplier": 1.0,
+        "peak_to_mean": 1.0,
+        "util": 0.397514,
+        "mean_los": 6.618413,
+        "los_p95": 16.031592,
+        "abandon_rate": 0.047345,
+        "served": 234.85,
+        "profit_per_hour": 53.451214,
+        "top_station": "tea",
+        "top_station_util": 0.841686
+      },
+      {
+        "name": "peak_pricing",
+        "title": "Peak pricing: +30% inside the two demand peaks, elastic demand response",
+        "legacy_compat": false,
+        "workers": 5,
+        "quoted_arrival_rate": 1.010989010989011,
+        "sim_minutes": 480.0,
+        "peak_multiplier": 1.7,
+        "peak_to_mean": 1.4945054945054945,
+        "util": 0.496617,
+        "mean_los": 3.420364,
+        "los_p95": 8.426303,
+        "abandon_rate": 0.056434,
+        "served": 473.22,
+        "profit_per_hour": 334.293471,
+        "top_station": "tea",
+        "top_station_util": 0.538295
+      },
+      {
+        "name": "rainy_delivery",
+        "title": "Rainy weekday, delivery-dominant: walk-in demand falls, rider orders take over",
+        "legacy_compat": false,
+        "workers": 5,
+        "quoted_arrival_rate": 1.2,
+        "sim_minutes": 480.0,
+        "peak_multiplier": 1.25,
+        "peak_to_mean": 1.25,
+        "util": 0.515458,
+        "mean_los": 2.705868,
+        "los_p95": 5.312664,
+        "abandon_rate": 0.021523,
+        "served": 496.9,
+        "profit_per_hour": 278.423951,
+        "top_station": "tea",
+        "top_station_util": 0.604555
+      },
+      {
+        "name": "strict_sla_fairness",
+        "title": "Strict SLA with a fairness cap: 4-minute promise, 3-unit compensation, 2-minute ageing cap",
+        "legacy_compat": false,
+        "workers": 5,
+        "quoted_arrival_rate": 1.010989010989011,
+        "sim_minutes": 480.0,
+        "peak_multiplier": 1.7,
+        "peak_to_mean": 1.4945054945054945,
+        "util": 0.550042,
+        "mean_los": 4.683899,
+        "los_p95": 11.432948,
+        "abandon_rate": 0.152525,
+        "served": 528.5,
+        "profit_per_hour": 142.94607,
+        "top_station": "tea",
+        "top_station_util": 0.595598
+      },
+      {
+        "name": "tiny_two_staff",
+        "title": "Two-person corner shop: every station has one slot, both staff are generalists",
+        "legacy_compat": false,
+        "workers": 2,
+        "quoted_arrival_rate": 0.4645161290322581,
+        "sim_minutes": 480.0,
+        "peak_multiplier": 1.3,
+        "peak_to_mean": 1.3419354838709678,
+        "util": 0.468624,
+        "mean_los": 4.302145,
+        "los_p95": 10.658899,
+        "abandon_rate": 0.055283,
+        "served": 192.08,
+        "profit_per_hour": 83.275237,
+        "top_station": "tea",
+        "top_station_util": 0.663028
+      }
+    ]
+  },
+  "series": {
+    "demand_profiles": {
+      "baseline_flat": [
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "bread_counter_bottleneck": [
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "campus_rush": [
+        [
+          0.0,
+          0.5
+        ],
+        [
+          60.0,
+          1.7
+        ],
+        [
+          180.0,
+          0.6
+        ],
+        [
+          300.0,
+          1.6
+        ],
+        [
+          420.0,
+          0.8
+        ]
+      ],
+      "cbd_commute": [
+        [
+          0.0,
+          0.4
+        ],
+        [
+          120.0,
+          1.8
+        ],
+        [
+          240.0,
+          0.55
+        ],
+        [
+          360.0,
+          1.5
+        ],
+        [
+          480.0,
+          0.7
+        ]
+      ],
+      "exam_week": [
+        [
+          0.0,
+          0.35
+        ],
+        [
+          60.0,
+          2.4
+        ],
+        [
+          150.0,
+          0.5
+        ],
+        [
+          300.0,
+          2.2
+        ],
+        [
+          400.0,
+          0.6
+        ]
+      ],
+      "flagship_five_staff": [
+        [
+          0.0,
+          0.6
+        ],
+        [
+          120.0,
+          1.3
+        ],
+        [
+          240.0,
+          0.8
+        ],
+        [
+          360.0,
+          1.2
+        ],
+        [
+          480.0,
+          0.6
+        ]
+      ],
+      "ice_cream_bottleneck": [
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "inventory_generous": [
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "inventory_lean": [
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "late_night_study": [
+        [
+          0.0,
+          0.6
+        ],
+        [
+          120.0,
+          1.4
+        ],
+        [
+          300.0,
+          0.5
+        ],
+        [
+          420.0,
+          1.2
+        ],
+        [
+          600.0,
+          0.4
+        ]
+      ],
+      "mall_weekend": [
+        [
+          0.0,
+          0.3
+        ],
+        [
+          180.0,
+          0.6
+        ],
+        [
+          240.0,
+          1.5
+        ],
+        [
+          420.0,
+          0.9
+        ],
+        [
+          480.0,
+          1.6
+        ],
+        [
+          660.0,
+          0.5
+        ]
+      ],
+      "network_tea_bottleneck": [
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "peak_pricing": [
+        [
+          0.0,
+          0.5
+        ],
+        [
+          60.0,
+          1.7
+        ],
+        [
+          180.0,
+          0.6
+        ],
+        [
+          300.0,
+          1.6
+        ],
+        [
+          420.0,
+          0.8
+        ]
+      ],
+      "rainy_delivery": [
+        [
+          0.0,
+          0.9
+        ],
+        [
+          120.0,
+          1.25
+        ],
+        [
+          240.0,
+          0.85
+        ],
+        [
+          360.0,
+          1.2
+        ],
+        [
+          420.0,
+          0.8
+        ]
+      ],
+      "strict_sla_fairness": [
+        [
+          0.0,
+          0.5
+        ],
+        [
+          60.0,
+          1.7
+        ],
+        [
+          180.0,
+          0.6
+        ],
+        [
+          300.0,
+          1.6
+        ],
+        [
+          420.0,
+          0.8
+        ]
+      ],
+      "tiny_two_staff": [
+        [
+          0.0,
+          0.7
+        ],
+        [
+          90.0,
+          1.3
+        ],
+        [
+          240.0,
+          0.7
+        ],
+        [
+          330.0,
+          1.2
+        ],
+        [
+          420.0,
+          0.6
+        ]
+      ]
+    },
+    "scenario_curve": [
+      {
+        "name": "baseline_flat",
+        "util": 0.883687,
+        "los_p95": 10.038001,
+        "abandon_rate": 0.0,
+        "profit_per_hour": 273.307264
+      },
+      {
+        "name": "bread_counter_bottleneck",
+        "util": 0.524415,
+        "los_p95": 6.384416,
+        "abandon_rate": 0.021202,
+        "profit_per_hour": 170.569903
+      },
+      {
+        "name": "campus_rush",
+        "util": 0.549397,
+        "los_p95": 11.813868,
+        "abandon_rate": 0.152138,
+        "profit_per_hour": 240.069834
+      },
+      {
+        "name": "cbd_commute",
+        "util": 0.468143,
+        "los_p95": 7.318552,
+        "abandon_rate": 0.062029,
+        "profit_per_hour": 247.41815
+      },
+      {
+        "name": "exam_week",
+        "util": 0.404991,
+        "los_p95": 6.733169,
+        "abandon_rate": 0.125503,
+        "profit_per_hour": 198.229477
+      },
+      {
+        "name": "flagship_five_staff",
+        "util": 0.586421,
+        "los_p95": 12.226301,
+        "abandon_rate": 0.103539,
+        "profit_per_hour": 269.885905
+      },
+      {
+        "name": "ice_cream_bottleneck",
+        "util": 0.534407,
+        "los_p95": 7.269458,
+        "abandon_rate": 0.027622,
+        "profit_per_hour": 183.668871
+      },
+      {
+        "name": "inventory_generous",
+        "util": 0.816336,
+        "los_p95": 7.826765,
+        "abandon_rate": 0.0,
+        "profit_per_hour": 116.189274
+      },
+      {
+        "name": "inventory_lean",
+        "util": 0.79667,
+        "los_p95": 7.605226,
+        "abandon_rate": 0.019782,
+        "profit_per_hour": 144.925163
+      },
+      {
+        "name": "late_night_study",
+        "util": 0.383702,
+        "los_p95": 11.047301,
+        "abandon_rate": 0.042162,
+        "profit_per_hour": 62.711225
+      },
+      {
+        "name": "mall_weekend",
+        "util": 0.496051,
+        "los_p95": 8.741986,
+        "abandon_rate": 0.081741,
+        "profit_per_hour": 254.286185
+      },
+      {
+        "name": "network_tea_bottleneck",
+        "util": 0.397514,
+        "los_p95": 16.031592,
+        "abandon_rate": 0.047345,
+        "profit_per_hour": 53.451214
+      },
+      {
+        "name": "peak_pricing",
+        "util": 0.496617,
+        "los_p95": 8.426303,
+        "abandon_rate": 0.056434,
+        "profit_per_hour": 334.293471
+      },
+      {
+        "name": "rainy_delivery",
+        "util": 0.515458,
+        "los_p95": 5.312664,
+        "abandon_rate": 0.021523,
+        "profit_per_hour": 278.423951
+      },
+      {
+        "name": "strict_sla_fairness",
+        "util": 0.550042,
+        "los_p95": 11.432948,
+        "abandon_rate": 0.152525,
+        "profit_per_hour": 142.94607
+      },
+      {
+        "name": "tiny_two_staff",
+        "util": 0.468624,
+        "los_p95": 10.658899,
+        "abandon_rate": 0.055283,
+        "profit_per_hour": 83.275237
+      }
+    ]
+  }
+}

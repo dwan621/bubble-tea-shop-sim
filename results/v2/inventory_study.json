@@ -1,0 +1,3233 @@
+{
+  "meta": {
+    "experiment": "layer3_inventory_bom",
+    "schema_version": 1,
+    "package_version": "2.0.0",
+    "python_version": "3.14.5",
+    "engine": "bubble_tea_sim.engine.Simulation (stdlib only)",
+    "scenario_library": [
+      "baseline_flat",
+      "bread_counter_bottleneck",
+      "campus_rush",
+      "cbd_commute",
+      "exam_week",
+      "flagship_five_staff",
+      "ice_cream_bottleneck",
+      "inventory_generous",
+      "inventory_lean",
+      "late_night_study",
+      "mall_weekend",
+      "network_tea_bottleneck",
+      "peak_pricing",
+      "rainy_delivery",
+      "strict_sla_fairness",
+      "tiny_two_staff"
+    ],
+    "notes": "Layer 3 (inventory / BOM): (s, S) grids on the perishable pearls and the non-perishable tea kit, serial lead time, pearl shelf life, shelf-life x lot-size interaction, and lost-sale vs substitution. Baseline scenario data/scenarios/inventory_lean.json.",
+    "scenarios": [
+      "inventory_lean"
+    ],
+    "seeds": {
+      "seed": 0,
+      "seed_stride": 1
+    },
+    "reps": "100 replicates (60 above 0.95 utilisation)",
+    "reps_full": 100,
+    "reps_overload": 60,
+    "overload_utilisation": 0.95,
+    "runtime_seconds": 110.69,
+    "caveats": [
+      "fill_rate divides by all arrivals (including the warm-up hour); the money and served metrics are post-warm-up. Morning stock-outs therefore appear in fill_rate but not in served.",
+      "purchase_cost charges every purchased unit including stock left at closing and re-charges the opening stock on every replicate, so it must be read next to fill_rate / stockout_losses.",
+      "waste_units is a lower bound: expiry is evaluated lazily when an ingredient is next touched.",
+      "A single outstanding order per ingredient (the engine's (s, S) rule), so an order quantity below the lead-time demand guarantees a stock-out."
+    ],
+    "design": {
+      "s_factors": [
+        0.1,
+        0.2,
+        0.3,
+        0.4
+      ],
+      "S_factors": [
+        0.25,
+        0.5,
+        0.75,
+        1.0
+      ],
+      "lead_times": [
+        30.0,
+        60.0,
+        120.0,
+        240.0
+      ],
+      "shelf_lives": [
+        120.0,
+        240.0,
+        360.0,
+        480.0
+      ],
+      "pearls_order_ceiling": [
+        0.5,
+        0.75,
+        1.0,
+        1.25,
+        1.5,
+        2.0,
+        3.0
+      ],
+      "scarce_ice": {
+        "initial_stock": 40.0,
+        "reorder_point": 10.0,
+        "order_quantity": 30.0,
+        "lead_time_minutes": 120.0
+      },
+      "scarce_pearls": {
+        "initial_stock": 60.0,
+        "reorder_point": 15.0,
+        "order_quantity": 40.0,
+        "lead_time_minutes": 90.0
+      }
+    }
+  },
+  "tables": {
+    "baseline": {
+      "config": {
+        "name": "inventory_lean",
+        "workers": 3,
+        "arrival_rate": 1.15,
+        "sim_minutes": 480.0,
+        "warmup_minutes": 60.0,
+        "mix": {
+          "tea": 0.55,
+          "bread": 0.2,
+          "ice": 0.05,
+          "mix": 0.2
+        },
+        "service_time_mean": 2.11665,
+        "utilization": 0.8113825,
+        "policy": "synchro",
+        "reps_planned": 100
+      },
+      "metrics": {
+        "served": 472.41,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.525304,
+        "los_p95": 7.605226,
+        "util": 0.79667,
+        "revenue_per_hour": 454.08,
+        "profit_per_hour": 144.925163,
+        "waiting_cost_total": 835.118698,
+        "fill_rate": 0.980218,
+        "stockout_losses": 11.18,
+        "waste_units": 0.0,
+        "purchase_cost": 1038.12,
+        "ingredient_cost_per_hour": 129.765,
+        "sla_attainment": null
+      },
+      "ci95": {
+        "served": 3.588253,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 0.10464,
+        "los_p95": 0.367758,
+        "util": 0.00617,
+        "revenue_per_hour": 3.282381,
+        "profit_per_hour": 3.464621,
+        "waiting_cost_total": 29.042043,
+        "fill_rate": 0.003025,
+        "stockout_losses": 1.760859,
+        "waste_units": 0.0,
+        "purchase_cost": 14.130242,
+        "ingredient_cost_per_hour": 1.76628
+      }
+    },
+    "ss_joint_grid": [
+      {
+        "s_factor": 0.1,
+        "S_factor": 0.25,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 30.0,
+            "order_quantity": 75.0
+          },
+          "pearls": {
+            "reorder_point": 8.0,
+            "order_quantity": 20.0
+          }
+        },
+        "policy": "lose",
+        "served": 349.67,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.037492,
+        "los_p95": 6.829776,
+        "util": 0.576169,
+        "revenue_per_hour": 323.0625,
+        "profit_per_hour": 87.743141,
+        "waiting_cost_total": 532.194874,
+        "fill_rate": 0.758971,
+        "stockout_losses": 133.92,
+        "waste_units": 0.0,
+        "purchase_cost": 750.36,
+        "ingredient_cost_per_hour": 93.795,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.004811,
+          "profit_per_hour": 2.276233,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.1,
+        "S_factor": 0.5,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 30.0,
+            "order_quantity": 150.0
+          },
+          "pearls": {
+            "reorder_point": 8.0,
+            "order_quantity": 40.0
+          }
+        },
+        "policy": "lose",
+        "served": 382.3,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.234433,
+        "los_p95": 7.234872,
+        "util": 0.634902,
+        "revenue_per_hour": 358.0425,
+        "profit_per_hour": 97.907393,
+        "waiting_cost_total": 619.360859,
+        "fill_rate": 0.817989,
+        "stockout_losses": 101.29,
+        "waste_units": 0.0,
+        "purchase_cost": 861.72,
+        "ingredient_cost_per_hour": 107.715,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.005102,
+          "profit_per_hour": 2.900467,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.1,
+        "S_factor": 0.75,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 30.0,
+            "order_quantity": 225.0
+          },
+          "pearls": {
+            "reorder_point": 8.0,
+            "order_quantity": 60.0
+          }
+        },
+        "policy": "lose",
+        "served": 410.64,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.354251,
+        "los_p95": 7.292542,
+        "util": 0.686161,
+        "revenue_per_hour": 388.36,
+        "profit_per_hour": 107.41531,
+        "waiting_cost_total": 692.357518,
+        "fill_rate": 0.868424,
+        "stockout_losses": 72.95,
+        "waste_units": 0.0,
+        "purchase_cost": 955.2,
+        "ingredient_cost_per_hour": 119.4,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.003196,
+          "profit_per_hour": 2.765577,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.1,
+        "S_factor": 1.0,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 30.0,
+            "order_quantity": 300.0
+          },
+          "pearls": {
+            "reorder_point": 8.0,
+            "order_quantity": 80.0
+          }
+        },
+        "policy": "lose",
+        "served": 394.18,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.304825,
+        "los_p95": 7.291678,
+        "util": 0.656533,
+        "revenue_per_hour": 370.745,
+        "profit_per_hour": 80.484101,
+        "waiting_cost_total": 653.967195,
+        "fill_rate": 0.839162,
+        "stockout_losses": 89.41,
+        "waste_units": 0.09,
+        "purchase_cost": 1068.12,
+        "ingredient_cost_per_hour": 133.515,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.004387,
+          "profit_per_hour": 2.541895,
+          "waste_units": 0.11768
+        }
+      },
+      {
+        "s_factor": 0.2,
+        "S_factor": 0.25,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 60.0,
+            "order_quantity": 75.0
+          },
+          "pearls": {
+            "reorder_point": 16.0,
+            "order_quantity": 20.0
+          }
+        },
+        "policy": "lose",
+        "served": 389.12,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.149935,
+        "los_p95": 6.991825,
+        "util": 0.646558,
+        "revenue_per_hour": 365.25,
+        "profit_per_hour": 107.343421,
+        "waiting_cost_total": 613.712628,
+        "fill_rate": 0.830311,
+        "stockout_losses": 94.47,
+        "waste_units": 0.0,
+        "purchase_cost": 849.54,
+        "ingredient_cost_per_hour": 106.1925,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.005117,
+          "profit_per_hour": 2.462619,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.2,
+        "S_factor": 0.5,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 60.0,
+            "order_quantity": 150.0
+          },
+          "pearls": {
+            "reorder_point": 16.0,
+            "order_quantity": 40.0
+          }
+        },
+        "policy": "lose",
+        "served": 423.04,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.293304,
+        "los_p95": 7.143961,
+        "util": 0.707409,
+        "revenue_per_hour": 401.3325,
+        "profit_per_hour": 129.829684,
+        "waiting_cost_total": 698.782525,
+        "fill_rate": 0.891171,
+        "stockout_losses": 60.55,
+        "waste_units": 0.0,
+        "purchase_cost": 873.24,
+        "ingredient_cost_per_hour": 109.155,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.003547,
+          "profit_per_hour": 2.833395,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.2,
+        "S_factor": 0.75,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 60.0,
+            "order_quantity": 225.0
+          },
+          "pearls": {
+            "reorder_point": 16.0,
+            "order_quantity": 60.0
+          }
+        },
+        "policy": "lose",
+        "served": 442.37,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.455094,
+        "los_p95": 7.483199,
+        "util": 0.742333,
+        "revenue_per_hour": 422.085,
+        "profit_per_hour": 128.782074,
+        "waiting_cost_total": 766.743405,
+        "fill_rate": 0.926025,
+        "stockout_losses": 41.22,
+        "waste_units": 0.0,
+        "purchase_cost": 979.68,
+        "ingredient_cost_per_hour": 122.46,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.003592,
+          "profit_per_hour": 2.954252,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.2,
+        "S_factor": 1.0,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 60.0,
+            "order_quantity": 300.0
+          },
+          "pearls": {
+            "reorder_point": 16.0,
+            "order_quantity": 80.0
+          }
+        },
+        "policy": "lose",
+        "served": 443.51,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.429586,
+        "los_p95": 7.401358,
+        "util": 0.744594,
+        "revenue_per_hour": 423.3375,
+        "profit_per_hour": 119.384843,
+        "waiting_cost_total": 763.501255,
+        "fill_rate": 0.927892,
+        "stockout_losses": 40.08,
+        "waste_units": 0.0,
+        "purchase_cost": 1068.12,
+        "ingredient_cost_per_hour": 133.515,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.00336,
+          "profit_per_hour": 2.659736,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.3,
+        "S_factor": 0.25,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 90.0,
+            "order_quantity": 75.0
+          },
+          "pearls": {
+            "reorder_point": 24.0,
+            "order_quantity": 20.0
+          }
+        },
+        "policy": "lose",
+        "served": 425.37,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.216669,
+        "los_p95": 6.96254,
+        "util": 0.71145,
+        "revenue_per_hour": 403.8175,
+        "profit_per_hour": 125.877096,
+        "waiting_cost_total": 684.823232,
+        "fill_rate": 0.895891,
+        "stockout_losses": 58.22,
+        "waste_units": 0.0,
+        "purchase_cost": 938.7,
+        "ingredient_cost_per_hour": 117.3375,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.005586,
+          "profit_per_hour": 2.875459,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.3,
+        "S_factor": 0.5,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 90.0,
+            "order_quantity": 150.0
+          },
+          "pearls": {
+            "reorder_point": 24.0,
+            "order_quantity": 40.0
+          }
+        },
+        "policy": "lose",
+        "served": 464.59,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.425303,
+        "los_p95": 7.299992,
+        "util": 0.782435,
+        "revenue_per_hour": 445.705,
+        "profit_per_hour": 137.944458,
+        "waiting_cost_total": 797.084333,
+        "fill_rate": 0.966284,
+        "stockout_losses": 19.0,
+        "waste_units": 0.0,
+        "purchase_cost": 1065.0,
+        "ingredient_cost_per_hour": 133.125,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.003707,
+          "profit_per_hour": 2.564425,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.3,
+        "S_factor": 0.75,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 90.0,
+            "order_quantity": 225.0
+          },
+          "pearls": {
+            "reorder_point": 24.0,
+            "order_quantity": 60.0
+          }
+        },
+        "policy": "lose",
+        "served": 469.47,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.517829,
+        "los_p95": 7.609961,
+        "util": 0.791319,
+        "revenue_per_hour": 450.94,
+        "profit_per_hour": 147.648841,
+        "waiting_cost_total": 828.109275,
+        "fill_rate": 0.974967,
+        "stockout_losses": 14.12,
+        "waste_units": 0.0,
+        "purchase_cost": 998.22,
+        "ingredient_cost_per_hour": 124.7775,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.0033,
+          "profit_per_hour": 3.141164,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.3,
+        "S_factor": 1.0,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 90.0,
+            "order_quantity": 300.0
+          },
+          "pearls": {
+            "reorder_point": 24.0,
+            "order_quantity": 80.0
+          }
+        },
+        "policy": "lose",
+        "served": 472.7,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.529432,
+        "los_p95": 7.532588,
+        "util": 0.797322,
+        "revenue_per_hour": 454.3875,
+        "profit_per_hour": 140.659901,
+        "waiting_cost_total": 836.900792,
+        "fill_rate": 0.980601,
+        "stockout_losses": 10.89,
+        "waste_units": 0.0,
+        "purchase_cost": 1072.92,
+        "ingredient_cost_per_hour": 134.115,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.002883,
+          "profit_per_hour": 2.908841,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.4,
+        "S_factor": 0.25,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 120.0,
+            "order_quantity": 75.0
+          },
+          "pearls": {
+            "reorder_point": 32.0,
+            "order_quantity": 20.0
+          }
+        },
+        "policy": "lose",
+        "served": 436.35,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.308052,
+        "los_p95": 7.145191,
+        "util": 0.731444,
+        "revenue_per_hour": 415.52,
+        "profit_per_hour": 129.145353,
+        "waiting_cost_total": 722.477178,
+        "fill_rate": 0.915722,
+        "stockout_losses": 47.24,
+        "waste_units": 0.0,
+        "purchase_cost": 968.52,
+        "ingredient_cost_per_hour": 121.065,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.005767,
+          "profit_per_hour": 2.655717,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.4,
+        "S_factor": 0.5,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 120.0,
+            "order_quantity": 150.0
+          },
+          "pearls": {
+            "reorder_point": 32.0,
+            "order_quantity": 40.0
+          }
+        },
+        "policy": "lose",
+        "served": 482.88,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.630075,
+        "los_p95": 7.691766,
+        "util": 0.815119,
+        "revenue_per_hour": 465.2425,
+        "profit_per_hour": 145.054576,
+        "waiting_cost_total": 880.423391,
+        "fill_rate": 0.998774,
+        "stockout_losses": 0.71,
+        "waste_units": 0.0,
+        "purchase_cost": 1081.08,
+        "ingredient_cost_per_hour": 135.135,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.000699,
+          "profit_per_hour": 2.996802,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.4,
+        "S_factor": 0.75,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 120.0,
+            "order_quantity": 225.0
+          },
+          "pearls": {
+            "reorder_point": 32.0,
+            "order_quantity": 60.0
+          }
+        },
+        "policy": "lose",
+        "served": 482.84,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.631391,
+        "los_p95": 7.717868,
+        "util": 0.81486,
+        "revenue_per_hour": 465.2,
+        "profit_per_hour": 133.597241,
+        "waiting_cost_total": 880.722073,
+        "fill_rate": 0.998699,
+        "stockout_losses": 0.75,
+        "waste_units": 0.0,
+        "purchase_cost": 1172.1,
+        "ingredient_cost_per_hour": 146.5125,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.000698,
+          "profit_per_hour": 3.904047,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.4,
+        "S_factor": 1.0,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 120.0,
+            "order_quantity": 300.0
+          },
+          "pearls": {
+            "reorder_point": 32.0,
+            "order_quantity": 80.0
+          }
+        },
+        "policy": "lose",
+        "served": 483.27,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.659079,
+        "los_p95": 7.762251,
+        "util": 0.815932,
+        "revenue_per_hour": 465.66,
+        "profit_per_hour": 142.81642,
+        "waiting_cost_total": 888.708637,
+        "fill_rate": 0.999453,
+        "stockout_losses": 0.32,
+        "waste_units": 0.05,
+        "purchase_cost": 1094.04,
+        "ingredient_cost_per_hour": 136.755,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.000439,
+          "profit_per_hour": 3.173861,
+          "waste_units": 0.071703
+        }
+      }
+    ],
+    "ss_pearls_only": [
+      {
+        "s_factor": 0.1,
+        "S_factor": 0.25,
+        "settings": {
+          "pearls": {
+            "reorder_point": 8.0,
+            "order_quantity": 20.0
+          }
+        },
+        "policy": "lose",
+        "served": 349.67,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.037492,
+        "los_p95": 6.829776,
+        "util": 0.576169,
+        "revenue_per_hour": 323.0625,
+        "profit_per_hour": 61.493141,
+        "waiting_cost_total": 532.194874,
+        "fill_rate": 0.758971,
+        "stockout_losses": 133.92,
+        "waste_units": 0.0,
+        "purchase_cost": 960.36,
+        "ingredient_cost_per_hour": 120.045,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.004811,
+          "profit_per_hour": 2.276233,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.1,
+        "S_factor": 0.5,
+        "settings": {
+          "pearls": {
+            "reorder_point": 8.0,
+            "order_quantity": 40.0
+          }
+        },
+        "policy": "lose",
+        "served": 388.99,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.295895,
+        "los_p95": 7.354462,
+        "util": 0.646805,
+        "revenue_per_hour": 365.14,
+        "profit_per_hour": 86.798437,
+        "waiting_cost_total": 643.092503,
+        "fill_rate": 0.829977,
+        "stockout_losses": 94.6,
+        "waste_units": 0.0,
+        "purchase_cost": 983.64,
+        "ingredient_cost_per_hour": 122.955,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.004875,
+          "profit_per_hour": 2.602377,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.1,
+        "S_factor": 0.75,
+        "settings": {
+          "pearls": {
+            "reorder_point": 8.0,
+            "order_quantity": 60.0
+          }
+        },
+        "policy": "lose",
+        "served": 410.64,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.354251,
+        "los_p95": 7.292542,
+        "util": 0.686161,
+        "revenue_per_hour": 388.36,
+        "profit_per_hour": 103.66531,
+        "waiting_cost_total": 692.357518,
+        "fill_rate": 0.868424,
+        "stockout_losses": 72.95,
+        "waste_units": 0.0,
+        "purchase_cost": 985.2,
+        "ingredient_cost_per_hour": 123.15,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.003196,
+          "profit_per_hour": 2.765577,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.1,
+        "S_factor": 1.0,
+        "settings": {
+          "pearls": {
+            "reorder_point": 8.0,
+            "order_quantity": 80.0
+          }
+        },
+        "policy": "lose",
+        "served": 410.81,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.371034,
+        "los_p95": 7.346077,
+        "util": 0.686024,
+        "revenue_per_hour": 388.305,
+        "profit_per_hour": 100.30201,
+        "waiting_cost_total": 695.90392,
+        "fill_rate": 0.868868,
+        "stockout_losses": 72.78,
+        "waste_units": 0.0,
+        "purchase_cost": 1008.12,
+        "ingredient_cost_per_hour": 126.015,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.003379,
+          "profit_per_hour": 2.696766,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.2,
+        "S_factor": 0.25,
+        "settings": {
+          "pearls": {
+            "reorder_point": 16.0,
+            "order_quantity": 20.0
+          }
+        },
+        "policy": "lose",
+        "served": 389.12,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.149935,
+        "los_p95": 6.991825,
+        "util": 0.646558,
+        "revenue_per_hour": 365.25,
+        "profit_per_hour": 91.780921,
+        "waiting_cost_total": 613.712628,
+        "fill_rate": 0.830311,
+        "stockout_losses": 94.47,
+        "waste_units": 0.0,
+        "purchase_cost": 974.04,
+        "ingredient_cost_per_hour": 121.755,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.005117,
+          "profit_per_hour": 2.392693,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.2,
+        "S_factor": 0.5,
+        "settings": {
+          "pearls": {
+            "reorder_point": 16.0,
+            "order_quantity": 40.0
+          }
+        },
+        "policy": "lose",
+        "served": 423.04,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.293304,
+        "los_p95": 7.143961,
+        "util": 0.707409,
+        "revenue_per_hour": 401.3325,
+        "profit_per_hour": 115.279684,
+        "waiting_cost_total": 698.782525,
+        "fill_rate": 0.891171,
+        "stockout_losses": 60.55,
+        "waste_units": 0.0,
+        "purchase_cost": 989.64,
+        "ingredient_cost_per_hour": 123.705,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.003547,
+          "profit_per_hour": 2.604076,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.2,
+        "S_factor": 0.75,
+        "settings": {
+          "pearls": {
+            "reorder_point": 16.0,
+            "order_quantity": 60.0
+          }
+        },
+        "policy": "lose",
+        "served": 442.37,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.455094,
+        "los_p95": 7.483199,
+        "util": 0.742333,
+        "revenue_per_hour": 422.085,
+        "profit_per_hour": 125.032074,
+        "waiting_cost_total": 766.743405,
+        "fill_rate": 0.926025,
+        "stockout_losses": 41.22,
+        "waste_units": 0.0,
+        "purchase_cost": 1009.68,
+        "ingredient_cost_per_hour": 126.21,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.003592,
+          "profit_per_hour": 2.954252,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.2,
+        "S_factor": 1.0,
+        "settings": {
+          "pearls": {
+            "reorder_point": 16.0,
+            "order_quantity": 80.0
+          }
+        },
+        "policy": "lose",
+        "served": 443.51,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.439499,
+        "los_p95": 7.437259,
+        "util": 0.744627,
+        "revenue_per_hour": 423.34,
+        "profit_per_hour": 126.605536,
+        "waiting_cost_total": 765.755715,
+        "fill_rate": 0.927892,
+        "stockout_losses": 40.08,
+        "waste_units": 0.0,
+        "purchase_cost": 1008.12,
+        "ingredient_cost_per_hour": 126.015,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.00336,
+          "profit_per_hour": 2.674178,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.3,
+        "S_factor": 0.25,
+        "settings": {
+          "pearls": {
+            "reorder_point": 24.0,
+            "order_quantity": 20.0
+          }
+        },
+        "policy": "lose",
+        "served": 425.37,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.216669,
+        "los_p95": 6.96254,
+        "util": 0.71145,
+        "revenue_per_hour": 403.8175,
+        "profit_per_hour": 118.864596,
+        "waiting_cost_total": 684.823232,
+        "fill_rate": 0.895891,
+        "stockout_losses": 58.22,
+        "waste_units": 0.0,
+        "purchase_cost": 994.8,
+        "ingredient_cost_per_hour": 124.35,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.005586,
+          "profit_per_hour": 2.574955,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.3,
+        "S_factor": 0.5,
+        "settings": {
+          "pearls": {
+            "reorder_point": 24.0,
+            "order_quantity": 40.0
+          }
+        },
+        "policy": "lose",
+        "served": 464.59,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.425303,
+        "los_p95": 7.299992,
+        "util": 0.782435,
+        "revenue_per_hour": 445.705,
+        "profit_per_hour": 144.244458,
+        "waiting_cost_total": 797.084333,
+        "fill_rate": 0.966284,
+        "stockout_losses": 19.0,
+        "waste_units": 0.0,
+        "purchase_cost": 1014.6,
+        "ingredient_cost_per_hour": 126.825,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.003707,
+          "profit_per_hour": 3.03601,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.3,
+        "S_factor": 0.75,
+        "settings": {
+          "pearls": {
+            "reorder_point": 24.0,
+            "order_quantity": 60.0
+          }
+        },
+        "policy": "lose",
+        "served": 469.47,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.517829,
+        "los_p95": 7.609961,
+        "util": 0.791319,
+        "revenue_per_hour": 450.94,
+        "profit_per_hour": 143.036341,
+        "waiting_cost_total": 828.109275,
+        "fill_rate": 0.974967,
+        "stockout_losses": 14.12,
+        "waste_units": 0.0,
+        "purchase_cost": 1035.12,
+        "ingredient_cost_per_hour": 129.39,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.0033,
+          "profit_per_hour": 3.448035,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.3,
+        "S_factor": 1.0,
+        "settings": {
+          "pearls": {
+            "reorder_point": 24.0,
+            "order_quantity": 80.0
+          }
+        },
+        "policy": "lose",
+        "served": 472.7,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.529432,
+        "los_p95": 7.532588,
+        "util": 0.797322,
+        "revenue_per_hour": 454.3875,
+        "profit_per_hour": 144.034901,
+        "waiting_cost_total": 836.900792,
+        "fill_rate": 0.980601,
+        "stockout_losses": 10.89,
+        "waste_units": 0.0,
+        "purchase_cost": 1045.92,
+        "ingredient_cost_per_hour": 130.74,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.002883,
+          "profit_per_hour": 3.932423,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.4,
+        "S_factor": 0.25,
+        "settings": {
+          "pearls": {
+            "reorder_point": 32.0,
+            "order_quantity": 20.0
+          }
+        },
+        "policy": "lose",
+        "served": 436.35,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.308052,
+        "los_p95": 7.145191,
+        "util": 0.731444,
+        "revenue_per_hour": 415.52,
+        "profit_per_hour": 125.395353,
+        "waiting_cost_total": 722.477178,
+        "fill_rate": 0.915722,
+        "stockout_losses": 47.24,
+        "waste_units": 0.0,
+        "purchase_cost": 998.52,
+        "ingredient_cost_per_hour": 124.815,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.005767,
+          "profit_per_hour": 2.655717,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.4,
+        "S_factor": 0.5,
+        "settings": {
+          "pearls": {
+            "reorder_point": 32.0,
+            "order_quantity": 40.0
+          }
+        },
+        "policy": "lose",
+        "served": 482.88,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.630075,
+        "los_p95": 7.691766,
+        "util": 0.815119,
+        "revenue_per_hour": 465.2425,
+        "profit_per_hour": 143.554576,
+        "waiting_cost_total": 880.423391,
+        "fill_rate": 0.998774,
+        "stockout_losses": 0.71,
+        "waste_units": 0.0,
+        "purchase_cost": 1093.08,
+        "ingredient_cost_per_hour": 136.635,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.000699,
+          "profit_per_hour": 4.270541,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.4,
+        "S_factor": 0.75,
+        "settings": {
+          "pearls": {
+            "reorder_point": 32.0,
+            "order_quantity": 60.0
+          }
+        },
+        "policy": "lose",
+        "served": 482.84,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.631391,
+        "los_p95": 7.717868,
+        "util": 0.81486,
+        "revenue_per_hour": 465.2,
+        "profit_per_hour": 143.459741,
+        "waiting_cost_total": 880.722073,
+        "fill_rate": 0.998699,
+        "stockout_losses": 0.75,
+        "waste_units": 0.0,
+        "purchase_cost": 1093.2,
+        "ingredient_cost_per_hour": 136.65,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.000698,
+          "profit_per_hour": 4.279922,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.4,
+        "S_factor": 1.0,
+        "settings": {
+          "pearls": {
+            "reorder_point": 32.0,
+            "order_quantity": 80.0
+          }
+        },
+        "policy": "lose",
+        "served": 483.27,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.659079,
+        "los_p95": 7.762251,
+        "util": 0.815932,
+        "revenue_per_hour": 465.66,
+        "profit_per_hour": 140.94142,
+        "waiting_cost_total": 888.708637,
+        "fill_rate": 0.999453,
+        "stockout_losses": 0.32,
+        "waste_units": 0.05,
+        "purchase_cost": 1109.04,
+        "ingredient_cost_per_hour": 138.63,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.000439,
+          "profit_per_hour": 4.698533,
+          "waste_units": 0.071703
+        }
+      }
+    ],
+    "ss_teakit_only": [
+      {
+        "s_factor": 0.1,
+        "S_factor": 0.25,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 30.0,
+            "order_quantity": 75.0
+          }
+        },
+        "policy": "lose",
+        "served": 443.76,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.41335,
+        "los_p95": 7.439992,
+        "util": 0.744721,
+        "revenue_per_hour": 423.4275,
+        "profit_per_hour": 141.263368,
+        "waiting_cost_total": 758.81306,
+        "fill_rate": 0.928801,
+        "stockout_losses": 39.83,
+        "waste_units": 0.0,
+        "purchase_cost": 898.5,
+        "ingredient_cost_per_hour": 112.3125,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.004416,
+          "profit_per_hour": 2.555572,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.1,
+        "S_factor": 0.5,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 30.0,
+            "order_quantity": 150.0
+          }
+        },
+        "policy": "lose",
+        "served": 456.1,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.447496,
+        "los_p95": 7.459775,
+        "util": 0.767065,
+        "revenue_per_hour": 436.65,
+        "profit_per_hour": 149.780107,
+        "waiting_cost_total": 788.359146,
+        "fill_rate": 0.950711,
+        "stockout_losses": 27.49,
+        "waste_units": 0.0,
+        "purchase_cost": 906.6,
+        "ingredient_cost_per_hour": 113.325,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.003277,
+          "profit_per_hour": 2.924385,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.1,
+        "S_factor": 0.75,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 30.0,
+            "order_quantity": 225.0
+          }
+        },
+        "policy": "lose",
+        "served": 456.1,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.447496,
+        "los_p95": 7.459775,
+        "util": 0.767065,
+        "revenue_per_hour": 436.65,
+        "profit_per_hour": 139.430107,
+        "waiting_cost_total": 788.359146,
+        "fill_rate": 0.950711,
+        "stockout_losses": 27.49,
+        "waste_units": 0.0,
+        "purchase_cost": 989.4,
+        "ingredient_cost_per_hour": 123.675,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.003277,
+          "profit_per_hour": 2.777561,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.1,
+        "S_factor": 1.0,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 30.0,
+            "order_quantity": 300.0
+          }
+        },
+        "policy": "lose",
+        "served": 456.1,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.447496,
+        "los_p95": 7.459775,
+        "util": 0.767065,
+        "revenue_per_hour": 436.65,
+        "profit_per_hour": 128.180107,
+        "waiting_cost_total": 788.359146,
+        "fill_rate": 0.950711,
+        "stockout_losses": 27.49,
+        "waste_units": 0.0,
+        "purchase_cost": 1079.4,
+        "ingredient_cost_per_hour": 134.925,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.003277,
+          "profit_per_hour": 2.777561,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.2,
+        "S_factor": 0.25,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 60.0,
+            "order_quantity": 75.0
+          }
+        },
+        "policy": "lose",
+        "served": 472.33,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.514972,
+        "los_p95": 7.564862,
+        "util": 0.796566,
+        "revenue_per_hour": 454.0,
+        "profit_per_hour": 152.858824,
+        "waiting_cost_total": 832.509409,
+        "fill_rate": 0.98007,
+        "stockout_losses": 11.26,
+        "waste_units": 0.0,
+        "purchase_cost": 976.62,
+        "ingredient_cost_per_hour": 122.0775,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.003013,
+          "profit_per_hour": 2.64867,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.2,
+        "S_factor": 0.5,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 60.0,
+            "order_quantity": 150.0
+          }
+        },
+        "policy": "lose",
+        "served": 472.41,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.52653,
+        "los_p95": 7.605932,
+        "util": 0.796675,
+        "revenue_per_hour": 454.08,
+        "profit_per_hour": 143.013688,
+        "waiting_cost_total": 835.410493,
+        "fill_rate": 0.980218,
+        "stockout_losses": 11.18,
+        "waste_units": 0.0,
+        "purchase_cost": 1053.12,
+        "ingredient_cost_per_hour": 131.64,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.003025,
+          "profit_per_hour": 2.874951,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.2,
+        "S_factor": 0.75,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 60.0,
+            "order_quantity": 225.0
+          }
+        },
+        "policy": "lose",
+        "served": 472.41,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.52653,
+        "los_p95": 7.605932,
+        "util": 0.796675,
+        "revenue_per_hour": 454.08,
+        "profit_per_hour": 150.888688,
+        "waiting_cost_total": 835.410493,
+        "fill_rate": 0.980218,
+        "stockout_losses": 11.18,
+        "waste_units": 0.0,
+        "purchase_cost": 990.12,
+        "ingredient_cost_per_hour": 123.765,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.003025,
+          "profit_per_hour": 2.768486,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.2,
+        "S_factor": 1.0,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 60.0,
+            "order_quantity": 300.0
+          }
+        },
+        "policy": "lose",
+        "served": 472.41,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.52653,
+        "los_p95": 7.605932,
+        "util": 0.796675,
+        "revenue_per_hour": 454.08,
+        "profit_per_hour": 139.638688,
+        "waiting_cost_total": 835.410493,
+        "fill_rate": 0.980218,
+        "stockout_losses": 11.18,
+        "waste_units": 0.0,
+        "purchase_cost": 1080.12,
+        "ingredient_cost_per_hour": 135.015,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.003025,
+          "profit_per_hour": 2.768486,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.3,
+        "S_factor": 0.25,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 90.0,
+            "order_quantity": 75.0
+          }
+        },
+        "policy": "lose",
+        "served": 472.41,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.525304,
+        "los_p95": 7.605226,
+        "util": 0.79667,
+        "revenue_per_hour": 454.08,
+        "profit_per_hour": 150.587663,
+        "waiting_cost_total": 835.118698,
+        "fill_rate": 0.980218,
+        "stockout_losses": 11.18,
+        "waste_units": 0.0,
+        "purchase_cost": 992.82,
+        "ingredient_cost_per_hour": 124.1025,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.003025,
+          "profit_per_hour": 2.802237,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.3,
+        "S_factor": 0.5,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 90.0,
+            "order_quantity": 150.0
+          }
+        },
+        "policy": "lose",
+        "served": 472.41,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.525304,
+        "los_p95": 7.605226,
+        "util": 0.79667,
+        "revenue_per_hour": 454.08,
+        "profit_per_hour": 139.900163,
+        "waiting_cost_total": 835.118698,
+        "fill_rate": 0.980218,
+        "stockout_losses": 11.18,
+        "waste_units": 0.0,
+        "purchase_cost": 1078.32,
+        "ingredient_cost_per_hour": 134.79,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.003025,
+          "profit_per_hour": 2.742549,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.3,
+        "S_factor": 0.75,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 90.0,
+            "order_quantity": 225.0
+          }
+        },
+        "policy": "lose",
+        "served": 472.41,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.525304,
+        "los_p95": 7.605226,
+        "util": 0.79667,
+        "revenue_per_hour": 454.08,
+        "profit_per_hour": 149.575163,
+        "waiting_cost_total": 835.118698,
+        "fill_rate": 0.980218,
+        "stockout_losses": 11.18,
+        "waste_units": 0.0,
+        "purchase_cost": 1000.92,
+        "ingredient_cost_per_hour": 125.115,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.003025,
+          "profit_per_hour": 3.119171,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.3,
+        "S_factor": 1.0,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 90.0,
+            "order_quantity": 300.0
+          }
+        },
+        "policy": "lose",
+        "served": 472.41,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.525304,
+        "los_p95": 7.605226,
+        "util": 0.79667,
+        "revenue_per_hour": 454.08,
+        "profit_per_hour": 139.675163,
+        "waiting_cost_total": 835.118698,
+        "fill_rate": 0.980218,
+        "stockout_losses": 11.18,
+        "waste_units": 0.0,
+        "purchase_cost": 1080.12,
+        "ingredient_cost_per_hour": 135.015,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.003025,
+          "profit_per_hour": 2.761001,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.4,
+        "S_factor": 0.25,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 120.0,
+            "order_quantity": 75.0
+          }
+        },
+        "policy": "lose",
+        "served": 472.41,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.525304,
+        "los_p95": 7.605226,
+        "util": 0.79667,
+        "revenue_per_hour": 454.08,
+        "profit_per_hour": 145.300163,
+        "waiting_cost_total": 835.118698,
+        "fill_rate": 0.980218,
+        "stockout_losses": 11.18,
+        "waste_units": 0.0,
+        "purchase_cost": 1035.12,
+        "ingredient_cost_per_hour": 129.39,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.003025,
+          "profit_per_hour": 2.792416,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.4,
+        "S_factor": 0.5,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 120.0,
+            "order_quantity": 150.0
+          }
+        },
+        "policy": "lose",
+        "served": 472.41,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.525304,
+        "los_p95": 7.605226,
+        "util": 0.79667,
+        "revenue_per_hour": 454.08,
+        "profit_per_hour": 139.675163,
+        "waiting_cost_total": 835.118698,
+        "fill_rate": 0.980218,
+        "stockout_losses": 11.18,
+        "waste_units": 0.0,
+        "purchase_cost": 1080.12,
+        "ingredient_cost_per_hour": 135.015,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.003025,
+          "profit_per_hour": 2.761001,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.4,
+        "S_factor": 0.75,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 120.0,
+            "order_quantity": 225.0
+          }
+        },
+        "policy": "lose",
+        "served": 472.41,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.525304,
+        "los_p95": 7.605226,
+        "util": 0.79667,
+        "revenue_per_hour": 454.08,
+        "profit_per_hour": 134.050163,
+        "waiting_cost_total": 835.118698,
+        "fill_rate": 0.980218,
+        "stockout_losses": 11.18,
+        "waste_units": 0.0,
+        "purchase_cost": 1125.12,
+        "ingredient_cost_per_hour": 140.64,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.003025,
+          "profit_per_hour": 3.938647,
+          "waste_units": 0.0
+        }
+      },
+      {
+        "s_factor": 0.4,
+        "S_factor": 1.0,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 120.0,
+            "order_quantity": 300.0
+          }
+        },
+        "policy": "lose",
+        "served": 472.41,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.525304,
+        "los_p95": 7.605226,
+        "util": 0.79667,
+        "revenue_per_hour": 454.08,
+        "profit_per_hour": 139.675163,
+        "waiting_cost_total": 835.118698,
+        "fill_rate": 0.980218,
+        "stockout_losses": 11.18,
+        "waste_units": 0.0,
+        "purchase_cost": 1080.12,
+        "ingredient_cost_per_hour": 135.015,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.003025,
+          "profit_per_hour": 2.761001,
+          "waste_units": 0.0
+        }
+      }
+    ],
+    "lead_time_scan": [
+      {
+        "lead_time_minutes": 30.0,
+        "served": 483.59,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.680983,
+        "los_p95": 7.826765,
+        "util": 0.816336,
+        "revenue_per_hour": 465.99,
+        "profit_per_hour": 142.124274,
+        "waiting_cost_total": 895.085806,
+        "fill_rate": 1.0,
+        "stockout_losses": 0.0,
+        "waste_units": 0.0,
+        "purchase_cost": 1095.84,
+        "ingredient_cost_per_hour": 136.98,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.0,
+          "profit_per_hour": 4.708359,
+          "stockout_losses": 0.0
+        }
+      },
+      {
+        "lead_time_minutes": 60.0,
+        "served": 472.43,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.527143,
+        "los_p95": 7.60797,
+        "util": 0.796669,
+        "revenue_per_hour": 454.0925,
+        "profit_per_hour": 144.872238,
+        "waiting_cost_total": 835.642099,
+        "fill_rate": 0.98025,
+        "stockout_losses": 11.16,
+        "waste_units": 0.0,
+        "purchase_cost": 1038.12,
+        "ingredient_cost_per_hour": 129.765,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.003005,
+          "profit_per_hour": 3.517312,
+          "stockout_losses": 1.747218
+        }
+      },
+      {
+        "lead_time_minutes": 120.0,
+        "served": 374.79,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.245942,
+        "los_p95": 7.249357,
+        "util": 0.620693,
+        "revenue_per_hour": 349.935,
+        "profit_per_hour": 75.513963,
+        "waiting_cost_total": 610.528298,
+        "fill_rate": 0.804035,
+        "stockout_losses": 108.8,
+        "waste_units": 0.0,
+        "purchase_cost": 984.84,
+        "ingredient_cost_per_hour": 123.105,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.004421,
+          "profit_per_hour": 2.672591,
+          "stockout_losses": 2.969298
+        }
+      },
+      {
+        "lead_time_minutes": 240.0,
+        "served": 325.88,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.121651,
+        "los_p95": 7.176106,
+        "util": 0.532768,
+        "revenue_per_hour": 297.7625,
+        "profit_per_hour": 36.522166,
+        "waiting_cost_total": 510.93267,
+        "fill_rate": 0.71567,
+        "stockout_losses": 157.71,
+        "waste_units": 0.0,
+        "purchase_cost": 978.99,
+        "ingredient_cost_per_hour": 122.37375,
+        "sla_attainment": null,
+        "ci95": {
+          "fill_rate": 0.004212,
+          "profit_per_hour": 2.513632,
+          "stockout_losses": 3.080173
+        }
+      }
+    ],
+    "shelf_life_scan": [
+      {
+        "shelf_life_minutes": 120.0,
+        "served": 396.35,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.297204,
+        "los_p95": 7.307968,
+        "util": 0.659375,
+        "revenue_per_hour": 372.905,
+        "profit_per_hour": 88.089712,
+        "waiting_cost_total": 658.402301,
+        "fill_rate": 0.842003,
+        "stockout_losses": 87.24,
+        "waste_units": 43.77,
+        "purchase_cost": 1020.12,
+        "ingredient_cost_per_hour": 127.515,
+        "sla_attainment": null
+      },
+      {
+        "shelf_life_minutes": 240.0,
+        "served": 472.41,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.525304,
+        "los_p95": 7.605226,
+        "util": 0.79667,
+        "revenue_per_hour": 454.08,
+        "profit_per_hour": 144.925163,
+        "waiting_cost_total": 835.118698,
+        "fill_rate": 0.980218,
+        "stockout_losses": 11.18,
+        "waste_units": 0.0,
+        "purchase_cost": 1038.12,
+        "ingredient_cost_per_hour": 129.765,
+        "sla_attainment": null
+      },
+      {
+        "shelf_life_minutes": 360.0,
+        "served": 472.41,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.525304,
+        "los_p95": 7.605226,
+        "util": 0.79667,
+        "revenue_per_hour": 454.08,
+        "profit_per_hour": 144.925163,
+        "waiting_cost_total": 835.118698,
+        "fill_rate": 0.980218,
+        "stockout_losses": 11.18,
+        "waste_units": 0.0,
+        "purchase_cost": 1038.12,
+        "ingredient_cost_per_hour": 129.765,
+        "sla_attainment": null
+      },
+      {
+        "shelf_life_minutes": 480.0,
+        "served": 472.41,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.525304,
+        "los_p95": 7.605226,
+        "util": 0.79667,
+        "revenue_per_hour": 454.08,
+        "profit_per_hour": 144.925163,
+        "waiting_cost_total": 835.118698,
+        "fill_rate": 0.980218,
+        "stockout_losses": 11.18,
+        "waste_units": 0.0,
+        "purchase_cost": 1038.12,
+        "ingredient_cost_per_hour": 129.765,
+        "sla_attainment": null
+      }
+    ],
+    "shelf_vs_order_quantity": [
+      {
+        "shelf_life_minutes": 120.0,
+        "S_factor": 0.25,
+        "served": 372.55,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 2.986386,
+        "los_p95": 6.403725,
+        "util": 0.617391,
+        "revenue_per_hour": 347.3675,
+        "profit_per_hour": 78.209538,
+        "waiting_cost_total": 557.143698,
+        "fill_rate": 0.800195,
+        "stockout_losses": 111.04,
+        "waste_units": 27.565,
+        "purchase_cost": 996.12,
+        "ingredient_cost_per_hour": 124.515,
+        "sla_attainment": null
+      },
+      {
+        "shelf_life_minutes": 120.0,
+        "S_factor": 0.5,
+        "served": 416.98,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.308883,
+        "los_p95": 7.230128,
+        "util": 0.696696,
+        "revenue_per_hour": 394.895,
+        "profit_per_hour": 107.399414,
+        "waiting_cost_total": 691.364688,
+        "fill_rate": 0.880112,
+        "stockout_losses": 66.61,
+        "waste_units": 27.615,
+        "purchase_cost": 1008.6,
+        "ingredient_cost_per_hour": 126.075,
+        "sla_attainment": null
+      },
+      {
+        "shelf_life_minutes": 120.0,
+        "S_factor": 0.75,
+        "served": 393.18,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.291239,
+        "los_p95": 7.273108,
+        "util": 0.653824,
+        "revenue_per_hour": 369.4675,
+        "profit_per_hour": 85.440332,
+        "waiting_cost_total": 652.097345,
+        "fill_rate": 0.836324,
+        "stockout_losses": 90.41,
+        "waste_units": 43.69,
+        "purchase_cost": 1020.12,
+        "ingredient_cost_per_hour": 127.515,
+        "sla_attainment": null
+      },
+      {
+        "shelf_life_minutes": 120.0,
+        "S_factor": 1.0,
+        "served": 379.16,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.269381,
+        "los_p95": 7.179065,
+        "util": 0.628996,
+        "revenue_per_hour": 354.655,
+        "profit_per_hour": 73.119999,
+        "waiting_cost_total": 622.560011,
+        "fill_rate": 0.811509,
+        "stockout_losses": 104.43,
+        "waste_units": 64.445,
+        "purchase_cost": 1029.72,
+        "ingredient_cost_per_hour": 128.715,
+        "sla_attainment": null
+      },
+      {
+        "shelf_life_minutes": 180.0,
+        "S_factor": 0.25,
+        "served": 418.78,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.180554,
+        "los_p95": 6.863102,
+        "util": 0.699256,
+        "revenue_per_hour": 396.795,
+        "profit_per_hour": 114.003945,
+        "waiting_cost_total": 667.288442,
+        "fill_rate": 0.883743,
+        "stockout_losses": 64.81,
+        "waste_units": 3.35,
+        "purchase_cost": 995.04,
+        "ingredient_cost_per_hour": 124.38,
+        "sla_attainment": null
+      },
+      {
+        "shelf_life_minutes": 180.0,
+        "S_factor": 0.5,
+        "served": 459.0,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.390943,
+        "los_p95": 7.243268,
+        "util": 0.771588,
+        "revenue_per_hour": 439.7325,
+        "profit_per_hour": 140.387511,
+        "waiting_cost_total": 780.159913,
+        "fill_rate": 0.956013,
+        "stockout_losses": 24.59,
+        "waste_units": 3.35,
+        "purchase_cost": 1014.6,
+        "ingredient_cost_per_hour": 126.825,
+        "sla_attainment": null
+      },
+      {
+        "shelf_life_minutes": 180.0,
+        "S_factor": 0.75,
+        "served": 463.92,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.480421,
+        "los_p95": 7.535326,
+        "util": 0.780862,
+        "revenue_per_hour": 445.01,
+        "profit_per_hour": 139.734105,
+        "waiting_cost_total": 810.087159,
+        "fill_rate": 0.964723,
+        "stockout_losses": 19.67,
+        "waste_units": 3.35,
+        "purchase_cost": 1032.12,
+        "ingredient_cost_per_hour": 129.015,
+        "sla_attainment": null
+      },
+      {
+        "shelf_life_minutes": 180.0,
+        "S_factor": 1.0,
+        "served": 459.95,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.480821,
+        "los_p95": 7.483257,
+        "util": 0.77358,
+        "revenue_per_hour": 440.7725,
+        "profit_per_hour": 135.608396,
+        "waiting_cost_total": 804.392832,
+        "fill_rate": 0.957031,
+        "stockout_losses": 23.64,
+        "waste_units": 7.51,
+        "purchase_cost": 1036.92,
+        "ingredient_cost_per_hour": 129.615,
+        "sla_attainment": null
+      },
+      {
+        "shelf_life_minutes": 240.0,
+        "S_factor": 0.25,
+        "served": 425.37,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.216669,
+        "los_p95": 6.96254,
+        "util": 0.71145,
+        "revenue_per_hour": 403.8175,
+        "profit_per_hour": 118.864596,
+        "waiting_cost_total": 684.823232,
+        "fill_rate": 0.895891,
+        "stockout_losses": 58.22,
+        "waste_units": 0.0,
+        "purchase_cost": 994.8,
+        "ingredient_cost_per_hour": 124.35,
+        "sla_attainment": null
+      },
+      {
+        "shelf_life_minutes": 240.0,
+        "S_factor": 0.5,
+        "served": 464.59,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.425303,
+        "los_p95": 7.299992,
+        "util": 0.782435,
+        "revenue_per_hour": 445.705,
+        "profit_per_hour": 144.244458,
+        "waiting_cost_total": 797.084333,
+        "fill_rate": 0.966284,
+        "stockout_losses": 19.0,
+        "waste_units": 0.0,
+        "purchase_cost": 1014.6,
+        "ingredient_cost_per_hour": 126.825,
+        "sla_attainment": null
+      },
+      {
+        "shelf_life_minutes": 240.0,
+        "S_factor": 0.75,
+        "served": 469.47,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.517829,
+        "los_p95": 7.609961,
+        "util": 0.791319,
+        "revenue_per_hour": 450.94,
+        "profit_per_hour": 143.036341,
+        "waiting_cost_total": 828.109275,
+        "fill_rate": 0.974967,
+        "stockout_losses": 14.12,
+        "waste_units": 0.0,
+        "purchase_cost": 1035.12,
+        "ingredient_cost_per_hour": 129.39,
+        "sla_attainment": null
+      },
+      {
+        "shelf_life_minutes": 240.0,
+        "S_factor": 1.0,
+        "served": 472.7,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.529432,
+        "los_p95": 7.532588,
+        "util": 0.797322,
+        "revenue_per_hour": 454.3875,
+        "profit_per_hour": 144.034901,
+        "waiting_cost_total": 836.900792,
+        "fill_rate": 0.980601,
+        "stockout_losses": 10.89,
+        "waste_units": 0.0,
+        "purchase_cost": 1045.92,
+        "ingredient_cost_per_hour": 130.74,
+        "sla_attainment": null
+      },
+      {
+        "shelf_life_minutes": 360.0,
+        "S_factor": 0.25,
+        "served": 425.37,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.216669,
+        "los_p95": 6.96254,
+        "util": 0.71145,
+        "revenue_per_hour": 403.8175,
+        "profit_per_hour": 118.864596,
+        "waiting_cost_total": 684.823232,
+        "fill_rate": 0.895891,
+        "stockout_losses": 58.22,
+        "waste_units": 0.0,
+        "purchase_cost": 994.8,
+        "ingredient_cost_per_hour": 124.35,
+        "sla_attainment": null
+      },
+      {
+        "shelf_life_minutes": 360.0,
+        "S_factor": 0.5,
+        "served": 464.59,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.425303,
+        "los_p95": 7.299992,
+        "util": 0.782435,
+        "revenue_per_hour": 445.705,
+        "profit_per_hour": 144.244458,
+        "waiting_cost_total": 797.084333,
+        "fill_rate": 0.966284,
+        "stockout_losses": 19.0,
+        "waste_units": 0.0,
+        "purchase_cost": 1014.6,
+        "ingredient_cost_per_hour": 126.825,
+        "sla_attainment": null
+      },
+      {
+        "shelf_life_minutes": 360.0,
+        "S_factor": 0.75,
+        "served": 469.47,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.517829,
+        "los_p95": 7.609961,
+        "util": 0.791319,
+        "revenue_per_hour": 450.94,
+        "profit_per_hour": 143.036341,
+        "waiting_cost_total": 828.109275,
+        "fill_rate": 0.974967,
+        "stockout_losses": 14.12,
+        "waste_units": 0.0,
+        "purchase_cost": 1035.12,
+        "ingredient_cost_per_hour": 129.39,
+        "sla_attainment": null
+      },
+      {
+        "shelf_life_minutes": 360.0,
+        "S_factor": 1.0,
+        "served": 472.7,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.529432,
+        "los_p95": 7.532588,
+        "util": 0.797322,
+        "revenue_per_hour": 454.3875,
+        "profit_per_hour": 144.034901,
+        "waiting_cost_total": 836.900792,
+        "fill_rate": 0.980601,
+        "stockout_losses": 10.89,
+        "waste_units": 0.0,
+        "purchase_cost": 1045.92,
+        "ingredient_cost_per_hour": 130.74,
+        "sla_attainment": null
+      }
+    ],
+    "pearls_order_ceiling": [
+      {
+        "S_factor": 0.5,
+        "order_quantity_units": 40.0,
+        "served": 464.59,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.425303,
+        "los_p95": 7.299992,
+        "util": 0.782435,
+        "revenue_per_hour": 445.705,
+        "profit_per_hour": 144.244458,
+        "waiting_cost_total": 797.084333,
+        "fill_rate": 0.966284,
+        "stockout_losses": 19.0,
+        "waste_units": 0.0,
+        "purchase_cost": 1014.6,
+        "ingredient_cost_per_hour": 126.825,
+        "sla_attainment": null
+      },
+      {
+        "S_factor": 0.75,
+        "order_quantity_units": 60.0,
+        "served": 469.47,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.517829,
+        "los_p95": 7.609961,
+        "util": 0.791319,
+        "revenue_per_hour": 450.94,
+        "profit_per_hour": 143.036341,
+        "waiting_cost_total": 828.109275,
+        "fill_rate": 0.974967,
+        "stockout_losses": 14.12,
+        "waste_units": 0.0,
+        "purchase_cost": 1035.12,
+        "ingredient_cost_per_hour": 129.39,
+        "sla_attainment": null
+      },
+      {
+        "S_factor": 1.0,
+        "order_quantity_units": 80.0,
+        "served": 472.7,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.529432,
+        "los_p95": 7.532588,
+        "util": 0.797322,
+        "revenue_per_hour": 454.3875,
+        "profit_per_hour": 144.034901,
+        "waiting_cost_total": 836.900792,
+        "fill_rate": 0.980601,
+        "stockout_losses": 10.89,
+        "waste_units": 0.0,
+        "purchase_cost": 1045.92,
+        "ingredient_cost_per_hour": 130.74,
+        "sla_attainment": null
+      },
+      {
+        "S_factor": 1.25,
+        "order_quantity_units": 100.0,
+        "served": 469.97,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.519972,
+        "los_p95": 7.523838,
+        "util": 0.79203,
+        "revenue_per_hour": 451.4225,
+        "profit_per_hour": 140.246397,
+        "waiting_cost_total": 830.288822,
+        "fill_rate": 0.975479,
+        "stockout_losses": 13.62,
+        "waste_units": 1.44,
+        "purchase_cost": 1059.12,
+        "ingredient_cost_per_hour": 132.39,
+        "sla_attainment": null
+      },
+      {
+        "S_factor": 1.5,
+        "order_quantity_units": 120.0,
+        "served": 444.99,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.511772,
+        "los_p95": 7.634554,
+        "util": 0.747155,
+        "revenue_per_hour": 424.79,
+        "profit_per_hour": 117.277968,
+        "waiting_cost_total": 785.976259,
+        "fill_rate": 0.930077,
+        "stockout_losses": 38.6,
+        "waste_units": 16.515,
+        "purchase_cost": 1074.12,
+        "ingredient_cost_per_hour": 134.265,
+        "sla_attainment": null
+      },
+      {
+        "S_factor": 2.0,
+        "order_quantity_units": 160.0,
+        "served": 434.73,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.521578,
+        "los_p95": 7.667321,
+        "util": 0.72869,
+        "revenue_per_hour": 413.84,
+        "profit_per_hour": 104.799411,
+        "waiting_cost_total": 768.204712,
+        "fill_rate": 0.912183,
+        "stockout_losses": 48.86,
+        "waste_units": 56.505,
+        "purchase_cost": 1104.12,
+        "ingredient_cost_per_hour": 138.015,
+        "sla_attainment": null
+      },
+      {
+        "S_factor": 3.0,
+        "order_quantity_units": 240.0,
+        "served": 434.73,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.521578,
+        "los_p95": 7.667321,
+        "util": 0.72869,
+        "revenue_per_hour": 413.84,
+        "profit_per_hour": 92.799411,
+        "waiting_cost_total": 768.204712,
+        "fill_rate": 0.912183,
+        "stockout_losses": 48.86,
+        "waste_units": 136.505,
+        "purchase_cost": 1200.12,
+        "ingredient_cost_per_hour": 150.015,
+        "sla_attainment": null
+      }
+    ],
+    "stockout_policy": [
+      {
+        "regime": "baseline",
+        "stockout_policy": "lose",
+        "substitute": null,
+        "served": 472.41,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.525304,
+        "los_p95": 7.605226,
+        "util": 0.79667,
+        "revenue_per_hour": 454.08,
+        "profit_per_hour": 144.925163,
+        "waiting_cost_total": 835.118698,
+        "fill_rate": 0.980218,
+        "stockout_losses": 11.18,
+        "waste_units": 0.0,
+        "purchase_cost": 1038.12,
+        "ingredient_cost_per_hour": 129.765,
+        "sla_attainment": null,
+        "substituted_per_rep": 0.0,
+        "stockouts_by_kind_per_rep": {
+          "ice": 0.02,
+          "mix": 2.98,
+          "tea": 8.18
+        },
+        "profit_delta_vs_lose": 0.0,
+        "fill_delta_vs_lose": 0.0
+      },
+      {
+        "regime": "baseline",
+        "stockout_policy": "substitute_mix_to_tea",
+        "substitute": [
+          "mix",
+          "tea"
+        ],
+        "served": 472.41,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.528051,
+        "los_p95": 7.608366,
+        "util": 0.796746,
+        "revenue_per_hour": 454.0775,
+        "profit_per_hour": 144.837954,
+        "waiting_cost_total": 835.796365,
+        "fill_rate": 0.980218,
+        "stockout_losses": 11.18,
+        "waste_units": 0.0,
+        "purchase_cost": 1038.12,
+        "ingredient_cost_per_hour": 129.765,
+        "sla_attainment": null,
+        "substituted_per_rep": 0.04,
+        "stockouts_by_kind_per_rep": {
+          "ice": 0.02,
+          "mix": 2.95,
+          "tea": 8.21
+        },
+        "profit_delta_vs_lose": -0.087209,
+        "fill_delta_vs_lose": 0.0
+      },
+      {
+        "regime": "baseline",
+        "stockout_policy": "substitute_ice_to_bread",
+        "substitute": [
+          "ice",
+          "bread"
+        ],
+        "served": 472.43,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.525998,
+        "los_p95": 7.605074,
+        "util": 0.796708,
+        "revenue_per_hour": 454.095,
+        "profit_per_hour": 144.91138,
+        "waiting_cost_total": 835.348958,
+        "fill_rate": 0.98025,
+        "stockout_losses": 11.16,
+        "waste_units": 0.0,
+        "purchase_cost": 1038.12,
+        "ingredient_cost_per_hour": 129.765,
+        "sla_attainment": null,
+        "substituted_per_rep": 0.02,
+        "stockouts_by_kind_per_rep": {
+          "mix": 2.98,
+          "tea": 8.18
+        },
+        "profit_delta_vs_lose": -0.013783,
+        "fill_delta_vs_lose": 3.2e-05
+      },
+      {
+        "regime": "ice_short",
+        "stockout_policy": "lose",
+        "substitute": null,
+        "served": 431.75,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.115085,
+        "los_p95": 6.738356,
+        "util": 0.728976,
+        "revenue_per_hour": 411.6125,
+        "profit_per_hour": 130.994902,
+        "waiting_cost_total": 674.390785,
+        "fill_rate": 0.906693,
+        "stockout_losses": 51.84,
+        "waste_units": 0.0,
+        "purchase_cost": 970.55,
+        "ingredient_cost_per_hour": 121.31875,
+        "sla_attainment": null,
+        "substituted_per_rep": 0.0,
+        "stockouts_by_kind_per_rep": {
+          "ice": 9.84,
+          "mix": 39.67,
+          "tea": 2.33
+        },
+        "profit_delta_vs_lose": 0.0,
+        "fill_delta_vs_lose": 0.0
+      },
+      {
+        "regime": "ice_short",
+        "stockout_policy": "substitute_mix_to_tea",
+        "substitute": [
+          "mix",
+          "tea"
+        ],
+        "served": 462.65,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.393168,
+        "los_p95": 7.266276,
+        "util": 0.783165,
+        "revenue_per_hour": 442.29,
+        "profit_per_hour": 145.105874,
+        "waiting_cost_total": 787.003006,
+        "fill_rate": 0.962611,
+        "stockout_losses": 20.94,
+        "waste_units": 0.0,
+        "purchase_cost": 990.47,
+        "ingredient_cost_per_hour": 123.80875,
+        "sla_attainment": null,
+        "substituted_per_rep": 37.43,
+        "stockouts_by_kind_per_rep": {
+          "ice": 9.78,
+          "mix": 2.95,
+          "tea": 8.21
+        },
+        "profit_delta_vs_lose": 14.110972,
+        "fill_delta_vs_lose": 0.055918
+      },
+      {
+        "regime": "ice_short",
+        "stockout_policy": "substitute_ice_to_bread",
+        "substitute": [
+          "ice",
+          "bread"
+        ],
+        "served": 441.59,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.072038,
+        "los_p95": 6.689748,
+        "util": 0.73324,
+        "revenue_per_hour": 418.9925,
+        "profit_per_hour": 137.542626,
+        "waiting_cost_total": 680.168991,
+        "fill_rate": 0.924438,
+        "stockout_losses": 42.0,
+        "waste_units": 0.0,
+        "purchase_cost": 971.43,
+        "ingredient_cost_per_hour": 121.42875,
+        "sla_attainment": null,
+        "substituted_per_rep": 9.84,
+        "stockouts_by_kind_per_rep": {
+          "mix": 39.67,
+          "tea": 2.33
+        },
+        "profit_delta_vs_lose": 6.547724,
+        "fill_delta_vs_lose": 0.017745
+      },
+      {
+        "regime": "pearls_short",
+        "stockout_policy": "lose",
+        "substitute": null,
+        "served": 349.88,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.082267,
+        "los_p95": 6.848473,
+        "util": 0.576005,
+        "revenue_per_hour": 323.31,
+        "profit_per_hour": 59.381227,
+        "waiting_cost_total": 539.760187,
+        "fill_rate": 0.759395,
+        "stockout_losses": 133.71,
+        "waste_units": 0.0,
+        "purchase_cost": 971.67,
+        "ingredient_cost_per_hour": 121.45875,
+        "sla_attainment": null,
+        "substituted_per_rep": 0.0,
+        "stockouts_by_kind_per_rep": {
+          "mix": 35.88,
+          "tea": 97.83
+        },
+        "profit_delta_vs_lose": 0.0,
+        "fill_delta_vs_lose": 0.0
+      },
+      {
+        "regime": "pearls_short",
+        "stockout_policy": "substitute_mix_to_tea",
+        "substitute": [
+          "mix",
+          "tea"
+        ],
+        "served": 349.88,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.082267,
+        "los_p95": 6.848473,
+        "util": 0.576005,
+        "revenue_per_hour": 323.31,
+        "profit_per_hour": 59.381227,
+        "waiting_cost_total": 539.760187,
+        "fill_rate": 0.759395,
+        "stockout_losses": 133.71,
+        "waste_units": 0.0,
+        "purchase_cost": 971.67,
+        "ingredient_cost_per_hour": 121.45875,
+        "sla_attainment": null,
+        "substituted_per_rep": 0.0,
+        "stockouts_by_kind_per_rep": {
+          "mix": 35.88,
+          "tea": 97.83
+        },
+        "profit_delta_vs_lose": 0.0,
+        "fill_delta_vs_lose": 0.0
+      },
+      {
+        "regime": "pearls_short",
+        "stockout_policy": "substitute_ice_to_bread",
+        "substitute": [
+          "ice",
+          "bread"
+        ],
+        "served": 349.88,
+        "balked": 0.0,
+        "reneged": 0.0,
+        "stranded": 0.0,
+        "mean_los": 3.082267,
+        "los_p95": 6.848473,
+        "util": 0.576005,
+        "revenue_per_hour": 323.31,
+        "profit_per_hour": 59.381227,
+        "waiting_cost_total": 539.760187,
+        "fill_rate": 0.759395,
+        "stockout_losses": 133.71,
+        "waste_units": 0.0,
+        "purchase_cost": 971.67,
+        "ingredient_cost_per_hour": 121.45875,
+        "sla_attainment": null,
+        "substituted_per_rep": 0.0,
+        "stockouts_by_kind_per_rep": {
+          "mix": 35.88,
+          "tea": 97.83
+        },
+        "profit_delta_vs_lose": 0.0,
+        "fill_delta_vs_lose": 0.0
+      }
+    ],
+    "tradeoff": {
+      "frontier": [
+        {
+          "s_factor": 0.3,
+          "S_factor": 0.75,
+          "settings": {
+            "tea_kit": {
+              "reorder_point": 90.0,
+              "order_quantity": 225.0
+            },
+            "pearls": {
+              "reorder_point": 24.0,
+              "order_quantity": 60.0
+            }
+          },
+          "fill_rate": 0.974967,
+          "stockout_losses": 14.12,
+          "waste_units": 0.0,
+          "purchase_cost": 998.22,
+          "profit_per_hour": 147.648841
+        },
+        {
+          "s_factor": 0.4,
+          "S_factor": 0.5,
+          "settings": {
+            "tea_kit": {
+              "reorder_point": 120.0,
+              "order_quantity": 150.0
+            },
+            "pearls": {
+              "reorder_point": 32.0,
+              "order_quantity": 40.0
+            }
+          },
+          "fill_rate": 0.998774,
+          "stockout_losses": 0.71,
+          "waste_units": 0.0,
+          "purchase_cost": 1081.08,
+          "profit_per_hour": 145.054576
+        },
+        {
+          "s_factor": 0.4,
+          "S_factor": 1.0,
+          "settings": {
+            "tea_kit": {
+              "reorder_point": 120.0,
+              "order_quantity": 300.0
+            },
+            "pearls": {
+              "reorder_point": 32.0,
+              "order_quantity": 80.0
+            }
+          },
+          "fill_rate": 0.999453,
+          "stockout_losses": 0.32,
+          "waste_units": 0.05,
+          "purchase_cost": 1094.04,
+          "profit_per_hour": 142.81642
+        }
+      ],
+      "max_profit": {
+        "s_factor": 0.3,
+        "S_factor": 0.75,
+        "profit_per_hour": 147.648841,
+        "fill_rate": 0.974967
+      },
+      "max_fill": {
+        "s_factor": 0.4,
+        "S_factor": 1.0,
+        "fill_rate": 0.999453,
+        "profit_per_hour": 142.81642
+      },
+      "min_waste": {
+        "s_factor": 0.1,
+        "S_factor": 0.25,
+        "waste_units": 0.0,
+        "fill_rate": 0.758971
+      },
+      "best_with_baseline_service": {
+        "s_factor": 0.4,
+        "S_factor": 0.5,
+        "profit_per_hour": 145.054576,
+        "fill_rate": 0.998774,
+        "waste_units": 0.0,
+        "purchase_cost": 1081.08,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 120.0,
+            "order_quantity": 150.0
+          },
+          "pearls": {
+            "reorder_point": 32.0,
+            "order_quantity": 40.0
+          }
+        },
+        "constraint_satisfied": true,
+        "minimum_fill_required": 0.980218
+      },
+      "waste_threshold": {
+        "order_quantity_units": 100.0,
+        "S_factor": 1.25,
+        "first_waste_units": 1.44,
+        "pearls_initial_stock": 80.0
+      },
+      "lead_time_fill_95_max": 60.0,
+      "shelf_life_waste_free_min": 240.0,
+      "recommendations": [
+        {
+          "grid": "ss_joint_grid",
+          "constraint_satisfied": true,
+          "s_factor": 0.4,
+          "S_factor": 0.5,
+          "settings": {
+            "tea_kit": {
+              "reorder_point": 120.0,
+              "order_quantity": 150.0
+            },
+            "pearls": {
+              "reorder_point": 32.0,
+              "order_quantity": 40.0
+            }
+          },
+          "fill_rate": 0.998774,
+          "waste_units": 0.0,
+          "purchase_cost": 1081.08,
+          "profit_per_hour": 145.054576,
+          "profit_delta_vs_baseline": 0.129413
+        },
+        {
+          "grid": "ss_pearls_only",
+          "constraint_satisfied": true,
+          "s_factor": 0.3,
+          "S_factor": 1.0,
+          "settings": {
+            "pearls": {
+              "reorder_point": 24.0,
+              "order_quantity": 80.0
+            }
+          },
+          "fill_rate": 0.980601,
+          "waste_units": 0.0,
+          "purchase_cost": 1045.92,
+          "profit_per_hour": 144.034901,
+          "profit_delta_vs_baseline": -0.890262
+        },
+        {
+          "grid": "ss_teakit_only",
+          "constraint_satisfied": true,
+          "s_factor": 0.2,
+          "S_factor": 0.75,
+          "settings": {
+            "tea_kit": {
+              "reorder_point": 60.0,
+              "order_quantity": 225.0
+            }
+          },
+          "fill_rate": 0.980218,
+          "waste_units": 0.0,
+          "purchase_cost": 990.12,
+          "profit_per_hour": 150.888688,
+          "profit_delta_vs_baseline": 5.963525
+        }
+      ]
+    },
+    "decision_summary": {
+      "baseline": {
+        "fill_rate": 0.980218,
+        "stockout_losses": 11.18,
+        "waste_units": 0.0,
+        "purchase_cost": 1038.12,
+        "profit_per_hour": 144.925163
+      },
+      "recommended_ss": {
+        "s_factor": 0.4,
+        "S_factor": 0.5,
+        "profit_per_hour": 145.054576,
+        "fill_rate": 0.998774,
+        "waste_units": 0.0,
+        "purchase_cost": 1081.08,
+        "settings": {
+          "tea_kit": {
+            "reorder_point": 120.0,
+            "order_quantity": 150.0
+          },
+          "pearls": {
+            "reorder_point": 32.0,
+            "order_quantity": 40.0
+          }
+        },
+        "constraint_satisfied": true,
+        "minimum_fill_required": 0.980218
+      },
+      "profit_gain_per_hour": 0.129413,
+      "fill_change": 0.018556,
+      "waste_change": 0.0,
+      "substitution_gain_ice_short": 14.110972,
+      "substitution_gain_pearls_short": 0.0,
+      "best_substitution": {
+        "regime": "ice_short",
+        "policy": "substitute_mix_to_tea",
+        "profit_delta_vs_lose": 14.110972,
+        "fill_delta_vs_lose": 0.055918,
+        "substituted_per_rep": 37.43
+      },
+      "lead_time_effect": {
+        "30.0": 1.0,
+        "60.0": 0.98025,
+        "120.0": 0.804035,
+        "240.0": 0.71567
+      },
+      "scenario_base": {
+        "arrival_rate": 1.15,
+        "workers": 3,
+        "utilization": 0.811383,
+        "policy": "synchro"
+      },
+      "baseline_config": {
+        "name": "inventory_lean",
+        "workers": 3,
+        "arrival_rate": 1.15,
+        "sim_minutes": 480.0,
+        "warmup_minutes": 60.0,
+        "mix": {
+          "tea": 0.55,
+          "bread": 0.2,
+          "ice": 0.05,
+          "mix": 0.2
+        },
+        "service_time_mean": 2.11665,
+        "utilization": 0.8113825,
+        "policy": "synchro",
+        "reps_planned": 100
+      }
+    }
+  },
+  "series": {
+    "ss_profit_surface": {
+      "s_factors": [
+        0.1,
+        0.2,
+        0.3,
+        0.4
+      ],
+      "S_factors": [
+        0.25,
+        0.5,
+        0.75,
+        1.0
+      ],
+      "profit_per_hour": [
+        [
+          87.743141,
+          97.907393,
+          107.41531,
+          80.484101
+        ],
+        [
+          107.343421,
+          129.829684,
+          128.782074,
+          119.384843
+        ],
+        [
+          125.877096,
+          137.944458,
+          147.648841,
+          140.659901
+        ],
+        [
+          129.145353,
+          145.054576,
+          133.597241,
+          142.81642
+        ]
+      ],
+      "waste_units": [
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.09
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.05
+        ]
+      ]
+    },
+    "fill_vs_waste": [
+      {
+        "s_factor": 0.1,
+        "S_factor": 0.25,
+        "fill_rate": 0.758971,
+        "waste_units": 0.0,
+        "profit_per_hour": 87.743141,
+        "purchase_cost": 750.36
+      },
+      {
+        "s_factor": 0.1,
+        "S_factor": 0.5,
+        "fill_rate": 0.817989,
+        "waste_units": 0.0,
+        "profit_per_hour": 97.907393,
+        "purchase_cost": 861.72
+      },
+      {
+        "s_factor": 0.1,
+        "S_factor": 0.75,
+        "fill_rate": 0.868424,
+        "waste_units": 0.0,
+        "profit_per_hour": 107.41531,
+        "purchase_cost": 955.2
+      },
+      {
+        "s_factor": 0.1,
+        "S_factor": 1.0,
+        "fill_rate": 0.839162,
+        "waste_units": 0.09,
+        "profit_per_hour": 80.484101,
+        "purchase_cost": 1068.12
+      },
+      {
+        "s_factor": 0.2,
+        "S_factor": 0.25,
+        "fill_rate": 0.830311,
+        "waste_units": 0.0,
+        "profit_per_hour": 107.343421,
+        "purchase_cost": 849.54
+      },
+      {
+        "s_factor": 0.2,
+        "S_factor": 0.5,
+        "fill_rate": 0.891171,
+        "waste_units": 0.0,
+        "profit_per_hour": 129.829684,
+        "purchase_cost": 873.24
+      },
+      {
+        "s_factor": 0.2,
+        "S_factor": 0.75,
+        "fill_rate": 0.926025,
+        "waste_units": 0.0,
+        "profit_per_hour": 128.782074,
+        "purchase_cost": 979.68
+      },
+      {
+        "s_factor": 0.2,
+        "S_factor": 1.0,
+        "fill_rate": 0.927892,
+        "waste_units": 0.0,
+        "profit_per_hour": 119.384843,
+        "purchase_cost": 1068.12
+      },
+      {
+        "s_factor": 0.3,
+        "S_factor": 0.25,
+        "fill_rate": 0.895891,
+        "waste_units": 0.0,
+        "profit_per_hour": 125.877096,
+        "purchase_cost": 938.7
+      },
+      {
+        "s_factor": 0.3,
+        "S_factor": 0.5,
+        "fill_rate": 0.966284,
+        "waste_units": 0.0,
+        "profit_per_hour": 137.944458,
+        "purchase_cost": 1065.0
+      },
+      {
+        "s_factor": 0.3,
+        "S_factor": 0.75,
+        "fill_rate": 0.974967,
+        "waste_units": 0.0,
+        "profit_per_hour": 147.648841,
+        "purchase_cost": 998.22
+      },
+      {
+        "s_factor": 0.3,
+        "S_factor": 1.0,
+        "fill_rate": 0.980601,
+        "waste_units": 0.0,
+        "profit_per_hour": 140.659901,
+        "purchase_cost": 1072.92
+      },
+      {
+        "s_factor": 0.4,
+        "S_factor": 0.25,
+        "fill_rate": 0.915722,
+        "waste_units": 0.0,
+        "profit_per_hour": 129.145353,
+        "purchase_cost": 968.52
+      },
+      {
+        "s_factor": 0.4,
+        "S_factor": 0.5,
+        "fill_rate": 0.998774,
+        "waste_units": 0.0,
+        "profit_per_hour": 145.054576,
+        "purchase_cost": 1081.08
+      },
+      {
+        "s_factor": 0.4,
+        "S_factor": 0.75,
+        "fill_rate": 0.998699,
+        "waste_units": 0.0,
+        "profit_per_hour": 133.597241,
+        "purchase_cost": 1172.1
+      },
+      {
+        "s_factor": 0.4,
+        "S_factor": 1.0,
+        "fill_rate": 0.999453,
+        "waste_units": 0.05,
+        "profit_per_hour": 142.81642,
+        "purchase_cost": 1094.04
+      }
+    ],
+    "lead_time": {
+      "x": [
+        30.0,
+        60.0,
+        120.0,
+        240.0
+      ],
+      "fill_rate": [
+        1.0,
+        0.98025,
+        0.804035,
+        0.71567
+      ],
+      "stockout_losses": [
+        0.0,
+        11.16,
+        108.8,
+        157.71
+      ],
+      "profit_per_hour": [
+        142.124274,
+        144.872238,
+        75.513963,
+        36.522166
+      ]
+    },
+    "shelf_life": {
+      "x": [
+        120.0,
+        240.0,
+        360.0,
+        480.0
+      ],
+      "waste_units": [
+        43.77,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "profit_per_hour": [
+        88.089712,
+        144.925163,
+        144.925163,
+        144.925163
+      ],
+      "fill_rate": [
+        0.842003,
+        0.980218,
+        0.980218,
+        0.980218
+      ]
+    },
+    "shelf_order_quantity_waste": {
+      "shelf_life_minutes": [
+        120.0,
+        180.0,
+        240.0,
+        360.0
+      ],
+      "S_factors": [
+        0.25,
+        0.5,
+        0.75,
+        1.0
+      ],
+      "waste_units": [
+        [
+          27.565,
+          27.615,
+          43.69,
+          64.445
+        ],
+        [
+          3.35,
+          3.35,
+          3.35,
+          7.51
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ]
+    },
+    "pearls_order_ceiling": {
+      "x": [
+        40.0,
+        60.0,
+        80.0,
+        100.0,
+        120.0,
+        160.0,
+        240.0
+      ],
+      "waste_units": [
+        0.0,
+        0.0,
+        0.0,
+        1.44,
+        16.515,
+        56.505,
+        136.505
+      ],
+      "fill_rate": [
+        0.966284,
+        0.974967,
+        0.980601,
+        0.975479,
+        0.930077,
+        0.912183,
+        0.912183
+      ],
+      "profit_per_hour": [
+        144.244458,
+        143.036341,
+        144.034901,
+        140.246397,
+        117.277968,
+        104.799411,
+        92.799411
+      ]
+    }
+  }
+}

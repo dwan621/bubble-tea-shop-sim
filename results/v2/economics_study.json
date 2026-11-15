@@ -1,0 +1,5267 @@
+{
+  "meta": {
+    "experiment": "layer4_economics_fairness",
+    "schema_version": 1,
+    "package_version": "2.0.0",
+    "python_version": "3.14.5",
+    "engine": "bubble_tea_sim.engine.Simulation (stdlib only)",
+    "scenario_library": [
+      "baseline_flat",
+      "bread_counter_bottleneck",
+      "campus_rush",
+      "cbd_commute",
+      "exam_week",
+      "flagship_five_staff",
+      "ice_cream_bottleneck",
+      "inventory_generous",
+      "inventory_lean",
+      "late_night_study",
+      "mall_weekend",
+      "network_tea_bottleneck",
+      "peak_pricing",
+      "rainy_delivery",
+      "strict_sla_fairness",
+      "tiny_two_staff"
+    ],
+    "notes": "Layer 4: peak pricing (multiplier x elasticity on the campus_rush peak windows), SLA target x compensation, starvation cap at high load (campus_rush classes and peak profile with the network layer removed, three cross-trained clerks), and a combined good-manager scenario compared with the shipped baseline under common random numbers.",
+    "scenarios": [
+      "campus_rush"
+    ],
+    "seeds": {
+      "seed": 0,
+      "seed_stride": 1
+    },
+    "reps": "100 replicates (60 above 0.95 utilisation)",
+    "reps_full": 100,
+    "reps_overload": 60,
+    "overload_utilisation": 0.95,
+    "runtime_seconds": 182.36,
+    "caveats": [
+      "profit_per_hour subtracts the waiting cost of the served customers only, so demand shedding (higher price, fewer arrivals) looks profitable twice: fewer lost sales and less waiting cost. The profit-maximising multiplier therefore sits at the edge of the tested range and must not be read as a policy recommendation on its own.",
+      "Compensation is a pure transfer: it never changes service times, so los_p95 is identical across the SLA grid. Only capacity/pricing changes attainment.",
+      "campus_rush has no inventory layer (its scenario file carries no BOM), so the good-manager scenario covers pricing + SLA + fairness + network. Cross-layer inventory coupling is out of scope for this study.",
+      "The fairness experiment keeps campus_rush's demand profile, classes and patience, but drops the network layer and sets workers=3 so the queue is visible to the starvation cap; that is the split+fast high-load cell."
+    ],
+    "design": {
+      "peak_windows": [
+        [
+          60.0,
+          180.0
+        ],
+        [
+          300.0,
+          420.0
+        ]
+      ],
+      "price_multipliers": [
+        1.0,
+        1.1,
+        1.2,
+        1.3,
+        1.4
+      ],
+      "price_refinement": [
+        1.5,
+        1.6,
+        1.8,
+        2.0
+      ],
+      "elasticities": [
+        -0.5,
+        -1.0,
+        -1.5,
+        -2.0
+      ],
+      "sla_targets": [
+        3.0,
+        5.0,
+        8.0
+      ],
+      "sla_compensations": [
+        1.0,
+        2.0,
+        4.0
+      ],
+      "starvation_caps": [
+        null,
+        0.5,
+        1.0,
+        1.5,
+        2.0,
+        3.0,
+        5.0
+      ],
+      "fairness_loads": [
+        1.1,
+        1.25,
+        1.4
+      ]
+    }
+  },
+  "tables": {
+    "baseline": {
+      "config": {
+        "name": "campus_rush",
+        "workers": 5,
+        "arrival_rate": 1.010989010989011,
+        "sim_minutes": 480.0,
+        "warmup_minutes": 60.0,
+        "mix": {
+          "tea": 0.55,
+          "bread": 0.2,
+          "ice": 0.05,
+          "mix": 0.2
+        },
+        "service_time_mean": 2.11665,
+        "utilization": 0.427981978021978,
+        "policy": "synchro+fast-priority",
+        "reps_planned": 100
+      },
+      "metrics": {
+        "served": 528.82,
+        "balked": 101.7,
+        "reneged": 0.39,
+        "stranded": 1.81,
+        "mean_los": 4.677318,
+        "los_p95": 11.813868,
+        "util": 0.549397,
+        "revenue_per_hour": 508.6475,
+        "profit_per_hour": 240.069834,
+        "waiting_cost_total": 1236.121326,
+        "revenue_total": 4069.18,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.09767,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0
+      },
+      "peak": {
+        "peak_los_p95": 12.394949,
+        "peak_los_p95_ci95": 0.264469,
+        "offpeak_los_p95": 4.885781,
+        "peak_served_share": 0.734998
+      },
+      "ci95": {
+        "served": 3.390111,
+        "balked": 3.760121,
+        "reneged": 0.138996,
+        "stranded": 0.319691,
+        "mean_los": 0.076406,
+        "los_p95": 0.250143,
+        "util": 0.003432,
+        "revenue_per_hour": 3.156693,
+        "profit_per_hour": 3.295118,
+        "waiting_cost_total": 20.392243,
+        "revenue_total": 25.253543,
+        "mean_price_factor": 0.0,
+        "fairness_gap": 0.110664,
+        "sla_attainment": 0.0,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0
+      },
+      "by_class": {
+        "delivery": {
+          "mean_los": 5.098773,
+          "p95_los": 12.201129,
+          "served": 50.7
+        },
+        "regular": {
+          "mean_los": 4.735784,
+          "p95_los": 11.894636,
+          "served": 396.91
+        },
+        "student": {
+          "mean_los": 4.124985,
+          "p95_los": 9.595253,
+          "served": 81.21
+        }
+      }
+    },
+    "pricing_grid": [
+      {
+        "stage": "grid",
+        "peak_price_multiplier": 1.0,
+        "elasticity": -0.5,
+        "demand_factor": 1.0,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 528.82,
+        "balked": 101.7,
+        "reneged": 0.39,
+        "stranded": 1.81,
+        "mean_los": 4.677318,
+        "los_p95": 11.813868,
+        "util": 0.549397,
+        "revenue_per_hour": 508.6475,
+        "profit_per_hour": 240.069834,
+        "waiting_cost_total": 1236.121326,
+        "revenue_total": 4069.18,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.09767,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 12.394949,
+        "peak_los_p95_ci95": 0.264469,
+        "offpeak_los_p95": 4.885781,
+        "peak_served_share": 0.734998,
+        "served_retained": 1.0,
+        "profit_delta_vs_base": 0.0,
+        "revenue_delta_vs_base": 0.0,
+        "balk_delta_vs_base": 0.0
+      },
+      {
+        "stage": "grid",
+        "peak_price_multiplier": 1.1,
+        "elasticity": -0.5,
+        "demand_factor": 0.953463,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 523.72,
+        "balked": 85.29,
+        "reneged": 0.45,
+        "stranded": 1.81,
+        "mean_los": 4.429603,
+        "los_p95": 11.219937,
+        "util": 0.544424,
+        "revenue_per_hour": 541.086,
+        "profit_per_hour": 282.082318,
+        "waiting_cost_total": 1159.529455,
+        "revenue_total": 4328.688,
+        "mean_price_factor": 1.072947,
+        "fairness_gap": 0.981294,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 11.866331,
+        "peak_los_p95_ci95": 0.297775,
+        "offpeak_los_p95": 4.745951,
+        "peak_served_share": 0.729465,
+        "served_retained": 0.990356,
+        "profit_delta_vs_base": 42.012484,
+        "revenue_delta_vs_base": 32.4385,
+        "balk_delta_vs_base": -16.41
+      },
+      {
+        "stage": "grid",
+        "peak_price_multiplier": 1.2,
+        "elasticity": -0.5,
+        "demand_factor": 0.912871,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 517.77,
+        "balked": 73.67,
+        "reneged": 0.56,
+        "stranded": 2.05,
+        "mean_los": 4.270347,
+        "los_p95": 10.86406,
+        "util": 0.538116,
+        "revenue_per_hour": 570.619,
+        "profit_per_hour": 318.454714,
+        "waiting_cost_total": 1104.814287,
+        "revenue_total": 4564.952,
+        "mean_price_factor": 1.145275,
+        "fairness_gap": 0.900261,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 11.510127,
+        "peak_los_p95_ci95": 0.312298,
+        "offpeak_los_p95": 4.776324,
+        "peak_served_share": 0.726377,
+        "served_retained": 0.979104,
+        "profit_delta_vs_base": 78.38488,
+        "revenue_delta_vs_base": 61.9715,
+        "balk_delta_vs_base": -28.03
+      },
+      {
+        "stage": "grid",
+        "peak_price_multiplier": 1.3,
+        "elasticity": -0.5,
+        "demand_factor": 0.877058,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 510.32,
+        "balked": 62.82,
+        "reneged": 0.5,
+        "stranded": 1.92,
+        "mean_los": 4.090195,
+        "los_p95": 10.51095,
+        "util": 0.530962,
+        "revenue_per_hour": 596.83575,
+        "profit_per_hour": 352.343946,
+        "waiting_cost_total": 1043.434431,
+        "revenue_total": 4774.686,
+        "mean_price_factor": 1.215958,
+        "fairness_gap": 0.856338,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 11.129738,
+        "peak_los_p95_ci95": 0.374298,
+        "offpeak_los_p95": 4.762535,
+        "peak_served_share": 0.71986,
+        "served_retained": 0.965016,
+        "profit_delta_vs_base": 112.274112,
+        "revenue_delta_vs_base": 88.18825,
+        "balk_delta_vs_base": -38.88
+      },
+      {
+        "stage": "grid",
+        "peak_price_multiplier": 1.4,
+        "elasticity": -0.5,
+        "demand_factor": 0.845154,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 503.29,
+        "balked": 54.34,
+        "reneged": 0.45,
+        "stranded": 1.62,
+        "mean_los": 3.915465,
+        "los_p95": 10.184745,
+        "util": 0.52454,
+        "revenue_per_hour": 622.192,
+        "profit_per_hour": 384.96291,
+        "waiting_cost_total": 985.332722,
+        "revenue_total": 4977.536,
+        "mean_price_factor": 1.28589,
+        "fairness_gap": 0.769576,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 10.909929,
+        "peak_los_p95_ci95": 0.361345,
+        "offpeak_los_p95": 4.702371,
+        "peak_served_share": 0.714724,
+        "served_retained": 0.951723,
+        "profit_delta_vs_base": 144.893076,
+        "revenue_delta_vs_base": 113.5445,
+        "balk_delta_vs_base": -47.36
+      },
+      {
+        "stage": "grid",
+        "peak_price_multiplier": 1.0,
+        "elasticity": -1.0,
+        "demand_factor": 1.0,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 528.82,
+        "balked": 101.7,
+        "reneged": 0.39,
+        "stranded": 1.81,
+        "mean_los": 4.677318,
+        "los_p95": 11.813868,
+        "util": 0.549397,
+        "revenue_per_hour": 508.6475,
+        "profit_per_hour": 240.069834,
+        "waiting_cost_total": 1236.121326,
+        "revenue_total": 4069.18,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.09767,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 12.394949,
+        "peak_los_p95_ci95": 0.264469,
+        "offpeak_los_p95": 4.885781,
+        "peak_served_share": 0.734998,
+        "served_retained": 1.0,
+        "profit_delta_vs_base": 0.0,
+        "revenue_delta_vs_base": 0.0,
+        "balk_delta_vs_base": 0.0
+      },
+      {
+        "stage": "grid",
+        "peak_price_multiplier": 1.1,
+        "elasticity": -1.0,
+        "demand_factor": 0.909091,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 517.26,
+        "balked": 71.67,
+        "reneged": 0.51,
+        "stranded": 1.96,
+        "mean_los": 4.226036,
+        "los_p95": 10.749546,
+        "util": 0.537105,
+        "revenue_per_hour": 533.547,
+        "profit_per_hour": 282.891398,
+        "waiting_cost_total": 1092.744814,
+        "revenue_total": 4268.376,
+        "mean_price_factor": 1.072522,
+        "fairness_gap": 0.869091,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 11.367907,
+        "peak_los_p95_ci95": 0.308362,
+        "offpeak_los_p95": 4.70047,
+        "peak_served_share": 0.725221,
+        "served_retained": 0.97814,
+        "profit_delta_vs_base": 42.821564,
+        "revenue_delta_vs_base": 24.8995,
+        "balk_delta_vs_base": -30.03
+      },
+      {
+        "stage": "grid",
+        "peak_price_multiplier": 1.2,
+        "elasticity": -1.0,
+        "demand_factor": 0.833333,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 501.52,
+        "balked": 51.36,
+        "reneged": 0.56,
+        "stranded": 2.1,
+        "mean_los": 3.855544,
+        "los_p95": 9.891481,
+        "util": 0.522163,
+        "revenue_per_hour": 551.0105,
+        "profit_per_hour": 316.068156,
+        "waiting_cost_total": 967.038754,
+        "revenue_total": 4408.084,
+        "mean_price_factor": 1.142731,
+        "fairness_gap": 0.734787,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 10.616645,
+        "peak_los_p95_ci95": 0.366637,
+        "offpeak_los_p95": 4.680085,
+        "peak_served_share": 0.713657,
+        "served_retained": 0.948376,
+        "profit_delta_vs_base": 75.998322,
+        "revenue_delta_vs_base": 42.363,
+        "balk_delta_vs_base": -50.34
+      },
+      {
+        "stage": "grid",
+        "peak_price_multiplier": 1.3,
+        "elasticity": -1.0,
+        "demand_factor": 0.769231,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 484.39,
+        "balked": 37.66,
+        "reneged": 0.46,
+        "stranded": 2.02,
+        "mean_los": 3.590773,
+        "los_p95": 9.028266,
+        "util": 0.506689,
+        "revenue_per_hour": 563.816,
+        "profit_per_hour": 340.979484,
+        "waiting_cost_total": 870.192125,
+        "revenue_total": 4510.528,
+        "mean_price_factor": 1.209251,
+        "fairness_gap": 0.61174,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 9.769656,
+        "peak_los_p95_ci95": 0.356827,
+        "offpeak_los_p95": 4.546408,
+        "peak_served_share": 0.697503,
+        "served_retained": 0.915983,
+        "profit_delta_vs_base": 100.90965,
+        "revenue_delta_vs_base": 55.1685,
+        "balk_delta_vs_base": -64.04
+      },
+      {
+        "stage": "grid",
+        "peak_price_multiplier": 1.4,
+        "elasticity": -1.0,
+        "demand_factor": 0.714286,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 465.93,
+        "balked": 28.35,
+        "reneged": 0.38,
+        "stranded": 2.2,
+        "mean_los": 3.370583,
+        "los_p95": 8.307237,
+        "util": 0.491206,
+        "revenue_per_hour": 572.48,
+        "profit_per_hour": 360.195034,
+        "waiting_cost_total": 785.77973,
+        "revenue_total": 4579.84,
+        "mean_price_factor": 1.276108,
+        "fairness_gap": 0.557009,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 9.002722,
+        "peak_los_p95_ci95": 0.36292,
+        "offpeak_los_p95": 4.606736,
+        "peak_served_share": 0.69027,
+        "served_retained": 0.881075,
+        "profit_delta_vs_base": 120.1252,
+        "revenue_delta_vs_base": 63.8325,
+        "balk_delta_vs_base": -73.35
+      },
+      {
+        "stage": "grid",
+        "peak_price_multiplier": 1.0,
+        "elasticity": -1.5,
+        "demand_factor": 1.0,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 528.82,
+        "balked": 101.7,
+        "reneged": 0.39,
+        "stranded": 1.81,
+        "mean_los": 4.677318,
+        "los_p95": 11.813868,
+        "util": 0.549397,
+        "revenue_per_hour": 508.6475,
+        "profit_per_hour": 240.069834,
+        "waiting_cost_total": 1236.121326,
+        "revenue_total": 4069.18,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.09767,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 12.394949,
+        "peak_los_p95_ci95": 0.264469,
+        "offpeak_los_p95": 4.885781,
+        "peak_served_share": 0.734998,
+        "served_retained": 1.0,
+        "profit_delta_vs_base": 0.0,
+        "revenue_delta_vs_base": 0.0,
+        "balk_delta_vs_base": 0.0
+      },
+      {
+        "stage": "grid",
+        "peak_price_multiplier": 1.1,
+        "elasticity": -1.5,
+        "demand_factor": 0.866784,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 508.25,
+        "balked": 60.79,
+        "reneged": 0.6,
+        "stranded": 2.01,
+        "mean_los": 4.048265,
+        "los_p95": 10.430179,
+        "util": 0.528161,
+        "revenue_per_hour": 523.69725,
+        "profit_per_hour": 281.084469,
+        "waiting_cost_total": 1028.402247,
+        "revenue_total": 4189.578,
+        "mean_price_factor": 1.071939,
+        "fairness_gap": 0.831689,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 11.158337,
+        "peak_los_p95_ci95": 0.369821,
+        "offpeak_los_p95": 4.691701,
+        "peak_served_share": 0.719387,
+        "served_retained": 0.961102,
+        "profit_delta_vs_base": 41.014635,
+        "revenue_delta_vs_base": 15.04975,
+        "balk_delta_vs_base": -40.91
+      },
+      {
+        "stage": "grid",
+        "peak_price_multiplier": 1.2,
+        "elasticity": -1.5,
+        "demand_factor": 0.760726,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 481.98,
+        "balked": 36.12,
+        "reneged": 0.58,
+        "stranded": 1.82,
+        "mean_los": 3.545778,
+        "los_p95": 8.934673,
+        "util": 0.505122,
+        "revenue_per_hour": 528.447,
+        "profit_per_hour": 307.481123,
+        "waiting_cost_total": 855.227015,
+        "revenue_total": 4227.576,
+        "mean_price_factor": 1.13895,
+        "fairness_gap": 0.611403,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 9.675003,
+        "peak_los_p95_ci95": 0.362858,
+        "offpeak_los_p95": 4.573979,
+        "peak_served_share": 0.694751,
+        "served_retained": 0.911425,
+        "profit_delta_vs_base": 67.411289,
+        "revenue_delta_vs_base": 19.7995,
+        "balk_delta_vs_base": -65.58
+      },
+      {
+        "stage": "grid",
+        "peak_price_multiplier": 1.3,
+        "elasticity": -1.5,
+        "demand_factor": 0.67466,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 452.48,
+        "balked": 21.95,
+        "reneged": 0.53,
+        "stranded": 1.99,
+        "mean_los": 3.214796,
+        "los_p95": 7.679328,
+        "util": 0.47706,
+        "revenue_per_hour": 524.88225,
+        "profit_per_hour": 319.816011,
+        "waiting_cost_total": 728.029914,
+        "revenue_total": 4199.058,
+        "mean_price_factor": 1.204887,
+        "fairness_gap": 0.473602,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 8.342957,
+        "peak_los_p95_ci95": 0.319065,
+        "offpeak_los_p95": 4.4897,
+        "peak_served_share": 0.682958,
+        "served_retained": 0.855641,
+        "profit_delta_vs_base": 79.746177,
+        "revenue_delta_vs_base": 16.23475,
+        "balk_delta_vs_base": -79.75
+      },
+      {
+        "stage": "grid",
+        "peak_price_multiplier": 1.4,
+        "elasticity": -1.5,
+        "demand_factor": 0.603682,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 425.08,
+        "balked": 13.48,
+        "reneged": 0.48,
+        "stranded": 1.68,
+        "mean_los": 2.958871,
+        "los_p95": 6.613049,
+        "util": 0.450039,
+        "revenue_per_hour": 517.72,
+        "profit_per_hour": 324.919204,
+        "waiting_cost_total": 629.906366,
+        "revenue_total": 4141.76,
+        "mean_price_factor": 1.26626,
+        "fairness_gap": 0.395891,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 7.185275,
+        "peak_los_p95_ci95": 0.27414,
+        "offpeak_los_p95": 4.554702,
+        "peak_served_share": 0.665651,
+        "served_retained": 0.803827,
+        "profit_delta_vs_base": 84.84937,
+        "revenue_delta_vs_base": 9.0725,
+        "balk_delta_vs_base": -88.22
+      },
+      {
+        "stage": "grid",
+        "peak_price_multiplier": 1.0,
+        "elasticity": -2.0,
+        "demand_factor": 1.0,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 528.82,
+        "balked": 101.7,
+        "reneged": 0.39,
+        "stranded": 1.81,
+        "mean_los": 4.677318,
+        "los_p95": 11.813868,
+        "util": 0.549397,
+        "revenue_per_hour": 508.6475,
+        "profit_per_hour": 240.069834,
+        "waiting_cost_total": 1236.121326,
+        "revenue_total": 4069.18,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.09767,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 12.394949,
+        "peak_los_p95_ci95": 0.264469,
+        "offpeak_los_p95": 4.885781,
+        "peak_served_share": 0.734998,
+        "served_retained": 1.0,
+        "profit_delta_vs_base": 0.0,
+        "revenue_delta_vs_base": 0.0,
+        "balk_delta_vs_base": 0.0
+      },
+      {
+        "stage": "grid",
+        "peak_price_multiplier": 1.1,
+        "elasticity": -2.0,
+        "demand_factor": 0.826446,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 500.66,
+        "balked": 49.57,
+        "reneged": 0.49,
+        "stranded": 1.59,
+        "mean_los": 3.838643,
+        "los_p95": 9.835139,
+        "util": 0.521304,
+        "revenue_per_hour": 515.48025,
+        "profit_per_hour": 281.278691,
+        "waiting_cost_total": 961.112471,
+        "revenue_total": 4123.842,
+        "mean_price_factor": 1.07125,
+        "fairness_gap": 0.759246,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 10.515899,
+        "peak_los_p95_ci95": 0.376038,
+        "offpeak_los_p95": 4.562908,
+        "peak_served_share": 0.712503,
+        "served_retained": 0.946749,
+        "profit_delta_vs_base": 41.208857,
+        "revenue_delta_vs_base": 6.83275,
+        "balk_delta_vs_base": -52.13
+      },
+      {
+        "stage": "grid",
+        "peak_price_multiplier": 1.2,
+        "elasticity": -2.0,
+        "demand_factor": 0.694444,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 459.34,
+        "balked": 25.6,
+        "reneged": 0.67,
+        "stranded": 2.21,
+        "mean_los": 3.325622,
+        "los_p95": 8.171281,
+        "util": 0.484127,
+        "revenue_per_hour": 503.092,
+        "profit_per_hour": 293.486499,
+        "waiting_cost_total": 764.34401,
+        "revenue_total": 4024.736,
+        "mean_price_factor": 1.137398,
+        "fairness_gap": 0.546388,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 8.927752,
+        "peak_los_p95_ci95": 0.362346,
+        "offpeak_los_p95": 4.463683,
+        "peak_served_share": 0.68699,
+        "served_retained": 0.868613,
+        "profit_delta_vs_base": 53.416665,
+        "revenue_delta_vs_base": -5.5555,
+        "balk_delta_vs_base": -76.1
+      },
+      {
+        "stage": "grid",
+        "peak_price_multiplier": 1.3,
+        "elasticity": -2.0,
+        "demand_factor": 0.591716,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 419.1,
+        "balked": 12.88,
+        "reneged": 0.51,
+        "stranded": 1.71,
+        "mean_los": 2.931151,
+        "los_p95": 6.511076,
+        "util": 0.44468,
+        "revenue_per_hour": 483.78725,
+        "profit_per_hour": 292.837759,
+        "waiting_cost_total": 615.095925,
+        "revenue_total": 3870.298,
+        "mean_price_factor": 1.199631,
+        "fairness_gap": 0.41506,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 7.096448,
+        "peak_los_p95_ci95": 0.241202,
+        "offpeak_los_p95": 4.471881,
+        "peak_served_share": 0.665437,
+        "served_retained": 0.792519,
+        "profit_delta_vs_base": 52.767925,
+        "revenue_delta_vs_base": -24.86025,
+        "balk_delta_vs_base": -88.82
+      },
+      {
+        "stage": "grid",
+        "peak_price_multiplier": 1.4,
+        "elasticity": -2.0,
+        "demand_factor": 0.510204,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 384.0,
+        "balked": 7.33,
+        "reneged": 0.32,
+        "stranded": 1.71,
+        "mean_los": 2.734659,
+        "los_p95": 5.751731,
+        "util": 0.410464,
+        "revenue_per_hour": 462.801,
+        "profit_per_hour": 283.019505,
+        "waiting_cost_total": 525.751961,
+        "revenue_total": 3702.408,
+        "mean_price_factor": 1.25243,
+        "fairness_gap": 0.333676,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 6.208037,
+        "peak_los_p95_ci95": 0.206037,
+        "offpeak_los_p95": 4.513588,
+        "peak_served_share": 0.631074,
+        "served_retained": 0.726145,
+        "profit_delta_vs_base": 42.949671,
+        "revenue_delta_vs_base": -45.8465,
+        "balk_delta_vs_base": -94.37
+      }
+    ],
+    "pricing_refinement": [
+      {
+        "stage": "refinement",
+        "peak_price_multiplier": 1.5,
+        "elasticity": -0.5,
+        "demand_factor": 0.816497,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 495.68,
+        "balked": 48.27,
+        "reneged": 0.52,
+        "stranded": 1.95,
+        "mean_los": 3.802639,
+        "los_p95": 9.741664,
+        "util": 0.518142,
+        "revenue_per_hour": 645.5075,
+        "profit_per_hour": 413.595851,
+        "waiting_cost_total": 942.793193,
+        "revenue_total": 5164.06,
+        "mean_price_factor": 1.353968,
+        "fairness_gap": 0.735344,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 10.483305,
+        "peak_los_p95_ci95": 0.382088,
+        "offpeak_los_p95": 4.683282,
+        "peak_served_share": 0.707936,
+        "served_retained": 0.937332,
+        "profit_delta_vs_base": 173.526017,
+        "revenue_delta_vs_base": 136.86,
+        "balk_delta_vs_base": -53.43
+      },
+      {
+        "stage": "refinement",
+        "peak_price_multiplier": 1.6,
+        "elasticity": -0.5,
+        "demand_factor": 0.790569,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 488.52,
+        "balked": 43.24,
+        "reneged": 0.74,
+        "stranded": 2.13,
+        "mean_los": 3.697151,
+        "los_p95": 9.489456,
+        "util": 0.511558,
+        "revenue_per_hour": 668.9505,
+        "profit_per_hour": 441.938459,
+        "waiting_cost_total": 903.596326,
+        "revenue_total": 5351.604,
+        "mean_price_factor": 1.422638,
+        "fairness_gap": 0.70416,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 10.149434,
+        "peak_los_p95_ci95": 0.380667,
+        "offpeak_los_p95": 4.646355,
+        "peak_served_share": 0.704397,
+        "served_retained": 0.923793,
+        "profit_delta_vs_base": 201.868625,
+        "revenue_delta_vs_base": 160.303,
+        "balk_delta_vs_base": -58.46
+      },
+      {
+        "stage": "refinement",
+        "peak_price_multiplier": 1.8,
+        "elasticity": -0.5,
+        "demand_factor": 0.745356,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 478.23,
+        "balked": 34.0,
+        "reneged": 0.65,
+        "stranded": 1.78,
+        "mean_los": 3.522208,
+        "los_p95": 8.715331,
+        "util": 0.503614,
+        "revenue_per_hour": 715.733,
+        "profit_per_hour": 496.338262,
+        "waiting_cost_total": 842.657907,
+        "revenue_total": 5725.864,
+        "mean_price_factor": 1.555006,
+        "fairness_gap": 0.600256,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 9.406709,
+        "peak_los_p95_ci95": 0.326675,
+        "offpeak_los_p95": 4.679688,
+        "peak_served_share": 0.693758,
+        "served_retained": 0.904334,
+        "profit_delta_vs_base": 256.268428,
+        "revenue_delta_vs_base": 207.0855,
+        "balk_delta_vs_base": -67.7
+      },
+      {
+        "stage": "refinement",
+        "peak_price_multiplier": 2.0,
+        "elasticity": -0.5,
+        "demand_factor": 0.707107,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 464.02,
+        "balked": 26.38,
+        "reneged": 0.48,
+        "stranded": 1.98,
+        "mean_los": 3.320994,
+        "los_p95": 8.112824,
+        "util": 0.487838,
+        "revenue_per_hour": 753.7325,
+        "profit_per_hour": 543.2333,
+        "waiting_cost_total": 771.493602,
+        "revenue_total": 6029.86,
+        "mean_price_factor": 1.688146,
+        "fairness_gap": 0.550784,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 8.828521,
+        "peak_los_p95_ci95": 0.335672,
+        "offpeak_los_p95": 4.522859,
+        "peak_served_share": 0.688146,
+        "served_retained": 0.877463,
+        "profit_delta_vs_base": 303.163466,
+        "revenue_delta_vs_base": 245.085,
+        "balk_delta_vs_base": -75.32
+      },
+      {
+        "stage": "refinement",
+        "peak_price_multiplier": 1.5,
+        "elasticity": -1.0,
+        "demand_factor": 0.666667,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 449.53,
+        "balked": 20.85,
+        "reneged": 0.58,
+        "stranded": 1.96,
+        "mean_los": 3.183462,
+        "los_p95": 7.558565,
+        "util": 0.474111,
+        "revenue_per_hour": 579.97125,
+        "profit_per_hour": 376.380841,
+        "waiting_cost_total": 716.223272,
+        "revenue_total": 4639.77,
+        "mean_price_factor": 1.339625,
+        "fairness_gap": 0.48414,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 8.245392,
+        "peak_los_p95_ci95": 0.317246,
+        "offpeak_los_p95": 4.47684,
+        "peak_served_share": 0.67925,
+        "served_retained": 0.850062,
+        "profit_delta_vs_base": 136.311007,
+        "revenue_delta_vs_base": 71.32375,
+        "balk_delta_vs_base": -80.85
+      },
+      {
+        "stage": "refinement",
+        "peak_price_multiplier": 1.6,
+        "elasticity": -1.0,
+        "demand_factor": 0.625,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 432.24,
+        "balked": 16.14,
+        "reneged": 0.78,
+        "stranded": 2.03,
+        "mean_los": 3.032667,
+        "los_p95": 6.965053,
+        "util": 0.456481,
+        "revenue_per_hour": 583.9315,
+        "profit_per_hour": 387.762407,
+        "waiting_cost_total": 656.85274,
+        "revenue_total": 4671.452,
+        "mean_price_factor": 1.403784,
+        "fairness_gap": 0.425544,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 7.573421,
+        "peak_los_p95_ci95": 0.28481,
+        "offpeak_los_p95": 4.457577,
+        "peak_served_share": 0.672974,
+        "served_retained": 0.817367,
+        "profit_delta_vs_base": 147.692573,
+        "revenue_delta_vs_base": 75.284,
+        "balk_delta_vs_base": -85.56
+      },
+      {
+        "stage": "refinement",
+        "peak_price_multiplier": 1.8,
+        "elasticity": -1.0,
+        "demand_factor": 0.555556,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 408.35,
+        "balked": 10.34,
+        "reneged": 0.49,
+        "stranded": 1.64,
+        "mean_los": 2.837271,
+        "los_p95": 6.186367,
+        "util": 0.435163,
+        "revenue_per_hour": 596.799,
+        "profit_per_hour": 410.229436,
+        "waiting_cost_total": 580.056516,
+        "revenue_total": 4774.392,
+        "mean_price_factor": 1.517537,
+        "fairness_gap": 0.352106,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 6.726351,
+        "peak_los_p95_ci95": 0.25739,
+        "offpeak_los_p95": 4.536202,
+        "peak_served_share": 0.646921,
+        "served_retained": 0.772191,
+        "profit_delta_vs_base": 170.159602,
+        "revenue_delta_vs_base": 88.1515,
+        "balk_delta_vs_base": -91.36
+      },
+      {
+        "stage": "refinement",
+        "peak_price_multiplier": 2.0,
+        "elasticity": -1.0,
+        "demand_factor": 0.5,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 380.89,
+        "balked": 6.76,
+        "reneged": 0.47,
+        "stranded": 1.84,
+        "mean_los": 2.712863,
+        "los_p95": 5.647271,
+        "util": 0.408053,
+        "revenue_per_hour": 595.775,
+        "profit_per_hour": 417.062201,
+        "waiting_cost_total": 517.20239,
+        "revenue_total": 4766.2,
+        "mean_price_factor": 1.624325,
+        "fairness_gap": 0.343029,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 6.094099,
+        "peak_los_p95_ci95": 0.219544,
+        "offpeak_los_p95": 4.571165,
+        "peak_served_share": 0.624325,
+        "served_retained": 0.720264,
+        "profit_delta_vs_base": 176.992367,
+        "revenue_delta_vs_base": 87.1275,
+        "balk_delta_vs_base": -94.94
+      },
+      {
+        "stage": "refinement",
+        "peak_price_multiplier": 1.5,
+        "elasticity": -1.5,
+        "demand_factor": 0.544331,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 403.63,
+        "balked": 9.37,
+        "reneged": 0.47,
+        "stranded": 1.85,
+        "mean_los": 2.811885,
+        "los_p95": 6.067208,
+        "util": 0.431002,
+        "revenue_per_hour": 513.46375,
+        "profit_per_hour": 328.361842,
+        "waiting_cost_total": 568.315268,
+        "revenue_total": 4107.71,
+        "mean_price_factor": 1.321612,
+        "fairness_gap": 0.371031,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 6.563581,
+        "peak_los_p95_ci95": 0.241957,
+        "offpeak_los_p95": 4.550014,
+        "peak_served_share": 0.643223,
+        "served_retained": 0.763265,
+        "profit_delta_vs_base": 88.292008,
+        "revenue_delta_vs_base": 4.81625,
+        "balk_delta_vs_base": -92.33
+      },
+      {
+        "stage": "refinement",
+        "peak_price_multiplier": 1.6,
+        "elasticity": -1.5,
+        "demand_factor": 0.494106,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 378.21,
+        "balked": 6.77,
+        "reneged": 0.46,
+        "stranded": 1.73,
+        "mean_los": 2.697896,
+        "los_p95": 5.574287,
+        "util": 0.40441,
+        "revenue_per_hour": 500.404,
+        "profit_per_hour": 322.441741,
+        "waiting_cost_total": 511.19807,
+        "revenue_total": 4003.232,
+        "mean_price_factor": 1.374419,
+        "fairness_gap": 0.326299,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 5.998441,
+        "peak_los_p95_ci95": 0.217913,
+        "offpeak_los_p95": 4.586827,
+        "peak_served_share": 0.624031,
+        "served_retained": 0.715196,
+        "profit_delta_vs_base": 82.371907,
+        "revenue_delta_vs_base": -8.2435,
+        "balk_delta_vs_base": -94.93
+      },
+      {
+        "stage": "refinement",
+        "peak_price_multiplier": 1.8,
+        "elasticity": -1.5,
+        "demand_factor": 0.414087,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 344.27,
+        "balked": 3.91,
+        "reneged": 0.4,
+        "stranded": 2.26,
+        "mean_los": 2.57397,
+        "los_p95": 5.104013,
+        "util": 0.37258,
+        "revenue_per_hour": 486.0665,
+        "profit_per_hour": 316.539577,
+        "waiting_cost_total": 443.715388,
+        "revenue_total": 3888.532,
+        "mean_price_factor": 1.466046,
+        "fairness_gap": 0.313253,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 5.523137,
+        "peak_los_p95_ci95": 0.213545,
+        "offpeak_los_p95": 4.471012,
+        "peak_served_share": 0.582558,
+        "served_retained": 0.651015,
+        "profit_delta_vs_base": 76.469743,
+        "revenue_delta_vs_base": -22.581,
+        "balk_delta_vs_base": -97.79
+      },
+      {
+        "stage": "refinement",
+        "peak_price_multiplier": 2.0,
+        "elasticity": -1.5,
+        "demand_factor": 0.353553,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 309.58,
+        "balked": 2.76,
+        "reneged": 0.6,
+        "stranded": 2.09,
+        "mean_los": 2.484288,
+        "los_p95": 4.708617,
+        "util": 0.338135,
+        "revenue_per_hour": 458.19,
+        "profit_per_hour": 295.999377,
+        "waiting_cost_total": 385.024982,
+        "revenue_total": 3665.52,
+        "mean_price_factor": 1.539591,
+        "fairness_gap": 0.308711,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 4.850664,
+        "peak_los_p95_ci95": 0.143298,
+        "offpeak_los_p95": 4.48665,
+        "peak_served_share": 0.539591,
+        "served_retained": 0.585417,
+        "profit_delta_vs_base": 55.929543,
+        "revenue_delta_vs_base": -50.4575,
+        "balk_delta_vs_base": -98.94
+      },
+      {
+        "stage": "refinement",
+        "peak_price_multiplier": 1.5,
+        "elasticity": -2.0,
+        "demand_factor": 0.444444,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 358.92,
+        "balked": 4.79,
+        "reneged": 0.52,
+        "stranded": 1.88,
+        "mean_los": 2.605502,
+        "los_p95": 5.234527,
+        "util": 0.387143,
+        "revenue_per_hour": 448.5325,
+        "profit_per_hour": 275.950279,
+        "waiting_cost_total": 468.157771,
+        "revenue_total": 3588.26,
+        "mean_price_factor": 1.297934,
+        "fairness_gap": 0.339735,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 5.571712,
+        "peak_los_p95_ci95": 0.17519,
+        "offpeak_los_p95": 4.590107,
+        "peak_served_share": 0.595869,
+        "served_retained": 0.678719,
+        "profit_delta_vs_base": 35.880445,
+        "revenue_delta_vs_base": -60.115,
+        "balk_delta_vs_base": -96.91
+      },
+      {
+        "stage": "refinement",
+        "peak_price_multiplier": 1.6,
+        "elasticity": -2.0,
+        "demand_factor": 0.390625,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 331.16,
+        "balked": 3.42,
+        "reneged": 0.57,
+        "stranded": 2.04,
+        "mean_los": 2.53028,
+        "los_p95": 4.908426,
+        "util": 0.359711,
+        "revenue_per_hour": 427.4215,
+        "profit_per_hour": 260.927084,
+        "waiting_cost_total": 419.455331,
+        "revenue_total": 3419.372,
+        "mean_price_factor": 1.33919,
+        "fairness_gap": 0.299544,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 5.165293,
+        "peak_los_p95_ci95": 0.159144,
+        "offpeak_los_p95": 4.470937,
+        "peak_served_share": 0.565317,
+        "served_retained": 0.626224,
+        "profit_delta_vs_base": 20.85725,
+        "revenue_delta_vs_base": -81.226,
+        "balk_delta_vs_base": -98.28
+      },
+      {
+        "stage": "refinement",
+        "peak_price_multiplier": 1.8,
+        "elasticity": -2.0,
+        "demand_factor": 0.308642,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 288.43,
+        "balked": 2.33,
+        "reneged": 0.43,
+        "stranded": 1.78,
+        "mean_los": 2.438748,
+        "los_p95": 4.54797,
+        "util": 0.317383,
+        "revenue_per_hour": 388.837,
+        "profit_per_hour": 230.773896,
+        "waiting_cost_total": 352.004834,
+        "revenue_total": 3110.696,
+        "mean_price_factor": 1.401792,
+        "fairness_gap": 0.334945,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 4.57172,
+        "peak_los_p95_ci95": 0.12627,
+        "offpeak_los_p95": 4.47873,
+        "peak_served_share": 0.502241,
+        "served_retained": 0.545422,
+        "profit_delta_vs_base": -9.295938,
+        "revenue_delta_vs_base": -119.8105,
+        "balk_delta_vs_base": -99.37
+      },
+      {
+        "stage": "refinement",
+        "peak_price_multiplier": 2.0,
+        "elasticity": -2.0,
+        "demand_factor": 0.25,
+        "peak_windows": [
+          [
+            60.0,
+            180.0
+          ],
+          [
+            300.0,
+            420.0
+          ]
+        ],
+        "served": 262.06,
+        "balked": 1.73,
+        "reneged": 0.52,
+        "stranded": 1.86,
+        "mean_los": 2.431072,
+        "los_p95": 4.491198,
+        "util": 0.293342,
+        "revenue_per_hour": 367.745,
+        "profit_per_hour": 213.8427,
+        "waiting_cost_total": 318.718402,
+        "revenue_total": 2941.96,
+        "mean_price_factor": 1.453983,
+        "fairness_gap": 0.311963,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 4.375266,
+        "peak_los_p95_ci95": 0.136357,
+        "offpeak_los_p95": 4.497148,
+        "peak_served_share": 0.453983,
+        "served_retained": 0.495556,
+        "profit_delta_vs_base": -26.227134,
+        "revenue_delta_vs_base": -140.9025,
+        "balk_delta_vs_base": -99.97
+      }
+    ],
+    "pricing_optima": [
+      {
+        "elasticity": -0.5,
+        "revenue_max_multiplier": 2.0,
+        "revenue_max_per_hour": 753.7325,
+        "revenue_max_served": 464.02,
+        "revenue_max_peak_p95": 8.828521,
+        "revenue_max_is_boundary": true,
+        "profit_max_multiplier": 2.0,
+        "profit_max_per_hour": 543.2333,
+        "profit_max_served": 464.02,
+        "profit_max_los_p95": 8.112824,
+        "profit_max_peak_p95": 8.828521,
+        "profit_max_is_boundary": true,
+        "service_neutral_multiplier": 1.2,
+        "service_neutral_profit_per_hour": 318.454714,
+        "service_neutral_served_retained": 0.979104,
+        "service_neutral_peak_p95": 11.510127
+      },
+      {
+        "elasticity": -1.0,
+        "revenue_max_multiplier": 1.8,
+        "revenue_max_per_hour": 596.799,
+        "revenue_max_served": 408.35,
+        "revenue_max_peak_p95": 6.726351,
+        "revenue_max_is_boundary": false,
+        "profit_max_multiplier": 2.0,
+        "profit_max_per_hour": 417.062201,
+        "profit_max_served": 380.89,
+        "profit_max_los_p95": 5.647271,
+        "profit_max_peak_p95": 6.094099,
+        "profit_max_is_boundary": true,
+        "service_neutral_multiplier": 1.1,
+        "service_neutral_profit_per_hour": 282.891398,
+        "service_neutral_served_retained": 0.97814,
+        "service_neutral_peak_p95": 11.367907
+      },
+      {
+        "elasticity": -1.5,
+        "revenue_max_multiplier": 1.2,
+        "revenue_max_per_hour": 528.447,
+        "revenue_max_served": 481.98,
+        "revenue_max_peak_p95": 9.675003,
+        "revenue_max_is_boundary": false,
+        "profit_max_multiplier": 1.5,
+        "profit_max_per_hour": 328.361842,
+        "profit_max_served": 403.63,
+        "profit_max_los_p95": 6.067208,
+        "profit_max_peak_p95": 6.563581,
+        "profit_max_is_boundary": false,
+        "service_neutral_multiplier": 1.0,
+        "service_neutral_profit_per_hour": 240.069834,
+        "service_neutral_served_retained": 1.0,
+        "service_neutral_peak_p95": 12.394949
+      },
+      {
+        "elasticity": -2.0,
+        "revenue_max_multiplier": 1.1,
+        "revenue_max_per_hour": 515.48025,
+        "revenue_max_served": 500.66,
+        "revenue_max_peak_p95": 10.515899,
+        "revenue_max_is_boundary": false,
+        "profit_max_multiplier": 1.2,
+        "profit_max_per_hour": 293.486499,
+        "profit_max_served": 459.34,
+        "profit_max_los_p95": 8.171281,
+        "profit_max_peak_p95": 8.927752,
+        "profit_max_is_boundary": false,
+        "service_neutral_multiplier": 1.0,
+        "service_neutral_profit_per_hour": 240.069834,
+        "service_neutral_served_retained": 1.0,
+        "service_neutral_peak_p95": 12.394949
+      }
+    ],
+    "sla_grid": [
+      {
+        "target_minutes": 3.0,
+        "compensation": 1.0,
+        "served": 528.82,
+        "balked": 101.7,
+        "reneged": 0.39,
+        "stranded": 1.81,
+        "mean_los": 4.677318,
+        "los_p95": 11.813868,
+        "util": 0.549397,
+        "revenue_per_hour": 508.6475,
+        "profit_per_hour": 201.687334,
+        "waiting_cost_total": 1236.121326,
+        "revenue_total": 4069.18,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.09767,
+        "sla_attainment": 0.419274,
+        "sla_compensation_total": 307.06,
+        "starvation_events": 0.0,
+        "peak_los_p95": 12.394949,
+        "peak_los_p95_ci95": 0.264469,
+        "offpeak_los_p95": 4.885781,
+        "peak_served_share": 0.734998,
+        "compensation_per_hour": 38.3825,
+        "profit_delta_vs_no_sla": -38.3825,
+        "compensation_per_served_customer": 0.580651
+      },
+      {
+        "target_minutes": 3.0,
+        "compensation": 2.0,
+        "served": 528.82,
+        "balked": 101.7,
+        "reneged": 0.39,
+        "stranded": 1.81,
+        "mean_los": 4.677318,
+        "los_p95": 11.813868,
+        "util": 0.549397,
+        "revenue_per_hour": 508.6475,
+        "profit_per_hour": 163.304834,
+        "waiting_cost_total": 1236.121326,
+        "revenue_total": 4069.18,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.09767,
+        "sla_attainment": 0.419274,
+        "sla_compensation_total": 614.12,
+        "starvation_events": 0.0,
+        "peak_los_p95": 12.394949,
+        "peak_los_p95_ci95": 0.264469,
+        "offpeak_los_p95": 4.885781,
+        "peak_served_share": 0.734998,
+        "compensation_per_hour": 76.765,
+        "profit_delta_vs_no_sla": -76.765,
+        "compensation_per_served_customer": 1.161303
+      },
+      {
+        "target_minutes": 3.0,
+        "compensation": 4.0,
+        "served": 528.82,
+        "balked": 101.7,
+        "reneged": 0.39,
+        "stranded": 1.81,
+        "mean_los": 4.677318,
+        "los_p95": 11.813868,
+        "util": 0.549397,
+        "revenue_per_hour": 508.6475,
+        "profit_per_hour": 86.539834,
+        "waiting_cost_total": 1236.121326,
+        "revenue_total": 4069.18,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.09767,
+        "sla_attainment": 0.419274,
+        "sla_compensation_total": 1228.24,
+        "starvation_events": 0.0,
+        "peak_los_p95": 12.394949,
+        "peak_los_p95_ci95": 0.264469,
+        "offpeak_los_p95": 4.885781,
+        "peak_served_share": 0.734998,
+        "compensation_per_hour": 153.53,
+        "profit_delta_vs_no_sla": -153.53,
+        "compensation_per_served_customer": 2.322605
+      },
+      {
+        "target_minutes": 5.0,
+        "compensation": 1.0,
+        "served": 528.82,
+        "balked": 101.7,
+        "reneged": 0.39,
+        "stranded": 1.81,
+        "mean_los": 4.677318,
+        "los_p95": 11.813868,
+        "util": 0.549397,
+        "revenue_per_hour": 508.6475,
+        "profit_per_hour": 214.588584,
+        "waiting_cost_total": 1236.121326,
+        "revenue_total": 4069.18,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.09767,
+        "sla_attainment": 0.614366,
+        "sla_compensation_total": 203.85,
+        "starvation_events": 0.0,
+        "peak_los_p95": 12.394949,
+        "peak_los_p95_ci95": 0.264469,
+        "offpeak_los_p95": 4.885781,
+        "peak_served_share": 0.734998,
+        "compensation_per_hour": 25.48125,
+        "profit_delta_vs_no_sla": -25.48125,
+        "compensation_per_served_customer": 0.385481
+      },
+      {
+        "target_minutes": 5.0,
+        "compensation": 2.0,
+        "served": 528.82,
+        "balked": 101.7,
+        "reneged": 0.39,
+        "stranded": 1.81,
+        "mean_los": 4.677318,
+        "los_p95": 11.813868,
+        "util": 0.549397,
+        "revenue_per_hour": 508.6475,
+        "profit_per_hour": 189.107334,
+        "waiting_cost_total": 1236.121326,
+        "revenue_total": 4069.18,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.09767,
+        "sla_attainment": 0.614366,
+        "sla_compensation_total": 407.7,
+        "starvation_events": 0.0,
+        "peak_los_p95": 12.394949,
+        "peak_los_p95_ci95": 0.264469,
+        "offpeak_los_p95": 4.885781,
+        "peak_served_share": 0.734998,
+        "compensation_per_hour": 50.9625,
+        "profit_delta_vs_no_sla": -50.9625,
+        "compensation_per_served_customer": 0.770962
+      },
+      {
+        "target_minutes": 5.0,
+        "compensation": 4.0,
+        "served": 528.82,
+        "balked": 101.7,
+        "reneged": 0.39,
+        "stranded": 1.81,
+        "mean_los": 4.677318,
+        "los_p95": 11.813868,
+        "util": 0.549397,
+        "revenue_per_hour": 508.6475,
+        "profit_per_hour": 138.144834,
+        "waiting_cost_total": 1236.121326,
+        "revenue_total": 4069.18,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.09767,
+        "sla_attainment": 0.614366,
+        "sla_compensation_total": 815.4,
+        "starvation_events": 0.0,
+        "peak_los_p95": 12.394949,
+        "peak_los_p95_ci95": 0.264469,
+        "offpeak_los_p95": 4.885781,
+        "peak_served_share": 0.734998,
+        "compensation_per_hour": 101.925,
+        "profit_delta_vs_no_sla": -101.925,
+        "compensation_per_served_customer": 1.541924
+      },
+      {
+        "target_minutes": 8.0,
+        "compensation": 1.0,
+        "served": 528.82,
+        "balked": 101.7,
+        "reneged": 0.39,
+        "stranded": 1.81,
+        "mean_los": 4.677318,
+        "los_p95": 11.813868,
+        "util": 0.549397,
+        "revenue_per_hour": 508.6475,
+        "profit_per_hour": 228.152334,
+        "waiting_cost_total": 1236.121326,
+        "revenue_total": 4069.18,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.09767,
+        "sla_attainment": 0.819484,
+        "sla_compensation_total": 95.34,
+        "starvation_events": 0.0,
+        "peak_los_p95": 12.394949,
+        "peak_los_p95_ci95": 0.264469,
+        "offpeak_los_p95": 4.885781,
+        "peak_served_share": 0.734998,
+        "compensation_per_hour": 11.9175,
+        "profit_delta_vs_no_sla": -11.9175,
+        "compensation_per_served_customer": 0.180288
+      },
+      {
+        "target_minutes": 8.0,
+        "compensation": 2.0,
+        "served": 528.82,
+        "balked": 101.7,
+        "reneged": 0.39,
+        "stranded": 1.81,
+        "mean_los": 4.677318,
+        "los_p95": 11.813868,
+        "util": 0.549397,
+        "revenue_per_hour": 508.6475,
+        "profit_per_hour": 216.234834,
+        "waiting_cost_total": 1236.121326,
+        "revenue_total": 4069.18,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.09767,
+        "sla_attainment": 0.819484,
+        "sla_compensation_total": 190.68,
+        "starvation_events": 0.0,
+        "peak_los_p95": 12.394949,
+        "peak_los_p95_ci95": 0.264469,
+        "offpeak_los_p95": 4.885781,
+        "peak_served_share": 0.734998,
+        "compensation_per_hour": 23.835,
+        "profit_delta_vs_no_sla": -23.835,
+        "compensation_per_served_customer": 0.360576
+      },
+      {
+        "target_minutes": 8.0,
+        "compensation": 4.0,
+        "served": 528.82,
+        "balked": 101.7,
+        "reneged": 0.39,
+        "stranded": 1.81,
+        "mean_los": 4.677318,
+        "los_p95": 11.813868,
+        "util": 0.549397,
+        "revenue_per_hour": 508.6475,
+        "profit_per_hour": 192.399834,
+        "waiting_cost_total": 1236.121326,
+        "revenue_total": 4069.18,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.09767,
+        "sla_attainment": 0.819484,
+        "sla_compensation_total": 381.36,
+        "starvation_events": 0.0,
+        "peak_los_p95": 12.394949,
+        "peak_los_p95_ci95": 0.264469,
+        "offpeak_los_p95": 4.885781,
+        "peak_served_share": 0.734998,
+        "compensation_per_hour": 47.67,
+        "profit_delta_vs_no_sla": -47.67,
+        "compensation_per_served_customer": 0.721153
+      }
+    ],
+    "sla_promises": [
+      {
+        "target_minutes": 3.0,
+        "attainment": 0.419274,
+        "cheapest_compensation": 1.0,
+        "cheapest_compensation_per_hour": 38.3825,
+        "cheapest_profit_per_hour": 201.687334,
+        "cheapest_profit_delta_vs_no_sla": -38.3825,
+        "most_expensive_compensation": 4.0,
+        "most_expensive_profit_per_hour": 86.539834,
+        "attainment_identical_across_compensation": true
+      },
+      {
+        "target_minutes": 5.0,
+        "attainment": 0.614366,
+        "cheapest_compensation": 1.0,
+        "cheapest_compensation_per_hour": 25.48125,
+        "cheapest_profit_per_hour": 214.588584,
+        "cheapest_profit_delta_vs_no_sla": -25.48125,
+        "most_expensive_compensation": 4.0,
+        "most_expensive_profit_per_hour": 138.144834,
+        "attainment_identical_across_compensation": true
+      },
+      {
+        "target_minutes": 8.0,
+        "attainment": 0.819484,
+        "cheapest_compensation": 1.0,
+        "cheapest_compensation_per_hour": 11.9175,
+        "cheapest_profit_per_hour": 228.152334,
+        "cheapest_profit_delta_vs_no_sla": -11.9175,
+        "most_expensive_compensation": 4.0,
+        "most_expensive_profit_per_hour": 192.399834,
+        "attainment_identical_across_compensation": true
+      }
+    ],
+    "sla_summary": {
+      "no_sla": {
+        "profit_per_hour": 240.069834,
+        "los_p95": 11.813868,
+        "peak_los_p95": 12.394949,
+        "mean_los": 4.677318,
+        "served": 528.82
+      },
+      "cheapest_full_attainment": {
+        "target_minutes": 8.0,
+        "min_compensation": 1.0,
+        "attainment": 0.819484,
+        "profit_per_hour": 228.152334,
+        "attainment_is_100pct": false
+      },
+      "max_attainment": {
+        "target_minutes": 8.0,
+        "attainment": 0.819484,
+        "compensation": 1.0,
+        "profit_per_hour": 228.152334
+      },
+      "tightest_promise": {
+        "target_minutes": 3.0,
+        "attainment": 0.419274,
+        "cheapest_compensation": 1.0,
+        "cheapest_compensation_per_hour": 38.3825,
+        "cheapest_profit_per_hour": 201.687334,
+        "cheapest_profit_delta_vs_no_sla": -38.3825,
+        "most_expensive_compensation": 4.0,
+        "most_expensive_profit_per_hour": 86.539834,
+        "attainment_identical_across_compensation": true
+      },
+      "loosest_promise": {
+        "target_minutes": 8.0,
+        "attainment": 0.819484,
+        "cheapest_compensation": 1.0,
+        "cheapest_compensation_per_hour": 11.9175,
+        "cheapest_profit_per_hour": 228.152334,
+        "cheapest_profit_delta_vs_no_sla": -11.9175,
+        "most_expensive_compensation": 4.0,
+        "most_expensive_profit_per_hour": 192.399834,
+        "attainment_identical_across_compensation": true
+      },
+      "profit_cost_of_tightest_vs_loosest": -26.465,
+      "attainment_uplift_tightest_to_loosest": 0.40021,
+      "worst_case": {
+        "target_minutes": 3.0,
+        "compensation": 4.0,
+        "served": 528.82,
+        "balked": 101.7,
+        "reneged": 0.39,
+        "stranded": 1.81,
+        "mean_los": 4.677318,
+        "los_p95": 11.813868,
+        "util": 0.549397,
+        "revenue_per_hour": 508.6475,
+        "profit_per_hour": 86.539834,
+        "waiting_cost_total": 1236.121326,
+        "revenue_total": 4069.18,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.09767,
+        "sla_attainment": 0.419274,
+        "sla_compensation_total": 1228.24,
+        "starvation_events": 0.0,
+        "peak_los_p95": 12.394949,
+        "peak_los_p95_ci95": 0.264469,
+        "offpeak_los_p95": 4.885781,
+        "peak_served_share": 0.734998,
+        "compensation_per_hour": 153.53,
+        "profit_delta_vs_no_sla": -153.53,
+        "compensation_per_served_customer": 2.322605
+      },
+      "service_is_unchanged_by_sla": true
+    },
+    "fairness_cap": [
+      {
+        "arrival_rate": 1.1,
+        "utilisation": 0.776105,
+        "starvation_cap": null,
+        "served": 492.97,
+        "balked": 187.93,
+        "reneged": 7.76,
+        "stranded": 0.0,
+        "mean_los": 4.377523,
+        "los_p95": 9.246561,
+        "util": 0.783273,
+        "revenue_per_hour": 474.5175,
+        "profit_per_hour": 264.714085,
+        "waiting_cost_total": 1078.427317,
+        "revenue_total": 3796.14,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.230059,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 9.682378,
+        "peak_los_p95_ci95": 0.12543,
+        "offpeak_los_p95": 5.702898,
+        "peak_served_share": 0.699568,
+        "escalations_per_hour": 0.0,
+        "by_class": {
+          "delivery": {
+            "mean_los": 4.898917,
+            "p95_los": 9.855878,
+            "served": 54.54
+          },
+          "regular": {
+            "mean_los": 4.408732,
+            "p95_los": 9.250997,
+            "served": 378.11
+          },
+          "student": {
+            "mean_los": 3.699885,
+            "p95_los": 7.796053,
+            "served": 60.32
+          }
+        },
+        "class_mean_spread": 1.199032,
+        "class_p95_spread": 2.059825,
+        "ci95": {
+          "profit_per_hour": 2.752211,
+          "los_p95": 0.119204,
+          "fairness_gap": 0.108567
+        },
+        "paired_vs_uncapped": null
+      },
+      {
+        "arrival_rate": 1.1,
+        "utilisation": 0.776105,
+        "starvation_cap": 0.5,
+        "served": 490.57,
+        "balked": 191.62,
+        "reneged": 6.46,
+        "stranded": 0.0,
+        "mean_los": 4.471108,
+        "los_p95": 8.343105,
+        "util": 0.78096,
+        "revenue_per_hour": 472.4,
+        "profit_per_hour": 260.413005,
+        "waiting_cost_total": 1095.895958,
+        "revenue_total": 3779.2,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.476113,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 464.0,
+        "peak_los_p95": 8.722244,
+        "peak_los_p95_ci95": 0.118553,
+        "offpeak_los_p95": 5.451535,
+        "peak_served_share": 0.698303,
+        "escalations_per_hour": 58.0,
+        "by_class": {
+          "delivery": {
+            "mean_los": 5.089596,
+            "p95_los": 8.866959,
+            "served": 54.54
+          },
+          "regular": {
+            "mean_los": 4.516367,
+            "p95_los": 8.336735,
+            "served": 375.4
+          },
+          "student": {
+            "mean_los": 3.616781,
+            "p95_los": 6.926902,
+            "served": 60.63
+          }
+        },
+        "class_mean_spread": 1.472815,
+        "class_p95_spread": 1.940057,
+        "ci95": {
+          "profit_per_hour": 3.024783,
+          "los_p95": 0.112267,
+          "fairness_gap": 0.106586
+        },
+        "paired_vs_uncapped": {
+          "reps": 100,
+          "diff": {
+            "profit_per_hour": -4.30108,
+            "los_p95": -0.903457,
+            "fairness_gap": 0.246054,
+            "served": -2.4,
+            "mean_los": 0.093584
+          },
+          "ci95": {
+            "profit_per_hour": 1.206754,
+            "los_p95": 0.077966,
+            "fairness_gap": 0.071717,
+            "served": 1.079284,
+            "mean_los": 0.02402
+          }
+        }
+      },
+      {
+        "arrival_rate": 1.1,
+        "utilisation": 0.776105,
+        "starvation_cap": 1.0,
+        "served": 490.81,
+        "balked": 191.55,
+        "reneged": 6.29,
+        "stranded": 0.0,
+        "mean_los": 4.459202,
+        "los_p95": 8.320269,
+        "util": 0.781447,
+        "revenue_per_hour": 472.65,
+        "profit_per_hour": 260.956338,
+        "waiting_cost_total": 1093.5493,
+        "revenue_total": 3781.2,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.452368,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 416.79,
+        "peak_los_p95": 8.691875,
+        "peak_los_p95_ci95": 0.116587,
+        "offpeak_los_p95": 5.451136,
+        "peak_served_share": 0.698259,
+        "escalations_per_hour": 52.09875,
+        "by_class": {
+          "delivery": {
+            "mean_los": 5.056241,
+            "p95_los": 8.782508,
+            "served": 54.54
+          },
+          "regular": {
+            "mean_los": 4.506035,
+            "p95_los": 8.315258,
+            "served": 375.78
+          },
+          "student": {
+            "mean_los": 3.610071,
+            "p95_los": 6.894756,
+            "served": 60.49
+          }
+        },
+        "class_mean_spread": 1.44617,
+        "class_p95_spread": 1.887752,
+        "ci95": {
+          "profit_per_hour": 2.933532,
+          "los_p95": 0.110065,
+          "fairness_gap": 0.108483
+        },
+        "paired_vs_uncapped": {
+          "reps": 100,
+          "diff": {
+            "profit_per_hour": -3.757748,
+            "los_p95": -0.926293,
+            "fairness_gap": 0.222309,
+            "served": -2.16,
+            "mean_los": 0.081679
+          },
+          "ci95": {
+            "profit_per_hour": 1.197451,
+            "los_p95": 0.079404,
+            "fairness_gap": 0.071551,
+            "served": 0.919186,
+            "mean_los": 0.025124
+          }
+        }
+      },
+      {
+        "arrival_rate": 1.1,
+        "utilisation": 0.776105,
+        "starvation_cap": 1.5,
+        "served": 490.44,
+        "balked": 191.61,
+        "reneged": 6.59,
+        "stranded": 0.0,
+        "mean_los": 4.459792,
+        "los_p95": 8.344608,
+        "util": 0.781432,
+        "revenue_per_hour": 472.1975,
+        "profit_per_hour": 260.587835,
+        "waiting_cost_total": 1092.877317,
+        "revenue_total": 3777.58,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.432421,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 374.17,
+        "peak_los_p95": 8.703884,
+        "peak_los_p95_ci95": 0.115477,
+        "offpeak_los_p95": 5.502332,
+        "peak_served_share": 0.69822,
+        "escalations_per_hour": 46.77125,
+        "by_class": {
+          "delivery": {
+            "mean_los": 5.057099,
+            "p95_los": 8.846602,
+            "served": 54.54
+          },
+          "regular": {
+            "mean_los": 4.503555,
+            "p95_los": 8.35142,
+            "served": 375.42
+          },
+          "student": {
+            "mean_los": 3.632025,
+            "p95_los": 6.946678,
+            "served": 60.48
+          }
+        },
+        "class_mean_spread": 1.425074,
+        "class_p95_spread": 1.899924,
+        "ci95": {
+          "profit_per_hour": 2.934578,
+          "los_p95": 0.106819,
+          "fairness_gap": 0.109194
+        },
+        "paired_vs_uncapped": {
+          "reps": 100,
+          "diff": {
+            "profit_per_hour": -4.12625,
+            "los_p95": -0.901953,
+            "fairness_gap": 0.202362,
+            "served": -2.53,
+            "mean_los": 0.082269
+          },
+          "ci95": {
+            "profit_per_hour": 1.296451,
+            "los_p95": 0.088065,
+            "fairness_gap": 0.070666,
+            "served": 0.973608,
+            "mean_los": 0.026684
+          }
+        }
+      },
+      {
+        "arrival_rate": 1.1,
+        "utilisation": 0.776105,
+        "starvation_cap": 2.0,
+        "served": 490.81,
+        "balked": 191.41,
+        "reneged": 6.43,
+        "stranded": 0.0,
+        "mean_los": 4.462065,
+        "los_p95": 8.364815,
+        "util": 0.781687,
+        "revenue_per_hour": 472.5125,
+        "profit_per_hour": 260.715318,
+        "waiting_cost_total": 1094.377453,
+        "revenue_total": 3780.1,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.417756,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 330.53,
+        "peak_los_p95": 8.722398,
+        "peak_los_p95_ci95": 0.11847,
+        "offpeak_los_p95": 5.523088,
+        "peak_served_share": 0.698363,
+        "escalations_per_hour": 41.31625,
+        "by_class": {
+          "delivery": {
+            "mean_los": 5.04767,
+            "p95_los": 8.8298,
+            "served": 54.54
+          },
+          "regular": {
+            "mean_los": 4.506803,
+            "p95_los": 8.349519,
+            "served": 375.73
+          },
+          "student": {
+            "mean_los": 3.637502,
+            "p95_los": 7.046828,
+            "served": 60.54
+          }
+        },
+        "class_mean_spread": 1.410168,
+        "class_p95_spread": 1.782972,
+        "ci95": {
+          "profit_per_hour": 2.82564,
+          "los_p95": 0.106596,
+          "fairness_gap": 0.104359
+        },
+        "paired_vs_uncapped": {
+          "reps": 100,
+          "diff": {
+            "profit_per_hour": -3.998767,
+            "los_p95": -0.881747,
+            "fairness_gap": 0.187696,
+            "served": -2.16,
+            "mean_los": 0.084541
+          },
+          "ci95": {
+            "profit_per_hour": 1.223194,
+            "los_p95": 0.083946,
+            "fairness_gap": 0.072535,
+            "served": 0.989133,
+            "mean_los": 0.023621
+          }
+        }
+      },
+      {
+        "arrival_rate": 1.1,
+        "utilisation": 0.776105,
+        "starvation_cap": 3.0,
+        "served": 491.41,
+        "balked": 190.74,
+        "reneged": 6.5,
+        "stranded": 0.0,
+        "mean_los": 4.447865,
+        "los_p95": 8.418943,
+        "util": 0.782587,
+        "revenue_per_hour": 472.94,
+        "profit_per_hour": 261.425351,
+        "waiting_cost_total": 1092.11719,
+        "revenue_total": 3783.52,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.359393,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 244.8,
+        "peak_los_p95": 8.754815,
+        "peak_los_p95_ci95": 0.115395,
+        "offpeak_los_p95": 5.625699,
+        "peak_served_share": 0.698551,
+        "escalations_per_hour": 30.6,
+        "by_class": {
+          "delivery": {
+            "mean_los": 5.030787,
+            "p95_los": 8.873609,
+            "served": 54.54
+          },
+          "regular": {
+            "mean_los": 4.48542,
+            "p95_los": 8.427144,
+            "served": 376.15
+          },
+          "student": {
+            "mean_los": 3.676907,
+            "p95_los": 7.111807,
+            "served": 60.72
+          }
+        },
+        "class_mean_spread": 1.35388,
+        "class_p95_spread": 1.761802,
+        "ci95": {
+          "profit_per_hour": 2.965001,
+          "los_p95": 0.105178,
+          "fairness_gap": 0.105838
+        },
+        "paired_vs_uncapped": {
+          "reps": 100,
+          "diff": {
+            "profit_per_hour": -3.288734,
+            "los_p95": -0.827618,
+            "fairness_gap": 0.129334,
+            "served": -1.56,
+            "mean_los": 0.070341
+          },
+          "ci95": {
+            "profit_per_hour": 1.265236,
+            "los_p95": 0.082691,
+            "fairness_gap": 0.068387,
+            "served": 1.060175,
+            "mean_los": 0.025052
+          }
+        }
+      },
+      {
+        "arrival_rate": 1.1,
+        "utilisation": 0.776105,
+        "starvation_cap": 5.0,
+        "served": 492.76,
+        "balked": 188.88,
+        "reneged": 7.02,
+        "stranded": 0.0,
+        "mean_los": 4.400598,
+        "los_p95": 8.763698,
+        "util": 0.782862,
+        "revenue_per_hour": 474.1125,
+        "profit_per_hour": 263.672946,
+        "waiting_cost_total": 1083.516435,
+        "revenue_total": 3792.9,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.267107,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 97.02,
+        "peak_los_p95": 9.094552,
+        "peak_los_p95_ci95": 0.109979,
+        "offpeak_los_p95": 5.715341,
+        "peak_served_share": 0.699564,
+        "escalations_per_hour": 12.1275,
+        "by_class": {
+          "delivery": {
+            "mean_los": 4.923523,
+            "p95_los": 9.181729,
+            "served": 54.54
+          },
+          "regular": {
+            "mean_los": 4.43756,
+            "p95_los": 8.770837,
+            "served": 377.88
+          },
+          "student": {
+            "mean_los": 3.680831,
+            "p95_los": 7.470791,
+            "served": 60.34
+          }
+        },
+        "class_mean_spread": 1.242692,
+        "class_p95_spread": 1.710938,
+        "ci95": {
+          "profit_per_hour": 2.898997,
+          "los_p95": 0.101941,
+          "fairness_gap": 0.106374
+        },
+        "paired_vs_uncapped": {
+          "reps": 100,
+          "diff": {
+            "profit_per_hour": -1.04114,
+            "los_p95": -0.482863,
+            "fairness_gap": 0.037047,
+            "served": -0.21,
+            "mean_los": 0.023074
+          },
+          "ci95": {
+            "profit_per_hour": 1.067931,
+            "los_p95": 0.069132,
+            "fairness_gap": 0.048581,
+            "served": 0.859669,
+            "mean_los": 0.020982
+          }
+        }
+      },
+      {
+        "arrival_rate": 1.25,
+        "utilisation": 0.881937,
+        "starvation_cap": null,
+        "served": 518.47,
+        "balked": 259.79,
+        "reneged": 11.37,
+        "stranded": 0.0,
+        "mean_los": 4.777642,
+        "los_p95": 9.992079,
+        "util": 0.825765,
+        "revenue_per_hour": 498.43,
+        "profit_per_hour": 268.68467,
+        "waiting_cost_total": 1237.962639,
+        "revenue_total": 3987.44,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.483723,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 10.457661,
+        "peak_los_p95_ci95": 0.139923,
+        "offpeak_los_p95": 6.274288,
+        "peak_served_share": 0.676902,
+        "escalations_per_hour": 0.0,
+        "by_class": {
+          "delivery": {
+            "mean_los": 5.372315,
+            "p95_los": 10.509887,
+            "served": 62.9
+          },
+          "regular": {
+            "mean_los": 4.804569,
+            "p95_los": 9.987227,
+            "served": 399.34
+          },
+          "student": {
+            "mean_los": 3.919298,
+            "p95_los": 8.236185,
+            "served": 56.23
+          }
+        },
+        "class_mean_spread": 1.453017,
+        "class_p95_spread": 2.273702,
+        "ci95": {
+          "profit_per_hour": 2.834958,
+          "los_p95": 0.116882,
+          "fairness_gap": 0.11589
+        },
+        "paired_vs_uncapped": null
+      },
+      {
+        "arrival_rate": 1.25,
+        "utilisation": 0.881937,
+        "starvation_cap": 0.5,
+        "served": 515.56,
+        "balked": 264.39,
+        "reneged": 9.72,
+        "stranded": 0.0,
+        "mean_los": 4.890266,
+        "los_p95": 8.863802,
+        "util": 0.824972,
+        "revenue_per_hour": 496.025,
+        "profit_per_hour": 263.522107,
+        "waiting_cost_total": 1260.023142,
+        "revenue_total": 3968.2,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.775863,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 520.01,
+        "peak_los_p95": 9.251855,
+        "peak_los_p95_ci95": 0.118754,
+        "offpeak_los_p95": 5.922278,
+        "peak_served_share": 0.675415,
+        "escalations_per_hour": 65.00125,
+        "by_class": {
+          "delivery": {
+            "mean_los": 5.587933,
+            "p95_los": 9.349916,
+            "served": 62.9
+          },
+          "regular": {
+            "mean_los": 4.929435,
+            "p95_los": 8.830334,
+            "served": 396.52
+          },
+          "student": {
+            "mean_los": 3.817397,
+            "p95_los": 7.283212,
+            "served": 56.14
+          }
+        },
+        "class_mean_spread": 1.770536,
+        "class_p95_spread": 2.066704,
+        "ci95": {
+          "profit_per_hour": 2.770719,
+          "los_p95": 0.107121,
+          "fairness_gap": 0.102428
+        },
+        "paired_vs_uncapped": {
+          "reps": 100,
+          "diff": {
+            "profit_per_hour": -5.162563,
+            "los_p95": -1.128277,
+            "fairness_gap": 0.29214,
+            "served": -2.91,
+            "mean_los": 0.112623
+          },
+          "ci95": {
+            "profit_per_hour": 1.179414,
+            "los_p95": 0.076673,
+            "fairness_gap": 0.077552,
+            "served": 0.919345,
+            "mean_los": 0.024218
+          }
+        }
+      },
+      {
+        "arrival_rate": 1.25,
+        "utilisation": 0.881937,
+        "starvation_cap": 1.0,
+        "served": 515.39,
+        "balked": 264.35,
+        "reneged": 9.9,
+        "stranded": 0.0,
+        "mean_los": 4.885841,
+        "los_p95": 8.858078,
+        "util": 0.824396,
+        "revenue_per_hour": 495.765,
+        "profit_per_hour": 263.453194,
+        "waiting_cost_total": 1258.494446,
+        "revenue_total": 3966.12,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.757195,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 476.16,
+        "peak_los_p95": 9.245128,
+        "peak_los_p95_ci95": 0.119461,
+        "offpeak_los_p95": 5.935117,
+        "peak_served_share": 0.675222,
+        "escalations_per_hour": 59.52,
+        "by_class": {
+          "delivery": {
+            "mean_los": 5.589834,
+            "p95_los": 9.346945,
+            "served": 62.9
+          },
+          "regular": {
+            "mean_los": 4.922034,
+            "p95_los": 8.830144,
+            "served": 396.04
+          },
+          "student": {
+            "mean_los": 3.838167,
+            "p95_los": 7.345291,
+            "served": 56.45
+          }
+        },
+        "class_mean_spread": 1.751667,
+        "class_p95_spread": 2.001654,
+        "ci95": {
+          "profit_per_hour": 2.749283,
+          "los_p95": 0.108647,
+          "fairness_gap": 0.10138
+        },
+        "paired_vs_uncapped": {
+          "reps": 100,
+          "diff": {
+            "profit_per_hour": -5.231476,
+            "los_p95": -1.134001,
+            "fairness_gap": 0.273472,
+            "served": -3.08,
+            "mean_los": 0.108199
+          },
+          "ci95": {
+            "profit_per_hour": 1.095088,
+            "los_p95": 0.075633,
+            "fairness_gap": 0.074637,
+            "served": 0.866138,
+            "mean_los": 0.023297
+          }
+        }
+      },
+      {
+        "arrival_rate": 1.25,
+        "utilisation": 0.881937,
+        "starvation_cap": 1.5,
+        "served": 515.62,
+        "balked": 263.86,
+        "reneged": 10.12,
+        "stranded": 0.0,
+        "mean_los": 4.883742,
+        "los_p95": 8.857931,
+        "util": 0.824981,
+        "revenue_per_hour": 495.925,
+        "profit_per_hour": 263.623851,
+        "waiting_cost_total": 1258.409194,
+        "revenue_total": 3967.4,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.779029,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 435.49,
+        "peak_los_p95": 9.241639,
+        "peak_los_p95_ci95": 0.127634,
+        "offpeak_los_p95": 5.990029,
+        "peak_served_share": 0.675161,
+        "escalations_per_hour": 54.43625,
+        "by_class": {
+          "delivery": {
+            "mean_los": 5.593572,
+            "p95_los": 9.453432,
+            "served": 62.9
+          },
+          "regular": {
+            "mean_los": 4.921783,
+            "p95_los": 8.833778,
+            "served": 396.09
+          },
+          "student": {
+            "mean_los": 3.817661,
+            "p95_los": 7.230052,
+            "served": 56.63
+          }
+        },
+        "class_mean_spread": 1.775911,
+        "class_p95_spread": 2.22338,
+        "ci95": {
+          "profit_per_hour": 2.922811,
+          "los_p95": 0.113923,
+          "fairness_gap": 0.105289
+        },
+        "paired_vs_uncapped": {
+          "reps": 100,
+          "diff": {
+            "profit_per_hour": -5.060819,
+            "los_p95": -1.134148,
+            "fairness_gap": 0.295307,
+            "served": -2.85,
+            "mean_los": 0.1061
+          },
+          "ci95": {
+            "profit_per_hour": 1.124678,
+            "los_p95": 0.077952,
+            "fairness_gap": 0.081295,
+            "served": 0.968782,
+            "mean_los": 0.023795
+          }
+        }
+      },
+      {
+        "arrival_rate": 1.25,
+        "utilisation": 0.881937,
+        "starvation_cap": 2.0,
+        "served": 515.5,
+        "balked": 264.34,
+        "reneged": 9.76,
+        "stranded": 0.0,
+        "mean_los": 4.894066,
+        "los_p95": 8.922319,
+        "util": 0.825084,
+        "revenue_per_hour": 496.0925,
+        "profit_per_hour": 263.474117,
+        "waiting_cost_total": 1260.947063,
+        "revenue_total": 3968.74,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.737644,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 395.38,
+        "peak_los_p95": 9.314291,
+        "peak_los_p95_ci95": 0.120691,
+        "offpeak_los_p95": 6.008845,
+        "peak_served_share": 0.675423,
+        "escalations_per_hour": 49.4225,
+        "by_class": {
+          "delivery": {
+            "mean_los": 5.59268,
+            "p95_los": 9.44567,
+            "served": 62.9
+          },
+          "regular": {
+            "mean_los": 4.930069,
+            "p95_los": 8.904718,
+            "served": 395.92
+          },
+          "student": {
+            "mean_los": 3.859609,
+            "p95_los": 7.347633,
+            "served": 56.68
+          }
+        },
+        "class_mean_spread": 1.733071,
+        "class_p95_spread": 2.098037,
+        "ci95": {
+          "profit_per_hour": 2.828841,
+          "los_p95": 0.111238,
+          "fairness_gap": 0.103093
+        },
+        "paired_vs_uncapped": {
+          "reps": 100,
+          "diff": {
+            "profit_per_hour": -5.210553,
+            "los_p95": -1.06976,
+            "fairness_gap": 0.253921,
+            "served": -2.97,
+            "mean_los": 0.116423
+          },
+          "ci95": {
+            "profit_per_hour": 1.142241,
+            "los_p95": 0.079932,
+            "fairness_gap": 0.074604,
+            "served": 0.885093,
+            "mean_los": 0.023686
+          }
+        }
+      },
+      {
+        "arrival_rate": 1.25,
+        "utilisation": 0.881937,
+        "starvation_cap": 3.0,
+        "served": 515.78,
+        "balked": 263.97,
+        "reneged": 9.87,
+        "stranded": 0.0,
+        "mean_los": 4.88501,
+        "los_p95": 8.978642,
+        "util": 0.825318,
+        "revenue_per_hour": 496.0825,
+        "profit_per_hour": 263.6573,
+        "waiting_cost_total": 1259.401603,
+        "revenue_total": 3968.66,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.667827,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 313.93,
+        "peak_los_p95": 9.363104,
+        "peak_los_p95_ci95": 0.108511,
+        "offpeak_los_p95": 6.15009,
+        "peak_served_share": 0.675139,
+        "escalations_per_hour": 39.24125,
+        "by_class": {
+          "delivery": {
+            "mean_los": 5.565517,
+            "p95_los": 9.440883,
+            "served": 62.9
+          },
+          "regular": {
+            "mean_los": 4.915844,
+            "p95_los": 8.976437,
+            "served": 396.32
+          },
+          "student": {
+            "mean_los": 3.904402,
+            "p95_los": 7.471134,
+            "served": 56.56
+          }
+        },
+        "class_mean_spread": 1.661115,
+        "class_p95_spread": 1.969749,
+        "ci95": {
+          "profit_per_hour": 2.683051,
+          "los_p95": 0.101351,
+          "fairness_gap": 0.110295
+        },
+        "paired_vs_uncapped": {
+          "reps": 100,
+          "diff": {
+            "profit_per_hour": -5.02737,
+            "los_p95": -1.013437,
+            "fairness_gap": 0.184105,
+            "served": -2.69,
+            "mean_los": 0.107368
+          },
+          "ci95": {
+            "profit_per_hour": 1.020874,
+            "los_p95": 0.071068,
+            "fairness_gap": 0.069079,
+            "served": 0.812517,
+            "mean_los": 0.022282
+          }
+        }
+      },
+      {
+        "arrival_rate": 1.25,
+        "utilisation": 0.881937,
+        "starvation_cap": 5.0,
+        "served": 517.95,
+        "balked": 261.41,
+        "reneged": 10.27,
+        "stranded": 0.0,
+        "mean_los": 4.834835,
+        "los_p95": 9.238106,
+        "util": 0.826071,
+        "revenue_per_hour": 498.015,
+        "profit_per_hour": 266.568024,
+        "waiting_cost_total": 1251.575807,
+        "revenue_total": 3984.12,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.560814,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 149.58,
+        "peak_los_p95": 9.601436,
+        "peak_los_p95_ci95": 0.09853,
+        "offpeak_los_p95": 6.362167,
+        "peak_served_share": 0.676318,
+        "escalations_per_hour": 18.6975,
+        "by_class": {
+          "delivery": {
+            "mean_los": 5.486013,
+            "p95_los": 9.674313,
+            "served": 62.9
+          },
+          "regular": {
+            "mean_los": 4.859109,
+            "p95_los": 9.243433,
+            "served": 398.5
+          },
+          "student": {
+            "mean_los": 3.935502,
+            "p95_los": 7.934127,
+            "served": 56.55
+          }
+        },
+        "class_mean_spread": 1.550511,
+        "class_p95_spread": 1.740186,
+        "ci95": {
+          "profit_per_hour": 2.759278,
+          "los_p95": 0.087237,
+          "fairness_gap": 0.110585
+        },
+        "paired_vs_uncapped": {
+          "reps": 100,
+          "diff": {
+            "profit_per_hour": -2.116646,
+            "los_p95": -0.753973,
+            "fairness_gap": 0.077091,
+            "served": -0.52,
+            "mean_los": 0.057193
+          },
+          "ci95": {
+            "profit_per_hour": 1.057623,
+            "los_p95": 0.073872,
+            "fairness_gap": 0.070495,
+            "served": 0.883788,
+            "mean_los": 0.020653
+          }
+        }
+      },
+      {
+        "arrival_rate": 1.4,
+        "utilisation": 0.98777,
+        "starvation_cap": null,
+        "served": 535.316667,
+        "balked": 331.833333,
+        "reneged": 15.033333,
+        "stranded": 0.0,
+        "mean_los": 5.133896,
+        "los_p95": 10.688254,
+        "util": 0.862047,
+        "revenue_per_hour": 514.395833,
+        "profit_per_hour": 267.668454,
+        "waiting_cost_total": 1373.819036,
+        "revenue_total": 4115.166667,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.887494,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 11.165352,
+        "peak_los_p95_ci95": 0.157162,
+        "offpeak_los_p95": 6.648007,
+        "peak_served_share": 0.659097,
+        "escalations_per_hour": 0.0,
+        "by_class": {
+          "delivery": {
+            "mean_los": 5.887438,
+            "p95_los": 11.384227,
+            "served": 70.333333
+          },
+          "regular": {
+            "mean_los": 5.144927,
+            "p95_los": 10.598271,
+            "served": 412.35
+          },
+          "student": {
+            "mean_los": 4.014405,
+            "p95_los": 8.632438,
+            "served": 52.633333
+          }
+        },
+        "class_mean_spread": 1.873033,
+        "class_p95_spread": 2.751789,
+        "ci95": {
+          "profit_per_hour": 3.212789,
+          "los_p95": 0.143692,
+          "fairness_gap": 0.147185
+        },
+        "paired_vs_uncapped": null
+      },
+      {
+        "arrival_rate": 1.4,
+        "utilisation": 0.98777,
+        "starvation_cap": 0.5,
+        "served": 531.1,
+        "balked": 337.483333,
+        "reneged": 13.616667,
+        "stranded": 0.0,
+        "mean_los": 5.252755,
+        "los_p95": 9.401423,
+        "util": 0.860722,
+        "revenue_per_hour": 510.941667,
+        "profit_per_hour": 261.595599,
+        "waiting_cost_total": 1394.768539,
+        "revenue_total": 4087.533333,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 2.114795,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 561.316667,
+        "peak_los_p95": 9.797278,
+        "peak_los_p95_ci95": 0.140438,
+        "offpeak_los_p95": 6.198314,
+        "peak_served_share": 0.65778,
+        "escalations_per_hour": 70.164583,
+        "by_class": {
+          "delivery": {
+            "mean_los": 6.061526,
+            "p95_los": 9.957864,
+            "served": 70.333333
+          },
+          "regular": {
+            "mean_los": 5.275659,
+            "p95_los": 9.336096,
+            "served": 408.483333
+          },
+          "student": {
+            "mean_los": 3.948173,
+            "p95_los": 7.669653,
+            "served": 52.283333
+          }
+        },
+        "class_mean_spread": 2.113353,
+        "class_p95_spread": 2.288211,
+        "ci95": {
+          "profit_per_hour": 2.86292,
+          "los_p95": 0.133757,
+          "fairness_gap": 0.142679
+        },
+        "paired_vs_uncapped": {
+          "reps": 60,
+          "diff": {
+            "profit_per_hour": -6.072855,
+            "los_p95": -1.28683,
+            "fairness_gap": 0.227301,
+            "served": -4.216667,
+            "mean_los": 0.118859
+          },
+          "ci95": {
+            "profit_per_hour": 1.681681,
+            "los_p95": 0.099497,
+            "fairness_gap": 0.11283,
+            "served": 1.457717,
+            "mean_los": 0.030518
+          }
+        }
+      },
+      {
+        "arrival_rate": 1.4,
+        "utilisation": 0.98777,
+        "starvation_cap": 1.0,
+        "served": 531.75,
+        "balked": 337.416667,
+        "reneged": 13.05,
+        "stranded": 0.0,
+        "mean_los": 5.242926,
+        "los_p95": 9.378792,
+        "util": 0.860268,
+        "revenue_per_hour": 511.533333,
+        "profit_per_hour": 262.29767,
+        "waiting_cost_total": 1393.885304,
+        "revenue_total": 4092.266667,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 2.130975,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 519.266667,
+        "peak_los_p95": 9.765575,
+        "peak_los_p95_ci95": 0.148665,
+        "offpeak_los_p95": 6.207777,
+        "peak_served_share": 0.658714,
+        "escalations_per_hour": 64.908333,
+        "by_class": {
+          "delivery": {
+            "mean_los": 6.04779,
+            "p95_los": 9.944759,
+            "served": 70.333333
+          },
+          "regular": {
+            "mean_los": 5.268008,
+            "p95_los": 9.3225,
+            "served": 409.4
+          },
+          "student": {
+            "mean_los": 3.91867,
+            "p95_los": 7.567041,
+            "served": 52.016667
+          }
+        },
+        "class_mean_spread": 2.12912,
+        "class_p95_spread": 2.377718,
+        "ci95": {
+          "profit_per_hour": 2.844003,
+          "los_p95": 0.134697,
+          "fairness_gap": 0.139945
+        },
+        "paired_vs_uncapped": {
+          "reps": 60,
+          "diff": {
+            "profit_per_hour": -5.370784,
+            "los_p95": -1.309461,
+            "fairness_gap": 0.243481,
+            "served": -3.566667,
+            "mean_los": 0.10903
+          },
+          "ci95": {
+            "profit_per_hour": 1.665069,
+            "los_p95": 0.091136,
+            "fairness_gap": 0.107425,
+            "served": 1.475677,
+            "mean_los": 0.031332
+          }
+        }
+      },
+      {
+        "arrival_rate": 1.4,
+        "utilisation": 0.98777,
+        "starvation_cap": 1.5,
+        "served": 531.583333,
+        "balked": 337.35,
+        "reneged": 13.283333,
+        "stranded": 0.0,
+        "mean_los": 5.242635,
+        "los_p95": 9.402133,
+        "util": 0.860419,
+        "revenue_per_hour": 511.458333,
+        "profit_per_hour": 262.281497,
+        "waiting_cost_total": 1393.414688,
+        "revenue_total": 4091.666667,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 2.160005,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 480.416667,
+        "peak_los_p95": 9.841256,
+        "peak_los_p95_ci95": 0.141666,
+        "offpeak_los_p95": 6.262934,
+        "peak_served_share": 0.658268,
+        "escalations_per_hour": 60.052083,
+        "by_class": {
+          "delivery": {
+            "mean_los": 6.061254,
+            "p95_los": 10.004454,
+            "served": 70.333333
+          },
+          "regular": {
+            "mean_los": 5.267484,
+            "p95_los": 9.3196,
+            "served": 409.283333
+          },
+          "student": {
+            "mean_los": 3.901249,
+            "p95_los": 7.498829,
+            "served": 51.966667
+          }
+        },
+        "class_mean_spread": 2.160005,
+        "class_p95_spread": 2.505625,
+        "ci95": {
+          "profit_per_hour": 2.776895,
+          "los_p95": 0.126152,
+          "fairness_gap": 0.137181
+        },
+        "paired_vs_uncapped": {
+          "reps": 60,
+          "diff": {
+            "profit_per_hour": -5.386957,
+            "los_p95": -1.286121,
+            "fairness_gap": 0.272511,
+            "served": -3.733333,
+            "mean_los": 0.108739
+          },
+          "ci95": {
+            "profit_per_hour": 1.54675,
+            "los_p95": 0.087273,
+            "fairness_gap": 0.107758,
+            "served": 1.200333,
+            "mean_los": 0.030387
+          }
+        }
+      },
+      {
+        "arrival_rate": 1.4,
+        "utilisation": 0.98777,
+        "starvation_cap": 2.0,
+        "served": 531.9,
+        "balked": 337.066667,
+        "reneged": 13.25,
+        "stranded": 0.0,
+        "mean_los": 5.236081,
+        "los_p95": 9.385021,
+        "util": 0.861068,
+        "revenue_per_hour": 511.725,
+        "profit_per_hour": 262.670163,
+        "waiting_cost_total": 1392.438694,
+        "revenue_total": 4093.8,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 2.091858,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 442.4,
+        "peak_los_p95": 9.787458,
+        "peak_los_p95_ci95": 0.143852,
+        "offpeak_los_p95": 6.329819,
+        "peak_served_share": 0.658168,
+        "escalations_per_hour": 55.3,
+        "by_class": {
+          "delivery": {
+            "mean_los": 6.034016,
+            "p95_los": 9.935596,
+            "served": 70.333333
+          },
+          "regular": {
+            "mean_los": 5.261618,
+            "p95_los": 9.332648,
+            "served": 408.916667
+          },
+          "student": {
+            "mean_los": 3.942464,
+            "p95_los": 7.548746,
+            "served": 52.65
+          }
+        },
+        "class_mean_spread": 2.091552,
+        "class_p95_spread": 2.38685,
+        "ci95": {
+          "profit_per_hour": 3.068185,
+          "los_p95": 0.127035,
+          "fairness_gap": 0.128582
+        },
+        "paired_vs_uncapped": {
+          "reps": 60,
+          "diff": {
+            "profit_per_hour": -4.998291,
+            "los_p95": -1.303233,
+            "fairness_gap": 0.204364,
+            "served": -3.416667,
+            "mean_los": 0.102185
+          },
+          "ci95": {
+            "profit_per_hour": 1.350349,
+            "los_p95": 0.082575,
+            "fairness_gap": 0.103661,
+            "served": 1.235461,
+            "mean_los": 0.027354
+          }
+        }
+      },
+      {
+        "arrival_rate": 1.4,
+        "utilisation": 0.98777,
+        "starvation_cap": 3.0,
+        "served": 532.116667,
+        "balked": 336.5,
+        "reneged": 13.566667,
+        "stranded": 0.0,
+        "mean_los": 5.231489,
+        "los_p95": 9.505776,
+        "util": 0.861144,
+        "revenue_per_hour": 511.779167,
+        "profit_per_hour": 262.78752,
+        "waiting_cost_total": 1391.93317,
+        "revenue_total": 4094.233333,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 2.105239,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 362.45,
+        "peak_los_p95": 9.910662,
+        "peak_los_p95_ci95": 0.147951,
+        "offpeak_los_p95": 6.431508,
+        "peak_served_share": 0.657495,
+        "escalations_per_hour": 45.30625,
+        "by_class": {
+          "delivery": {
+            "mean_los": 6.046378,
+            "p95_los": 10.115265,
+            "served": 70.333333
+          },
+          "regular": {
+            "mean_los": 5.252449,
+            "p95_los": 9.448431,
+            "served": 409.483333
+          },
+          "student": {
+            "mean_los": 3.941139,
+            "p95_los": 7.586076,
+            "served": 52.3
+          }
+        },
+        "class_mean_spread": 2.105239,
+        "class_p95_spread": 2.529189,
+        "ci95": {
+          "profit_per_hour": 2.666787,
+          "los_p95": 0.131436,
+          "fairness_gap": 0.130427
+        },
+        "paired_vs_uncapped": {
+          "reps": 60,
+          "diff": {
+            "profit_per_hour": -4.880933,
+            "los_p95": -1.182477,
+            "fairness_gap": 0.217745,
+            "served": -3.2,
+            "mean_los": 0.097593
+          },
+          "ci95": {
+            "profit_per_hour": 1.681215,
+            "los_p95": 0.092323,
+            "fairness_gap": 0.095641,
+            "served": 1.38418,
+            "mean_los": 0.029634
+          }
+        }
+      },
+      {
+        "arrival_rate": 1.4,
+        "utilisation": 0.98777,
+        "starvation_cap": 5.0,
+        "served": 534.133333,
+        "balked": 334.166667,
+        "reneged": 13.883333,
+        "stranded": 0.0,
+        "mean_los": 5.187286,
+        "los_p95": 9.672389,
+        "util": 0.861435,
+        "revenue_per_hour": 513.229167,
+        "profit_per_hour": 265.088953,
+        "waiting_cost_total": 1385.12171,
+        "revenue_total": 4105.833333,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.969449,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 195.0,
+        "peak_los_p95": 10.057173,
+        "peak_los_p95_ci95": 0.134752,
+        "offpeak_los_p95": 6.641535,
+        "peak_served_share": 0.658005,
+        "escalations_per_hour": 24.375,
+        "by_class": {
+          "delivery": {
+            "mean_los": 5.945278,
+            "p95_los": 10.195775,
+            "served": 70.333333
+          },
+          "regular": {
+            "mean_los": 5.209448,
+            "p95_los": 9.618097,
+            "served": 410.716667
+          },
+          "student": {
+            "mean_los": 3.978335,
+            "p95_los": 8.120098,
+            "served": 53.083333
+          }
+        },
+        "class_mean_spread": 1.966943,
+        "class_p95_spread": 2.075677,
+        "ci95": {
+          "profit_per_hour": 3.018245,
+          "los_p95": 0.119214,
+          "fairness_gap": 0.150075
+        },
+        "paired_vs_uncapped": {
+          "reps": 60,
+          "diff": {
+            "profit_per_hour": -2.579501,
+            "los_p95": -1.015865,
+            "fairness_gap": 0.081955,
+            "served": -1.183333,
+            "mean_los": 0.05339
+          },
+          "ci95": {
+            "profit_per_hour": 1.509099,
+            "los_p95": 0.094089,
+            "fairness_gap": 0.092955,
+            "served": 1.266002,
+            "mean_los": 0.028296
+          }
+        }
+      }
+    ],
+    "fairness_pareto": [
+      {
+        "arrival_rate": 1.25,
+        "utilisation": 0.881937,
+        "starvation_cap": null,
+        "served": 518.47,
+        "balked": 259.79,
+        "reneged": 11.37,
+        "stranded": 0.0,
+        "mean_los": 4.777642,
+        "los_p95": 9.992079,
+        "util": 0.825765,
+        "revenue_per_hour": 498.43,
+        "profit_per_hour": 268.68467,
+        "waiting_cost_total": 1237.962639,
+        "revenue_total": 3987.44,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.483723,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 10.457661,
+        "peak_los_p95_ci95": 0.139923,
+        "offpeak_los_p95": 6.274288,
+        "peak_served_share": 0.676902,
+        "escalations_per_hour": 0.0,
+        "by_class": {
+          "delivery": {
+            "mean_los": 5.372315,
+            "p95_los": 10.509887,
+            "served": 62.9
+          },
+          "regular": {
+            "mean_los": 4.804569,
+            "p95_los": 9.987227,
+            "served": 399.34
+          },
+          "student": {
+            "mean_los": 3.919298,
+            "p95_los": 8.236185,
+            "served": 56.23
+          }
+        },
+        "class_mean_spread": 1.453017,
+        "class_p95_spread": 2.273702,
+        "ci95": {
+          "profit_per_hour": 2.834958,
+          "los_p95": 0.116882,
+          "fairness_gap": 0.11589
+        },
+        "paired_vs_uncapped": null
+      },
+      {
+        "arrival_rate": 1.25,
+        "utilisation": 0.881937,
+        "starvation_cap": 0.5,
+        "served": 515.56,
+        "balked": 264.39,
+        "reneged": 9.72,
+        "stranded": 0.0,
+        "mean_los": 4.890266,
+        "los_p95": 8.863802,
+        "util": 0.824972,
+        "revenue_per_hour": 496.025,
+        "profit_per_hour": 263.522107,
+        "waiting_cost_total": 1260.023142,
+        "revenue_total": 3968.2,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.775863,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 520.01,
+        "peak_los_p95": 9.251855,
+        "peak_los_p95_ci95": 0.118754,
+        "offpeak_los_p95": 5.922278,
+        "peak_served_share": 0.675415,
+        "escalations_per_hour": 65.00125,
+        "by_class": {
+          "delivery": {
+            "mean_los": 5.587933,
+            "p95_los": 9.349916,
+            "served": 62.9
+          },
+          "regular": {
+            "mean_los": 4.929435,
+            "p95_los": 8.830334,
+            "served": 396.52
+          },
+          "student": {
+            "mean_los": 3.817397,
+            "p95_los": 7.283212,
+            "served": 56.14
+          }
+        },
+        "class_mean_spread": 1.770536,
+        "class_p95_spread": 2.066704,
+        "ci95": {
+          "profit_per_hour": 2.770719,
+          "los_p95": 0.107121,
+          "fairness_gap": 0.102428
+        },
+        "paired_vs_uncapped": {
+          "reps": 100,
+          "diff": {
+            "profit_per_hour": -5.162563,
+            "los_p95": -1.128277,
+            "fairness_gap": 0.29214,
+            "served": -2.91,
+            "mean_los": 0.112623
+          },
+          "ci95": {
+            "profit_per_hour": 1.179414,
+            "los_p95": 0.076673,
+            "fairness_gap": 0.077552,
+            "served": 0.919345,
+            "mean_los": 0.024218
+          }
+        }
+      },
+      {
+        "arrival_rate": 1.25,
+        "utilisation": 0.881937,
+        "starvation_cap": 1.0,
+        "served": 515.39,
+        "balked": 264.35,
+        "reneged": 9.9,
+        "stranded": 0.0,
+        "mean_los": 4.885841,
+        "los_p95": 8.858078,
+        "util": 0.824396,
+        "revenue_per_hour": 495.765,
+        "profit_per_hour": 263.453194,
+        "waiting_cost_total": 1258.494446,
+        "revenue_total": 3966.12,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.757195,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 476.16,
+        "peak_los_p95": 9.245128,
+        "peak_los_p95_ci95": 0.119461,
+        "offpeak_los_p95": 5.935117,
+        "peak_served_share": 0.675222,
+        "escalations_per_hour": 59.52,
+        "by_class": {
+          "delivery": {
+            "mean_los": 5.589834,
+            "p95_los": 9.346945,
+            "served": 62.9
+          },
+          "regular": {
+            "mean_los": 4.922034,
+            "p95_los": 8.830144,
+            "served": 396.04
+          },
+          "student": {
+            "mean_los": 3.838167,
+            "p95_los": 7.345291,
+            "served": 56.45
+          }
+        },
+        "class_mean_spread": 1.751667,
+        "class_p95_spread": 2.001654,
+        "ci95": {
+          "profit_per_hour": 2.749283,
+          "los_p95": 0.108647,
+          "fairness_gap": 0.10138
+        },
+        "paired_vs_uncapped": {
+          "reps": 100,
+          "diff": {
+            "profit_per_hour": -5.231476,
+            "los_p95": -1.134001,
+            "fairness_gap": 0.273472,
+            "served": -3.08,
+            "mean_los": 0.108199
+          },
+          "ci95": {
+            "profit_per_hour": 1.095088,
+            "los_p95": 0.075633,
+            "fairness_gap": 0.074637,
+            "served": 0.866138,
+            "mean_los": 0.023297
+          }
+        }
+      },
+      {
+        "arrival_rate": 1.25,
+        "utilisation": 0.881937,
+        "starvation_cap": 1.5,
+        "served": 515.62,
+        "balked": 263.86,
+        "reneged": 10.12,
+        "stranded": 0.0,
+        "mean_los": 4.883742,
+        "los_p95": 8.857931,
+        "util": 0.824981,
+        "revenue_per_hour": 495.925,
+        "profit_per_hour": 263.623851,
+        "waiting_cost_total": 1258.409194,
+        "revenue_total": 3967.4,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.779029,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 435.49,
+        "peak_los_p95": 9.241639,
+        "peak_los_p95_ci95": 0.127634,
+        "offpeak_los_p95": 5.990029,
+        "peak_served_share": 0.675161,
+        "escalations_per_hour": 54.43625,
+        "by_class": {
+          "delivery": {
+            "mean_los": 5.593572,
+            "p95_los": 9.453432,
+            "served": 62.9
+          },
+          "regular": {
+            "mean_los": 4.921783,
+            "p95_los": 8.833778,
+            "served": 396.09
+          },
+          "student": {
+            "mean_los": 3.817661,
+            "p95_los": 7.230052,
+            "served": 56.63
+          }
+        },
+        "class_mean_spread": 1.775911,
+        "class_p95_spread": 2.22338,
+        "ci95": {
+          "profit_per_hour": 2.922811,
+          "los_p95": 0.113923,
+          "fairness_gap": 0.105289
+        },
+        "paired_vs_uncapped": {
+          "reps": 100,
+          "diff": {
+            "profit_per_hour": -5.060819,
+            "los_p95": -1.134148,
+            "fairness_gap": 0.295307,
+            "served": -2.85,
+            "mean_los": 0.1061
+          },
+          "ci95": {
+            "profit_per_hour": 1.124678,
+            "los_p95": 0.077952,
+            "fairness_gap": 0.081295,
+            "served": 0.968782,
+            "mean_los": 0.023795
+          }
+        }
+      },
+      {
+        "arrival_rate": 1.25,
+        "utilisation": 0.881937,
+        "starvation_cap": 2.0,
+        "served": 515.5,
+        "balked": 264.34,
+        "reneged": 9.76,
+        "stranded": 0.0,
+        "mean_los": 4.894066,
+        "los_p95": 8.922319,
+        "util": 0.825084,
+        "revenue_per_hour": 496.0925,
+        "profit_per_hour": 263.474117,
+        "waiting_cost_total": 1260.947063,
+        "revenue_total": 3968.74,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.737644,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 395.38,
+        "peak_los_p95": 9.314291,
+        "peak_los_p95_ci95": 0.120691,
+        "offpeak_los_p95": 6.008845,
+        "peak_served_share": 0.675423,
+        "escalations_per_hour": 49.4225,
+        "by_class": {
+          "delivery": {
+            "mean_los": 5.59268,
+            "p95_los": 9.44567,
+            "served": 62.9
+          },
+          "regular": {
+            "mean_los": 4.930069,
+            "p95_los": 8.904718,
+            "served": 395.92
+          },
+          "student": {
+            "mean_los": 3.859609,
+            "p95_los": 7.347633,
+            "served": 56.68
+          }
+        },
+        "class_mean_spread": 1.733071,
+        "class_p95_spread": 2.098037,
+        "ci95": {
+          "profit_per_hour": 2.828841,
+          "los_p95": 0.111238,
+          "fairness_gap": 0.103093
+        },
+        "paired_vs_uncapped": {
+          "reps": 100,
+          "diff": {
+            "profit_per_hour": -5.210553,
+            "los_p95": -1.06976,
+            "fairness_gap": 0.253921,
+            "served": -2.97,
+            "mean_los": 0.116423
+          },
+          "ci95": {
+            "profit_per_hour": 1.142241,
+            "los_p95": 0.079932,
+            "fairness_gap": 0.074604,
+            "served": 0.885093,
+            "mean_los": 0.023686
+          }
+        }
+      },
+      {
+        "arrival_rate": 1.25,
+        "utilisation": 0.881937,
+        "starvation_cap": 3.0,
+        "served": 515.78,
+        "balked": 263.97,
+        "reneged": 9.87,
+        "stranded": 0.0,
+        "mean_los": 4.88501,
+        "los_p95": 8.978642,
+        "util": 0.825318,
+        "revenue_per_hour": 496.0825,
+        "profit_per_hour": 263.6573,
+        "waiting_cost_total": 1259.401603,
+        "revenue_total": 3968.66,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.667827,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 313.93,
+        "peak_los_p95": 9.363104,
+        "peak_los_p95_ci95": 0.108511,
+        "offpeak_los_p95": 6.15009,
+        "peak_served_share": 0.675139,
+        "escalations_per_hour": 39.24125,
+        "by_class": {
+          "delivery": {
+            "mean_los": 5.565517,
+            "p95_los": 9.440883,
+            "served": 62.9
+          },
+          "regular": {
+            "mean_los": 4.915844,
+            "p95_los": 8.976437,
+            "served": 396.32
+          },
+          "student": {
+            "mean_los": 3.904402,
+            "p95_los": 7.471134,
+            "served": 56.56
+          }
+        },
+        "class_mean_spread": 1.661115,
+        "class_p95_spread": 1.969749,
+        "ci95": {
+          "profit_per_hour": 2.683051,
+          "los_p95": 0.101351,
+          "fairness_gap": 0.110295
+        },
+        "paired_vs_uncapped": {
+          "reps": 100,
+          "diff": {
+            "profit_per_hour": -5.02737,
+            "los_p95": -1.013437,
+            "fairness_gap": 0.184105,
+            "served": -2.69,
+            "mean_los": 0.107368
+          },
+          "ci95": {
+            "profit_per_hour": 1.020874,
+            "los_p95": 0.071068,
+            "fairness_gap": 0.069079,
+            "served": 0.812517,
+            "mean_los": 0.022282
+          }
+        }
+      },
+      {
+        "arrival_rate": 1.25,
+        "utilisation": 0.881937,
+        "starvation_cap": 5.0,
+        "served": 517.95,
+        "balked": 261.41,
+        "reneged": 10.27,
+        "stranded": 0.0,
+        "mean_los": 4.834835,
+        "los_p95": 9.238106,
+        "util": 0.826071,
+        "revenue_per_hour": 498.015,
+        "profit_per_hour": 266.568024,
+        "waiting_cost_total": 1251.575807,
+        "revenue_total": 3984.12,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.560814,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 149.58,
+        "peak_los_p95": 9.601436,
+        "peak_los_p95_ci95": 0.09853,
+        "offpeak_los_p95": 6.362167,
+        "peak_served_share": 0.676318,
+        "escalations_per_hour": 18.6975,
+        "by_class": {
+          "delivery": {
+            "mean_los": 5.486013,
+            "p95_los": 9.674313,
+            "served": 62.9
+          },
+          "regular": {
+            "mean_los": 4.859109,
+            "p95_los": 9.243433,
+            "served": 398.5
+          },
+          "student": {
+            "mean_los": 3.935502,
+            "p95_los": 7.934127,
+            "served": 56.55
+          }
+        },
+        "class_mean_spread": 1.550511,
+        "class_p95_spread": 1.740186,
+        "ci95": {
+          "profit_per_hour": 2.759278,
+          "los_p95": 0.087237,
+          "fairness_gap": 0.110585
+        },
+        "paired_vs_uncapped": {
+          "reps": 100,
+          "diff": {
+            "profit_per_hour": -2.116646,
+            "los_p95": -0.753973,
+            "fairness_gap": 0.077091,
+            "served": -0.52,
+            "mean_los": 0.057193
+          },
+          "ci95": {
+            "profit_per_hour": 1.057623,
+            "los_p95": 0.073872,
+            "fairness_gap": 0.070495,
+            "served": 0.883788,
+            "mean_los": 0.020653
+          }
+        }
+      }
+    ],
+    "fairness_summary": {
+      "primary_load": 1.25,
+      "primary_utilisation": 0.881937,
+      "uncapped": {
+        "arrival_rate": 1.25,
+        "utilisation": 0.881937,
+        "starvation_cap": null,
+        "served": 518.47,
+        "balked": 259.79,
+        "reneged": 11.37,
+        "stranded": 0.0,
+        "mean_los": 4.777642,
+        "los_p95": 9.992079,
+        "util": 0.825765,
+        "revenue_per_hour": 498.43,
+        "profit_per_hour": 268.68467,
+        "waiting_cost_total": 1237.962639,
+        "revenue_total": 3987.44,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.483723,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 10.457661,
+        "peak_los_p95_ci95": 0.139923,
+        "offpeak_los_p95": 6.274288,
+        "peak_served_share": 0.676902,
+        "escalations_per_hour": 0.0,
+        "by_class": {
+          "delivery": {
+            "mean_los": 5.372315,
+            "p95_los": 10.509887,
+            "served": 62.9
+          },
+          "regular": {
+            "mean_los": 4.804569,
+            "p95_los": 9.987227,
+            "served": 399.34
+          },
+          "student": {
+            "mean_los": 3.919298,
+            "p95_los": 8.236185,
+            "served": 56.23
+          }
+        },
+        "class_mean_spread": 1.453017,
+        "class_p95_spread": 2.273702,
+        "ci95": {
+          "profit_per_hour": 2.834958,
+          "los_p95": 0.116882,
+          "fairness_gap": 0.11589
+        },
+        "paired_vs_uncapped": null
+      },
+      "best_tail_protection": {
+        "arrival_rate": 1.25,
+        "utilisation": 0.881937,
+        "starvation_cap": 1.5,
+        "served": 515.62,
+        "balked": 263.86,
+        "reneged": 10.12,
+        "stranded": 0.0,
+        "mean_los": 4.883742,
+        "los_p95": 8.857931,
+        "util": 0.824981,
+        "revenue_per_hour": 495.925,
+        "profit_per_hour": 263.623851,
+        "waiting_cost_total": 1258.409194,
+        "revenue_total": 3967.4,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.779029,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 435.49,
+        "peak_los_p95": 9.241639,
+        "peak_los_p95_ci95": 0.127634,
+        "offpeak_los_p95": 5.990029,
+        "peak_served_share": 0.675161,
+        "escalations_per_hour": 54.43625,
+        "by_class": {
+          "delivery": {
+            "mean_los": 5.593572,
+            "p95_los": 9.453432,
+            "served": 62.9
+          },
+          "regular": {
+            "mean_los": 4.921783,
+            "p95_los": 8.833778,
+            "served": 396.09
+          },
+          "student": {
+            "mean_los": 3.817661,
+            "p95_los": 7.230052,
+            "served": 56.63
+          }
+        },
+        "class_mean_spread": 1.775911,
+        "class_p95_spread": 2.22338,
+        "ci95": {
+          "profit_per_hour": 2.922811,
+          "los_p95": 0.113923,
+          "fairness_gap": 0.105289
+        },
+        "paired_vs_uncapped": {
+          "reps": 100,
+          "diff": {
+            "profit_per_hour": -5.060819,
+            "los_p95": -1.134148,
+            "fairness_gap": 0.295307,
+            "served": -2.85,
+            "mean_los": 0.1061
+          },
+          "ci95": {
+            "profit_per_hour": 1.124678,
+            "los_p95": 0.077952,
+            "fairness_gap": 0.081295,
+            "served": 0.968782,
+            "mean_los": 0.023795
+          }
+        }
+      },
+      "best_fairness_gap": {
+        "arrival_rate": 1.25,
+        "utilisation": 0.881937,
+        "starvation_cap": null,
+        "served": 518.47,
+        "balked": 259.79,
+        "reneged": 11.37,
+        "stranded": 0.0,
+        "mean_los": 4.777642,
+        "los_p95": 9.992079,
+        "util": 0.825765,
+        "revenue_per_hour": 498.43,
+        "profit_per_hour": 268.68467,
+        "waiting_cost_total": 1237.962639,
+        "revenue_total": 3987.44,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.483723,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 10.457661,
+        "peak_los_p95_ci95": 0.139923,
+        "offpeak_los_p95": 6.274288,
+        "peak_served_share": 0.676902,
+        "escalations_per_hour": 0.0,
+        "by_class": {
+          "delivery": {
+            "mean_los": 5.372315,
+            "p95_los": 10.509887,
+            "served": 62.9
+          },
+          "regular": {
+            "mean_los": 4.804569,
+            "p95_los": 9.987227,
+            "served": 399.34
+          },
+          "student": {
+            "mean_los": 3.919298,
+            "p95_los": 8.236185,
+            "served": 56.23
+          }
+        },
+        "class_mean_spread": 1.453017,
+        "class_p95_spread": 2.273702,
+        "ci95": {
+          "profit_per_hour": 2.834958,
+          "los_p95": 0.116882,
+          "fairness_gap": 0.11589
+        },
+        "paired_vs_uncapped": null
+      },
+      "max_profit": {
+        "arrival_rate": 1.25,
+        "utilisation": 0.881937,
+        "starvation_cap": null,
+        "served": 518.47,
+        "balked": 259.79,
+        "reneged": 11.37,
+        "stranded": 0.0,
+        "mean_los": 4.777642,
+        "los_p95": 9.992079,
+        "util": 0.825765,
+        "revenue_per_hour": 498.43,
+        "profit_per_hour": 268.68467,
+        "waiting_cost_total": 1237.962639,
+        "revenue_total": 3987.44,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.483723,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 10.457661,
+        "peak_los_p95_ci95": 0.139923,
+        "offpeak_los_p95": 6.274288,
+        "peak_served_share": 0.676902,
+        "escalations_per_hour": 0.0,
+        "by_class": {
+          "delivery": {
+            "mean_los": 5.372315,
+            "p95_los": 10.509887,
+            "served": 62.9
+          },
+          "regular": {
+            "mean_los": 4.804569,
+            "p95_los": 9.987227,
+            "served": 399.34
+          },
+          "student": {
+            "mean_los": 3.919298,
+            "p95_los": 8.236185,
+            "served": 56.23
+          }
+        },
+        "class_mean_spread": 1.453017,
+        "class_p95_spread": 2.273702,
+        "ci95": {
+          "profit_per_hour": 2.834958,
+          "los_p95": 0.116882,
+          "fairness_gap": 0.11589
+        },
+        "paired_vs_uncapped": null
+      },
+      "tail_improvement_from_best_cap": -1.134148,
+      "profit_cost_of_best_tail_cap": -5.060819,
+      "fairness_gap_change_of_best_tail_cap": 0.295306,
+      "mean_gap_widens_while_tail_gap_narrows": true,
+      "mean_gap_uncapped": 1.453017,
+      "mean_gap_best_cap": 1.775911,
+      "tail_gap_uncapped": 2.273702,
+      "tail_gap_best_cap": 2.22338,
+      "load_sensitivity": [
+        {
+          "arrival_rate": 1.1,
+          "starvation_cap": null,
+          "los_p95": 9.246561,
+          "profit_per_hour": 264.714085,
+          "fairness_gap": 1.230059
+        },
+        {
+          "arrival_rate": 1.1,
+          "starvation_cap": 0.5,
+          "los_p95": 8.343105,
+          "profit_per_hour": 260.413005,
+          "fairness_gap": 1.476113
+        },
+        {
+          "arrival_rate": 1.1,
+          "starvation_cap": 1.0,
+          "los_p95": 8.320269,
+          "profit_per_hour": 260.956338,
+          "fairness_gap": 1.452368
+        },
+        {
+          "arrival_rate": 1.1,
+          "starvation_cap": 1.5,
+          "los_p95": 8.344608,
+          "profit_per_hour": 260.587835,
+          "fairness_gap": 1.432421
+        },
+        {
+          "arrival_rate": 1.1,
+          "starvation_cap": 2.0,
+          "los_p95": 8.364815,
+          "profit_per_hour": 260.715318,
+          "fairness_gap": 1.417756
+        },
+        {
+          "arrival_rate": 1.1,
+          "starvation_cap": 3.0,
+          "los_p95": 8.418943,
+          "profit_per_hour": 261.425351,
+          "fairness_gap": 1.359393
+        },
+        {
+          "arrival_rate": 1.1,
+          "starvation_cap": 5.0,
+          "los_p95": 8.763698,
+          "profit_per_hour": 263.672946,
+          "fairness_gap": 1.267107
+        },
+        {
+          "arrival_rate": 1.25,
+          "starvation_cap": null,
+          "los_p95": 9.992079,
+          "profit_per_hour": 268.68467,
+          "fairness_gap": 1.483723
+        },
+        {
+          "arrival_rate": 1.25,
+          "starvation_cap": 0.5,
+          "los_p95": 8.863802,
+          "profit_per_hour": 263.522107,
+          "fairness_gap": 1.775863
+        },
+        {
+          "arrival_rate": 1.25,
+          "starvation_cap": 1.0,
+          "los_p95": 8.858078,
+          "profit_per_hour": 263.453194,
+          "fairness_gap": 1.757195
+        },
+        {
+          "arrival_rate": 1.25,
+          "starvation_cap": 1.5,
+          "los_p95": 8.857931,
+          "profit_per_hour": 263.623851,
+          "fairness_gap": 1.779029
+        },
+        {
+          "arrival_rate": 1.25,
+          "starvation_cap": 2.0,
+          "los_p95": 8.922319,
+          "profit_per_hour": 263.474117,
+          "fairness_gap": 1.737644
+        },
+        {
+          "arrival_rate": 1.25,
+          "starvation_cap": 3.0,
+          "los_p95": 8.978642,
+          "profit_per_hour": 263.6573,
+          "fairness_gap": 1.667827
+        },
+        {
+          "arrival_rate": 1.25,
+          "starvation_cap": 5.0,
+          "los_p95": 9.238106,
+          "profit_per_hour": 266.568024,
+          "fairness_gap": 1.560814
+        },
+        {
+          "arrival_rate": 1.4,
+          "starvation_cap": null,
+          "los_p95": 10.688254,
+          "profit_per_hour": 267.668454,
+          "fairness_gap": 1.887494
+        },
+        {
+          "arrival_rate": 1.4,
+          "starvation_cap": 0.5,
+          "los_p95": 9.401423,
+          "profit_per_hour": 261.595599,
+          "fairness_gap": 2.114795
+        },
+        {
+          "arrival_rate": 1.4,
+          "starvation_cap": 1.0,
+          "los_p95": 9.378792,
+          "profit_per_hour": 262.29767,
+          "fairness_gap": 2.130975
+        },
+        {
+          "arrival_rate": 1.4,
+          "starvation_cap": 1.5,
+          "los_p95": 9.402133,
+          "profit_per_hour": 262.281497,
+          "fairness_gap": 2.160005
+        },
+        {
+          "arrival_rate": 1.4,
+          "starvation_cap": 2.0,
+          "los_p95": 9.385021,
+          "profit_per_hour": 262.670163,
+          "fairness_gap": 2.091858
+        },
+        {
+          "arrival_rate": 1.4,
+          "starvation_cap": 3.0,
+          "los_p95": 9.505776,
+          "profit_per_hour": 262.78752,
+          "fairness_gap": 2.105239
+        },
+        {
+          "arrival_rate": 1.4,
+          "starvation_cap": 5.0,
+          "los_p95": 9.672389,
+          "profit_per_hour": 265.088953,
+          "fairness_gap": 1.969449
+        }
+      ]
+    },
+    "good_manager": [
+      {
+        "scenario": "capacity_4th_barista",
+        "config": {
+          "name": "campus_rush",
+          "workers": 5,
+          "arrival_rate": 1.010989010989011,
+          "sim_minutes": 480.0,
+          "warmup_minutes": 60.0,
+          "mix": {
+            "tea": 0.55,
+            "bread": 0.2,
+            "ice": 0.05,
+            "mix": 0.2
+          },
+          "service_time_mean": 2.11665,
+          "utilization": 0.427981978021978,
+          "policy": "synchro+fast-priority",
+          "reps_planned": 100
+        },
+        "served": 593.28,
+        "balked": 37.27,
+        "reneged": 0.44,
+        "stranded": 1.73,
+        "mean_los": 3.229112,
+        "los_p95": 7.196247,
+        "util": 0.521209,
+        "revenue_per_hour": 570.8525,
+        "profit_per_hour": 316.70096,
+        "waiting_cost_total": 958.212323,
+        "revenue_total": 4566.82,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 0.376931,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 7.568806,
+        "peak_los_p95_ci95": 0.180958,
+        "offpeak_los_p95": 4.118535,
+        "peak_served_share": 0.761471,
+        "by_class": {
+          "delivery": {
+            "mean_los": 3.299729,
+            "p95_los": 7.323505,
+            "served": 50.7
+          },
+          "regular": {
+            "mean_los": 3.236052,
+            "p95_los": 7.256303,
+            "served": 434.7
+          },
+          "student": {
+            "mean_los": 3.165841,
+            "p95_los": 6.546213,
+            "served": 107.88
+          }
+        },
+        "class_mean_spread": 0.133888,
+        "class_p95_spread": 0.777292,
+        "profit_delta_vs_baseline": 76.631126,
+        "served_change_pct": 12.189403,
+        "paired_vs_baseline": {
+          "reps": 100,
+          "diff": {
+            "profit_per_hour": 76.631125,
+            "revenue_per_hour": 62.205,
+            "served": 64.46,
+            "los_p95": -4.617621,
+            "fairness_gap": -0.72074,
+            "balked": -64.43,
+            "sla_attainment": 0.0,
+            "sla_compensation_total": 0.0
+          },
+          "ci95": {
+            "profit_per_hour": 3.201868,
+            "revenue_per_hour": 2.100966,
+            "served": 2.2266,
+            "los_p95": 0.218171,
+            "fairness_gap": 0.099486,
+            "balked": 2.222734,
+            "sla_attainment": 0.0,
+            "sla_compensation_total": 0.0
+          }
+        }
+      },
+      {
+        "scenario": "pricing_1.2_e-1.0",
+        "config": {
+          "name": "campus_rush",
+          "workers": 5,
+          "arrival_rate": 1.010989010989011,
+          "sim_minutes": 480.0,
+          "warmup_minutes": 60.0,
+          "mix": {
+            "tea": 0.55,
+            "bread": 0.2,
+            "ice": 0.05,
+            "mix": 0.2
+          },
+          "service_time_mean": 2.11665,
+          "utilization": 0.427981978021978,
+          "policy": "synchro+fast-priority",
+          "reps_planned": 100
+        },
+        "served": 501.52,
+        "balked": 51.36,
+        "reneged": 0.56,
+        "stranded": 2.1,
+        "mean_los": 3.855544,
+        "los_p95": 9.891481,
+        "util": 0.522163,
+        "revenue_per_hour": 551.0105,
+        "profit_per_hour": 316.068156,
+        "waiting_cost_total": 967.038754,
+        "revenue_total": 4408.084,
+        "mean_price_factor": 1.142731,
+        "fairness_gap": 0.734787,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 0.0,
+        "peak_los_p95": 10.616645,
+        "peak_los_p95_ci95": 0.366637,
+        "offpeak_los_p95": 4.680085,
+        "peak_served_share": 0.713657,
+        "by_class": {
+          "delivery": {
+            "mean_los": 4.128298,
+            "p95_los": 10.196423,
+            "served": 44.15
+          },
+          "regular": {
+            "mean_los": 3.88117,
+            "p95_los": 10.00708,
+            "served": 371.55
+          },
+          "student": {
+            "mean_los": 3.586814,
+            "p95_los": 8.234765,
+            "served": 85.82
+          }
+        },
+        "class_mean_spread": 0.541484,
+        "class_p95_spread": 1.961658,
+        "profit_delta_vs_baseline": 75.998322,
+        "served_change_pct": -5.162437,
+        "paired_vs_baseline": {
+          "reps": 100,
+          "diff": {
+            "profit_per_hour": 75.998322,
+            "revenue_per_hour": 42.363,
+            "served": -27.3,
+            "los_p95": -1.922387,
+            "fairness_gap": -0.362883,
+            "balked": -50.34,
+            "sla_attainment": 0.0,
+            "sla_compensation_total": 0.0
+          },
+          "ci95": {
+            "profit_per_hour": 4.532272,
+            "revenue_per_hour": 4.456805,
+            "served": 4.355659,
+            "los_p95": 0.342504,
+            "fairness_gap": 0.100753,
+            "balked": 3.466827,
+            "sla_attainment": 0.0,
+            "sla_compensation_total": 0.0
+          }
+        }
+      },
+      {
+        "scenario": "sla_5min_1.0",
+        "config": {
+          "name": "campus_rush",
+          "workers": 5,
+          "arrival_rate": 1.010989010989011,
+          "sim_minutes": 480.0,
+          "warmup_minutes": 60.0,
+          "mix": {
+            "tea": 0.55,
+            "bread": 0.2,
+            "ice": 0.05,
+            "mix": 0.2
+          },
+          "service_time_mean": 2.11665,
+          "utilization": 0.427981978021978,
+          "policy": "synchro+fast-priority",
+          "reps_planned": 100
+        },
+        "served": 528.82,
+        "balked": 101.7,
+        "reneged": 0.39,
+        "stranded": 1.81,
+        "mean_los": 4.677318,
+        "los_p95": 11.813868,
+        "util": 0.549397,
+        "revenue_per_hour": 508.6475,
+        "profit_per_hour": 214.588584,
+        "waiting_cost_total": 1236.121326,
+        "revenue_total": 4069.18,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.09767,
+        "sla_attainment": 0.614366,
+        "sla_compensation_total": 203.85,
+        "starvation_events": 0.0,
+        "peak_los_p95": 12.394949,
+        "peak_los_p95_ci95": 0.264469,
+        "offpeak_los_p95": 4.885781,
+        "peak_served_share": 0.734998,
+        "by_class": {
+          "delivery": {
+            "mean_los": 5.098773,
+            "p95_los": 12.201129,
+            "served": 50.7
+          },
+          "regular": {
+            "mean_los": 4.735784,
+            "p95_los": 11.894636,
+            "served": 396.91
+          },
+          "student": {
+            "mean_los": 4.124985,
+            "p95_los": 9.595253,
+            "served": 81.21
+          }
+        },
+        "class_mean_spread": 0.973788,
+        "class_p95_spread": 2.605876,
+        "profit_delta_vs_baseline": -25.48125,
+        "served_change_pct": 0.0,
+        "paired_vs_baseline": {
+          "reps": 100,
+          "diff": {
+            "profit_per_hour": -25.48125,
+            "revenue_per_hour": 0.0,
+            "served": 0.0,
+            "los_p95": 0.0,
+            "fairness_gap": 0.0,
+            "balked": 0.0,
+            "sla_attainment": 0.614366,
+            "sla_compensation_total": 203.85
+          },
+          "ci95": {
+            "profit_per_hour": 0.82007,
+            "revenue_per_hour": 0.0,
+            "served": 0.0,
+            "los_p95": 0.0,
+            "fairness_gap": 0.0,
+            "balked": 0.0,
+            "sla_attainment": 0.012228,
+            "sla_compensation_total": 6.560558
+          }
+        }
+      },
+      {
+        "scenario": "fairness_cap_1.5",
+        "config": {
+          "name": "campus_rush",
+          "workers": 5,
+          "arrival_rate": 1.010989010989011,
+          "sim_minutes": 480.0,
+          "warmup_minutes": 60.0,
+          "mix": {
+            "tea": 0.55,
+            "bread": 0.2,
+            "ice": 0.05,
+            "mix": 0.2
+          },
+          "service_time_mean": 2.11665,
+          "utilization": 0.427981978021978,
+          "policy": "synchro+fast-priority+fairness-cap>1.5m",
+          "reps_planned": 100
+        },
+        "served": 524.24,
+        "balked": 106.07,
+        "reneged": 0.38,
+        "stranded": 2.06,
+        "mean_los": 4.785643,
+        "los_p95": 12.249833,
+        "util": 0.545928,
+        "revenue_per_hour": 504.1875,
+        "profit_per_hour": 233.416769,
+        "waiting_cost_total": 1253.665851,
+        "revenue_total": 4033.5,
+        "mean_price_factor": 1.0,
+        "fairness_gap": 1.348697,
+        "sla_attainment": null,
+        "sla_compensation_total": 0.0,
+        "starvation_events": 290.61,
+        "peak_los_p95": 13.29164,
+        "peak_los_p95_ci95": 0.297554,
+        "offpeak_los_p95": 4.734936,
+        "peak_served_share": 0.733099,
+        "by_class": {
+          "delivery": {
+            "mean_los": 5.311608,
+            "p95_los": 12.862009,
+            "served": 50.68
+          },
+          "regular": {
+            "mean_los": 4.861052,
+            "p95_los": 12.436691,
+            "served": 393.21
+          },
+          "student": {
+            "mean_los": 4.075008,
+            "p95_los": 9.40016,
+            "served": 80.35
+          }
+        },
+        "class_mean_spread": 1.2366,
+        "class_p95_spread": 3.461849,
+        "profit_delta_vs_baseline": -6.653065,
+        "served_change_pct": -0.866079,
+        "paired_vs_baseline": {
+          "reps": 100,
+          "diff": {
+            "profit_per_hour": -6.653066,
+            "revenue_per_hour": -4.46,
+            "served": -4.58,
+            "los_p95": 0.435965,
+            "fairness_gap": 0.251027,
+            "balked": 4.37,
+            "sla_attainment": 0.0,
+            "sla_compensation_total": 0.0
+          },
+          "ci95": {
+            "profit_per_hour": 1.868766,
+            "revenue_per_hour": 1.143476,
+            "served": 1.216263,
+            "los_p95": 0.209788,
+            "fairness_gap": 0.076833,
+            "balked": 1.203265,
+            "sla_attainment": 0.0,
+            "sla_compensation_total": 0.0
+          }
+        }
+      },
+      {
+        "scenario": "good_manager",
+        "config": {
+          "name": "campus_rush",
+          "workers": 5,
+          "arrival_rate": 1.010989010989011,
+          "sim_minutes": 480.0,
+          "warmup_minutes": 60.0,
+          "mix": {
+            "tea": 0.55,
+            "bread": 0.2,
+            "ice": 0.05,
+            "mix": 0.2
+          },
+          "service_time_mean": 2.11665,
+          "utilization": 0.427981978021978,
+          "policy": "split+fast-priority+fairness-cap>1.5m",
+          "reps_planned": 100
+        },
+        "served": 536.91,
+        "balked": 16.21,
+        "reneged": 0.55,
+        "stranded": 1.87,
+        "mean_los": 2.768336,
+        "los_p95": 5.725735,
+        "util": 0.473111,
+        "revenue_per_hour": 591.6485,
+        "profit_per_hour": 358.197517,
+        "waiting_cost_total": 744.127864,
+        "revenue_total": 4733.188,
+        "mean_price_factor": 1.146006,
+        "fairness_gap": 0.285759,
+        "sla_attainment": 0.910316,
+        "sla_compensation_total": 48.48,
+        "starvation_events": 99.0,
+        "peak_los_p95": 6.062627,
+        "peak_los_p95_ci95": 0.176615,
+        "offpeak_los_p95": 4.002535,
+        "peak_served_share": 0.730028,
+        "by_class": {
+          "delivery": {
+            "mean_los": 2.806617,
+            "p95_los": 5.705418,
+            "served": 44.21
+          },
+          "regular": {
+            "mean_los": 2.751909,
+            "p95_los": 5.752699,
+            "served": 390.94
+          },
+          "student": {
+            "mean_los": 2.81187,
+            "p95_los": 5.431314,
+            "served": 101.76
+          }
+        },
+        "class_mean_spread": 0.059961,
+        "class_p95_spread": 0.321385,
+        "profit_delta_vs_baseline": 118.127683,
+        "served_change_pct": 1.529821,
+        "paired_vs_baseline": {
+          "reps": 100,
+          "diff": {
+            "profit_per_hour": 118.127683,
+            "revenue_per_hour": 83.001,
+            "served": 8.09,
+            "los_p95": -6.088133,
+            "fairness_gap": -0.811911,
+            "balked": -85.49,
+            "sla_attainment": 0.910316,
+            "sla_compensation_total": 48.48
+          },
+          "ci95": {
+            "profit_per_hour": 5.109518,
+            "revenue_per_hour": 5.302158,
+            "served": 4.991438,
+            "los_p95": 0.231917,
+            "fairness_gap": 0.111532,
+            "balked": 3.29764,
+            "sla_attainment": 0.008296,
+            "sla_compensation_total": 4.635484
+          }
+        }
+      }
+    ],
+    "management_summary": {
+      "baseline": {
+        "profit_per_hour": 240.069834,
+        "served": 528.82,
+        "los_p95": 11.813868,
+        "peak_los_p95": 12.394949,
+        "mean_los": 4.677318,
+        "balked": 101.7,
+        "fairness_gap": 1.09767,
+        "sla_attainment": null
+      },
+      "good_manager": {
+        "profit_per_hour": 358.197517,
+        "served": 536.91,
+        "los_p95": 5.725735,
+        "peak_los_p95": 6.062627,
+        "mean_los": 2.768336,
+        "balked": 16.21,
+        "fairness_gap": 0.285759,
+        "sla_attainment": 0.910316,
+        "sla_compensation_total": 48.48
+      },
+      "paired_profit_gain": 118.127683,
+      "paired_profit_gain_ci95": 5.109518,
+      "paired_los_p95_change": -6.088133,
+      "paired_served_change": 8.09,
+      "lever_ranking_by_profit": [
+        {
+          "scenario": "capacity_4th_barista",
+          "profit_per_hour": 316.70096,
+          "profit_delta_vs_baseline": 76.631126,
+          "los_p95": 7.196247,
+          "peak_los_p95": 7.568806
+        },
+        {
+          "scenario": "pricing_1.2_e-1.0",
+          "profit_per_hour": 316.068156,
+          "profit_delta_vs_baseline": 75.998322,
+          "los_p95": 9.891481,
+          "peak_los_p95": 10.616645
+        },
+        {
+          "scenario": "fairness_cap_1.5",
+          "profit_per_hour": 233.416769,
+          "profit_delta_vs_baseline": -6.653065,
+          "los_p95": 12.249833,
+          "peak_los_p95": 13.29164
+        },
+        {
+          "scenario": "sla_5min_1.0",
+          "profit_per_hour": 214.588584,
+          "profit_delta_vs_baseline": -25.48125,
+          "los_p95": 11.813868,
+          "peak_los_p95": 12.394949
+        }
+      ]
+    }
+  },
+  "series": {
+    "pricing_curves": {
+      "-0.5": {
+        "x": [
+          1.0,
+          1.1,
+          1.2,
+          1.3,
+          1.4,
+          1.5,
+          1.6,
+          1.8,
+          2.0
+        ],
+        "revenue_per_hour": [
+          508.6475,
+          541.086,
+          570.619,
+          596.83575,
+          622.192,
+          645.5075,
+          668.9505,
+          715.733,
+          753.7325
+        ],
+        "profit_per_hour": [
+          240.069834,
+          282.082318,
+          318.454714,
+          352.343946,
+          384.96291,
+          413.595851,
+          441.938459,
+          496.338262,
+          543.2333
+        ],
+        "served": [
+          528.82,
+          523.72,
+          517.77,
+          510.32,
+          503.29,
+          495.68,
+          488.52,
+          478.23,
+          464.02
+        ],
+        "los_p95": [
+          11.813868,
+          11.219937,
+          10.86406,
+          10.51095,
+          10.184745,
+          9.741664,
+          9.489456,
+          8.715331,
+          8.112824
+        ],
+        "peak_los_p95": [
+          12.394949,
+          11.866331,
+          11.510127,
+          11.129738,
+          10.909929,
+          10.483305,
+          10.149434,
+          9.406709,
+          8.828521
+        ],
+        "balked": [
+          101.7,
+          85.29,
+          73.67,
+          62.82,
+          54.34,
+          48.27,
+          43.24,
+          34.0,
+          26.38
+        ],
+        "fairness_gap": [
+          1.09767,
+          0.981294,
+          0.900261,
+          0.856338,
+          0.769576,
+          0.735344,
+          0.70416,
+          0.600256,
+          0.550784
+        ]
+      },
+      "-1": {
+        "x": [
+          1.0,
+          1.1,
+          1.2,
+          1.3,
+          1.4,
+          1.5,
+          1.6,
+          1.8,
+          2.0
+        ],
+        "revenue_per_hour": [
+          508.6475,
+          533.547,
+          551.0105,
+          563.816,
+          572.48,
+          579.97125,
+          583.9315,
+          596.799,
+          595.775
+        ],
+        "profit_per_hour": [
+          240.069834,
+          282.891398,
+          316.068156,
+          340.979484,
+          360.195034,
+          376.380841,
+          387.762407,
+          410.229436,
+          417.062201
+        ],
+        "served": [
+          528.82,
+          517.26,
+          501.52,
+          484.39,
+          465.93,
+          449.53,
+          432.24,
+          408.35,
+          380.89
+        ],
+        "los_p95": [
+          11.813868,
+          10.749546,
+          9.891481,
+          9.028266,
+          8.307237,
+          7.558565,
+          6.965053,
+          6.186367,
+          5.647271
+        ],
+        "peak_los_p95": [
+          12.394949,
+          11.367907,
+          10.616645,
+          9.769656,
+          9.002722,
+          8.245392,
+          7.573421,
+          6.726351,
+          6.094099
+        ],
+        "balked": [
+          101.7,
+          71.67,
+          51.36,
+          37.66,
+          28.35,
+          20.85,
+          16.14,
+          10.34,
+          6.76
+        ],
+        "fairness_gap": [
+          1.09767,
+          0.869091,
+          0.734787,
+          0.61174,
+          0.557009,
+          0.48414,
+          0.425544,
+          0.352106,
+          0.343029
+        ]
+      },
+      "-1.5": {
+        "x": [
+          1.0,
+          1.1,
+          1.2,
+          1.3,
+          1.4,
+          1.5,
+          1.6,
+          1.8,
+          2.0
+        ],
+        "revenue_per_hour": [
+          508.6475,
+          523.69725,
+          528.447,
+          524.88225,
+          517.72,
+          513.46375,
+          500.404,
+          486.0665,
+          458.19
+        ],
+        "profit_per_hour": [
+          240.069834,
+          281.084469,
+          307.481123,
+          319.816011,
+          324.919204,
+          328.361842,
+          322.441741,
+          316.539577,
+          295.999377
+        ],
+        "served": [
+          528.82,
+          508.25,
+          481.98,
+          452.48,
+          425.08,
+          403.63,
+          378.21,
+          344.27,
+          309.58
+        ],
+        "los_p95": [
+          11.813868,
+          10.430179,
+          8.934673,
+          7.679328,
+          6.613049,
+          6.067208,
+          5.574287,
+          5.104013,
+          4.708617
+        ],
+        "peak_los_p95": [
+          12.394949,
+          11.158337,
+          9.675003,
+          8.342957,
+          7.185275,
+          6.563581,
+          5.998441,
+          5.523137,
+          4.850664
+        ],
+        "balked": [
+          101.7,
+          60.79,
+          36.12,
+          21.95,
+          13.48,
+          9.37,
+          6.77,
+          3.91,
+          2.76
+        ],
+        "fairness_gap": [
+          1.09767,
+          0.831689,
+          0.611403,
+          0.473602,
+          0.395891,
+          0.371031,
+          0.326299,
+          0.313253,
+          0.308711
+        ]
+      },
+      "-2": {
+        "x": [
+          1.0,
+          1.1,
+          1.2,
+          1.3,
+          1.4,
+          1.5,
+          1.6,
+          1.8,
+          2.0
+        ],
+        "revenue_per_hour": [
+          508.6475,
+          515.48025,
+          503.092,
+          483.78725,
+          462.801,
+          448.5325,
+          427.4215,
+          388.837,
+          367.745
+        ],
+        "profit_per_hour": [
+          240.069834,
+          281.278691,
+          293.486499,
+          292.837759,
+          283.019505,
+          275.950279,
+          260.927084,
+          230.773896,
+          213.8427
+        ],
+        "served": [
+          528.82,
+          500.66,
+          459.34,
+          419.1,
+          384.0,
+          358.92,
+          331.16,
+          288.43,
+          262.06
+        ],
+        "los_p95": [
+          11.813868,
+          9.835139,
+          8.171281,
+          6.511076,
+          5.751731,
+          5.234527,
+          4.908426,
+          4.54797,
+          4.491198
+        ],
+        "peak_los_p95": [
+          12.394949,
+          10.515899,
+          8.927752,
+          7.096448,
+          6.208037,
+          5.571712,
+          5.165293,
+          4.57172,
+          4.375266
+        ],
+        "balked": [
+          101.7,
+          49.57,
+          25.6,
+          12.88,
+          7.33,
+          4.79,
+          3.42,
+          2.33,
+          1.73
+        ],
+        "fairness_gap": [
+          1.09767,
+          0.759246,
+          0.546388,
+          0.41506,
+          0.333676,
+          0.339735,
+          0.299544,
+          0.334945,
+          0.311963
+        ]
+      }
+    },
+    "sla_curve": {
+      "rows": [
+        {
+          "target_minutes": 3.0,
+          "compensation": 1.0,
+          "attainment": 0.419274,
+          "compensation_total": 307.06,
+          "compensation_per_hour": 38.3825,
+          "profit_per_hour": 201.687334
+        },
+        {
+          "target_minutes": 3.0,
+          "compensation": 2.0,
+          "attainment": 0.419274,
+          "compensation_total": 614.12,
+          "compensation_per_hour": 76.765,
+          "profit_per_hour": 163.304834
+        },
+        {
+          "target_minutes": 3.0,
+          "compensation": 4.0,
+          "attainment": 0.419274,
+          "compensation_total": 1228.24,
+          "compensation_per_hour": 153.53,
+          "profit_per_hour": 86.539834
+        },
+        {
+          "target_minutes": 5.0,
+          "compensation": 1.0,
+          "attainment": 0.614366,
+          "compensation_total": 203.85,
+          "compensation_per_hour": 25.48125,
+          "profit_per_hour": 214.588584
+        },
+        {
+          "target_minutes": 5.0,
+          "compensation": 2.0,
+          "attainment": 0.614366,
+          "compensation_total": 407.7,
+          "compensation_per_hour": 50.9625,
+          "profit_per_hour": 189.107334
+        },
+        {
+          "target_minutes": 5.0,
+          "compensation": 4.0,
+          "attainment": 0.614366,
+          "compensation_total": 815.4,
+          "compensation_per_hour": 101.925,
+          "profit_per_hour": 138.144834
+        },
+        {
+          "target_minutes": 8.0,
+          "compensation": 1.0,
+          "attainment": 0.819484,
+          "compensation_total": 95.34,
+          "compensation_per_hour": 11.9175,
+          "profit_per_hour": 228.152334
+        },
+        {
+          "target_minutes": 8.0,
+          "compensation": 2.0,
+          "attainment": 0.819484,
+          "compensation_total": 190.68,
+          "compensation_per_hour": 23.835,
+          "profit_per_hour": 216.234834
+        },
+        {
+          "target_minutes": 8.0,
+          "compensation": 4.0,
+          "attainment": 0.819484,
+          "compensation_total": 381.36,
+          "compensation_per_hour": 47.67,
+          "profit_per_hour": 192.399834
+        }
+      ]
+    },
+    "fairness_pareto": [
+      {
+        "starvation_cap": null,
+        "profit_per_hour": 268.68467,
+        "los_p95": 9.992079,
+        "fairness_gap": 1.483723,
+        "starvation_events": 0.0
+      },
+      {
+        "starvation_cap": 0.5,
+        "profit_per_hour": 263.522107,
+        "los_p95": 8.863802,
+        "fairness_gap": 1.775863,
+        "starvation_events": 520.01
+      },
+      {
+        "starvation_cap": 1.0,
+        "profit_per_hour": 263.453194,
+        "los_p95": 8.858078,
+        "fairness_gap": 1.757195,
+        "starvation_events": 476.16
+      },
+      {
+        "starvation_cap": 1.5,
+        "profit_per_hour": 263.623851,
+        "los_p95": 8.857931,
+        "fairness_gap": 1.779029,
+        "starvation_events": 435.49
+      },
+      {
+        "starvation_cap": 2.0,
+        "profit_per_hour": 263.474117,
+        "los_p95": 8.922319,
+        "fairness_gap": 1.737644,
+        "starvation_events": 395.38
+      },
+      {
+        "starvation_cap": 3.0,
+        "profit_per_hour": 263.6573,
+        "los_p95": 8.978642,
+        "fairness_gap": 1.667827,
+        "starvation_events": 313.93
+      },
+      {
+        "starvation_cap": 5.0,
+        "profit_per_hour": 266.568024,
+        "los_p95": 9.238106,
+        "fairness_gap": 1.560814,
+        "starvation_events": 149.58
+      }
+    ],
+    "good_manager_bars": [
+      {
+        "scenario": "capacity_4th_barista",
+        "profit_per_hour": 316.70096,
+        "los_p95": 7.196247,
+        "peak_los_p95": 7.568806,
+        "served": 593.28,
+        "fairness_gap": 0.376931,
+        "balked": 37.27
+      },
+      {
+        "scenario": "pricing_1.2_e-1.0",
+        "profit_per_hour": 316.068156,
+        "los_p95": 9.891481,
+        "peak_los_p95": 10.616645,
+        "served": 501.52,
+        "fairness_gap": 0.734787,
+        "balked": 51.36
+      },
+      {
+        "scenario": "sla_5min_1.0",
+        "profit_per_hour": 214.588584,
+        "los_p95": 11.813868,
+        "peak_los_p95": 12.394949,
+        "served": 528.82,
+        "fairness_gap": 1.09767,
+        "balked": 101.7
+      },
+      {
+        "scenario": "fairness_cap_1.5",
+        "profit_per_hour": 233.416769,
+        "los_p95": 12.249833,
+        "peak_los_p95": 13.29164,
+        "served": 524.24,
+        "fairness_gap": 1.348697,
+        "balked": 106.07
+      },
+      {
+        "scenario": "good_manager",
+        "profit_per_hour": 358.197517,
+        "los_p95": 5.725735,
+        "peak_los_p95": 6.062627,
+        "served": 536.91,
+        "fairness_gap": 0.285759,
+        "balked": 16.21
+      }
+    ]
+  }
+}

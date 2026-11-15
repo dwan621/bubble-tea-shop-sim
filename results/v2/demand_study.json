@@ -1,0 +1,2649 @@
+{
+  "meta": {
+    "experiment": "demand_study",
+    "schema_version": 1,
+    "package_version": "2.0.0",
+    "python_version": "3.14.5",
+    "engine": "bubble_tea_sim.engine.Simulation (stdlib only)",
+    "scenario_library": [
+      "baseline_flat",
+      "bread_counter_bottleneck",
+      "campus_rush",
+      "cbd_commute",
+      "exam_week",
+      "flagship_five_staff",
+      "ice_cream_bottleneck",
+      "inventory_generous",
+      "inventory_lean",
+      "late_night_study",
+      "mall_weekend",
+      "network_tea_bottleneck",
+      "peak_pricing",
+      "rainy_delivery",
+      "strict_sla_fairness",
+      "tiny_two_staff"
+    ],
+    "notes": "Layer 1 experiments. Scenarios come from data/scenarios/; every other cell is a dataclass override of campus_rush or baseline_flat. Cells whose estimated peak load exceeds 0.95 use 60 replicates, the rest use 100 (first seed 0, stride 1). Paired differences use common random numbers on identical seeds. Variability and patience cells use a two-segment unit demand profile so the fixed-service cell also runs on the v2 event-driven dispatch path (a single flat segment would silently use the legacy path and confound the comparison). The balk decision compares the customer's threshold with the engine's wait estimate divided by the number of staff units ON SHIFT at the arrival instant; these cells have no shift windows, so it equals the worker count, but the library scenarios with late shift starts and breaks are not credited with absent staff.",
+    "reps_default": 100,
+    "reps_overload": 60,
+    "seed": 0,
+    "seed_stride": 1,
+    "elapsed_seconds": 87.3
+  },
+  "tables": {
+    "peak_vs_flat": [
+      {
+        "label": "peak_shape",
+        "profile": "campus_rush piecewise demand",
+        "quoted_daily_mean_rate": 1.15,
+        "effective_arrival_rate": 1.010989010989011,
+        "peak_to_mean": 1.4945054945054945,
+        "reps": 60,
+        "metrics": {
+          "util": 0.548697,
+          "mean_busy_ratio": 0.535612,
+          "peak_busy_ratio": 0.777024,
+          "peak_hour_arrivals": 136.183333,
+          "peak_hour_los": 7.370429,
+          "mean_los": 4.659117,
+          "los_p50": 3.800897,
+          "los_p90": 9.873025,
+          "los_p95": 11.774548,
+          "balk_rate": 0.15064,
+          "renege_rate": 0.000596,
+          "abandon_rate": 0.151235,
+          "served": 527.366667,
+          "arrivals": 667.166667,
+          "revenue_per_hour": 506.904167,
+          "profit_per_hour": 239.346888,
+          "wage_per_hour": 114.0625
+        },
+        "ci95": {
+          "util": 0.004233,
+          "mean_busy_ratio": 0.003897,
+          "peak_busy_ratio": 0.006943,
+          "peak_hour_arrivals": 2.593204,
+          "peak_hour_los": 0.248419,
+          "mean_los": 0.099188,
+          "los_p50": 0.132648,
+          "los_p90": 0.242674,
+          "los_p95": 0.313165,
+          "balk_rate": 0.006283,
+          "renege_rate": 0.000259,
+          "abandon_rate": 0.006292,
+          "served": 4.329543,
+          "arrivals": 6.786983,
+          "revenue_per_hour": 3.837643,
+          "profit_per_hour": 4.120575,
+          "wage_per_hour": 0.0
+        },
+        "hourly": [
+          {
+            "hour_start": 0.0,
+            "included": false,
+            "arrivals": 37.2833,
+            "served": 0.0,
+            "busy_minutes": 76.8617,
+            "busy_ratio": 0.2562,
+            "mean_los": null
+          },
+          {
+            "hour_start": 60.0,
+            "included": true,
+            "arrivals": 126.5333,
+            "served": 102.4167,
+            "busy_minutes": 224.1806,
+            "busy_ratio": 0.7473,
+            "mean_los": 4.0924
+          },
+          {
+            "hour_start": 120.0,
+            "included": true,
+            "arrivals": 125.0,
+            "served": 108.2667,
+            "busy_minutes": 229.5393,
+            "busy_ratio": 0.7651,
+            "mean_los": 4.5856
+          },
+          {
+            "hour_start": 180.0,
+            "included": true,
+            "arrivals": 41.3333,
+            "served": 46.9667,
+            "busy_minutes": 98.0964,
+            "busy_ratio": 0.327,
+            "mean_los": 3.0195
+          },
+          {
+            "hour_start": 240.0,
+            "included": true,
+            "arrivals": 43.2167,
+            "served": 42.2833,
+            "busy_minutes": 89.2461,
+            "busy_ratio": 0.2975,
+            "mean_los": 2.4724
+          },
+          {
+            "hour_start": 300.0,
+            "included": true,
+            "arrivals": 115.9167,
+            "served": 75.7,
+            "busy_minutes": 160.0875,
+            "busy_ratio": 0.5336,
+            "mean_los": 6.514
+          },
+          {
+            "hour_start": 360.0,
+            "included": true,
+            "arrivals": 119.9667,
+            "served": 89.7167,
+            "busy_minutes": 193.2515,
+            "busy_ratio": 0.6442,
+            "mean_los": 6.8911
+          },
+          {
+            "hour_start": 420.0,
+            "included": true,
+            "arrivals": 57.9167,
+            "served": 62.0167,
+            "busy_minutes": 130.3837,
+            "busy_ratio": 0.4346,
+            "mean_los": 2.963
+          }
+        ]
+      },
+      {
+        "label": "flat_same_daily_mean",
+        "profile": "flat demand at the same daily mean",
+        "quoted_daily_mean_rate": 1.15,
+        "effective_arrival_rate": 1.15,
+        "peak_to_mean": 1.0,
+        "reps": 100,
+        "metrics": {
+          "util": 0.606234,
+          "mean_busy_ratio": 0.562297,
+          "peak_busy_ratio": 0.659671,
+          "peak_hour_arrivals": 100.02,
+          "peak_hour_los": 5.30172,
+          "mean_los": 3.418855,
+          "los_p50": 3.026639,
+          "los_p90": 6.488082,
+          "los_p95": 8.051538,
+          "balk_rate": 0.068715,
+          "renege_rate": 0.001138,
+          "abandon_rate": 0.069853,
+          "served": 548.85,
+          "arrivals": 672.91,
+          "revenue_per_hour": 527.45,
+          "profit_per_hour": 295.954537,
+          "wage_per_hour": 114.0625
+        },
+        "ci95": {
+          "util": 0.005056,
+          "mean_busy_ratio": 0.005148,
+          "peak_busy_ratio": 0.007954,
+          "peak_hour_arrivals": 1.553796,
+          "peak_hour_los": 0.213719,
+          "mean_los": 0.056337,
+          "los_p50": 0.035176,
+          "los_p90": 0.163812,
+          "los_p95": 0.261678,
+          "balk_rate": 0.003727,
+          "renege_rate": 0.000311,
+          "abandon_rate": 0.003737,
+          "served": 4.645509,
+          "arrivals": 6.651469,
+          "revenue_per_hour": 4.519227,
+          "profit_per_hour": 3.197108,
+          "wage_per_hour": 0.0
+        },
+        "hourly": [
+          {
+            "hour_start": 0.0,
+            "included": false,
+            "arrivals": 84.65,
+            "served": 0.0,
+            "busy_minutes": 146.8288,
+            "busy_ratio": 0.4894,
+            "mean_los": null
+          },
+          {
+            "hour_start": 60.0,
+            "included": true,
+            "arrivals": 85.56,
+            "served": 77.89,
+            "busy_minutes": 180.1498,
+            "busy_ratio": 0.6005,
+            "mean_los": 2.9942
+          },
+          {
+            "hour_start": 120.0,
+            "included": true,
+            "arrivals": 83.48,
+            "served": 81.68,
+            "busy_minutes": 173.0196,
+            "busy_ratio": 0.5767,
+            "mean_los": 2.902
+          },
+          {
+            "hour_start": 180.0,
+            "included": true,
+            "arrivals": 84.42,
+            "served": 82.13,
+            "busy_minutes": 175.1658,
+            "busy_ratio": 0.5839,
+            "mean_los": 2.8752
+          },
+          {
+            "hour_start": 240.0,
+            "included": true,
+            "arrivals": 84.69,
+            "served": 78.62,
+            "busy_minutes": 167.8986,
+            "busy_ratio": 0.5597,
+            "mean_los": 3.1981
+          },
+          {
+            "hour_start": 300.0,
+            "included": true,
+            "arrivals": 83.66,
+            "served": 70.13,
+            "busy_minutes": 148.9809,
+            "busy_ratio": 0.4966,
+            "mean_los": 4.8606
+          },
+          {
+            "hour_start": 360.0,
+            "included": true,
+            "arrivals": 82.21,
+            "served": 76.84,
+            "busy_minutes": 164.6825,
+            "busy_ratio": 0.5489,
+            "mean_los": 4.3362
+          },
+          {
+            "hour_start": 420.0,
+            "included": true,
+            "arrivals": 84.24,
+            "served": 81.56,
+            "busy_minutes": 170.9274,
+            "busy_ratio": 0.5698,
+            "mean_los": 2.8862
+          }
+        ]
+      }
+    ],
+    "peak_vs_flat_paired": {
+      "name": "peak_shape_minus_flat",
+      "comparison": "campus_rush_demand_shape - campus_rush_flat_same_daily_mean",
+      "reps": 60,
+      "metrics": {
+        "util": {
+          "diff": -0.057208,
+          "ci95": 0.006157
+        },
+        "mean_busy_ratio": {
+          "diff": -0.02639,
+          "ci95": 0.006203
+        },
+        "peak_busy_ratio": {
+          "diff": 0.116543,
+          "ci95": 0.010541
+        },
+        "peak_hour_arrivals": {
+          "diff": 36.533333,
+          "ci95": 2.248484
+        },
+        "peak_hour_los": {
+          "diff": 2.02641,
+          "ci95": 0.315839
+        },
+        "mean_los": {
+          "diff": 1.240392,
+          "ci95": 0.104159
+        },
+        "los_p50": {
+          "diff": 0.7879,
+          "ci95": 0.125145
+        },
+        "los_p90": {
+          "diff": 3.371912,
+          "ci95": 0.271925
+        },
+        "los_p95": {
+          "diff": 3.710051,
+          "ci95": 0.371715
+        },
+        "balk_rate": {
+          "diff": 0.081318,
+          "ci95": 0.006677
+        },
+        "renege_rate": {
+          "diff": -0.000626,
+          "ci95": 0.000479
+        },
+        "abandon_rate": {
+          "diff": 0.080692,
+          "ci95": 0.006746
+        },
+        "served": {
+          "diff": -21.866667,
+          "ci95": 5.708236
+        },
+        "arrivals": {
+          "diff": -6.75,
+          "ci95": 7.324871
+        },
+        "revenue_per_hour": {
+          "diff": -20.933333,
+          "ci95": 5.63519
+        },
+        "profit_per_hour": {
+          "diff": -56.936884,
+          "ci95": 5.996096
+        },
+        "wage_per_hour": {
+          "diff": 0.0,
+          "ci95": 0.0
+        }
+      },
+      "note": "peak shape - flat profile at the same daily mean. The two arrival streams are not identical event-by-event, so the difference of means is reported with the 95% CI of the paired difference on common seeds; it is a common-random-number comparison, not an exact coupling."
+    },
+    "peak_factor_scan": [
+      {
+        "factor": 1.0,
+        "label": "peak_factor_1",
+        "peak_multiplier": 1.7,
+        "daily_mean_multiplier": 1.1375,
+        "peak_to_mean": 1.4945054945054945,
+        "peak_arrival_rate": 2.105384615384615,
+        "quoted_daily_mean_rate": 1.15,
+        "reps": 60,
+        "metrics": {
+          "util": 0.548697,
+          "peak_busy_ratio": 0.777024,
+          "mean_busy_ratio": 0.535612,
+          "los_p50": 3.800897,
+          "los_p90": 9.873025,
+          "los_p95": 11.774548,
+          "mean_los": 4.659117,
+          "balk_rate": 0.15064,
+          "abandon_rate": 0.151235,
+          "served": 527.366667,
+          "arrivals": 667.166667,
+          "profit_per_hour": 239.346888,
+          "revenue_per_hour": 506.904167
+        },
+        "ci95": {
+          "util": 0.004233,
+          "los_p95": 0.313165,
+          "balk_rate": 0.006283,
+          "served": 4.329543,
+          "profit_per_hour": 4.120575
+        }
+      },
+      {
+        "factor": 1.2,
+        "label": "peak_factor_1.2",
+        "peak_multiplier": 1.890334696095584,
+        "daily_mean_multiplier": 1.1974846192484696,
+        "peak_to_mean": 1.5785878713681858,
+        "peak_arrival_rate": 2.2238356637899317,
+        "quoted_daily_mean_rate": 1.15,
+        "reps": 60,
+        "metrics": {
+          "util": 0.535893,
+          "peak_busy_ratio": 0.790496,
+          "mean_busy_ratio": 0.528134,
+          "los_p50": 4.110964,
+          "los_p90": 10.382464,
+          "los_p95": 12.160412,
+          "mean_los": 4.932468,
+          "balk_rate": 0.17488,
+          "abandon_rate": 0.175534,
+          "served": 521.2,
+          "arrivals": 672.033333,
+          "profit_per_hour": 226.463447,
+          "revenue_per_hour": 501.108333
+        },
+        "ci95": {
+          "util": 0.004287,
+          "los_p95": 0.279306,
+          "balk_rate": 0.006874,
+          "served": 4.091889,
+          "profit_per_hour": 3.899162
+        }
+      },
+      {
+        "factor": 1.4,
+        "label": "peak_factor_1.4",
+        "peak_multiplier": 2.101979566625167,
+        "daily_mean_multiplier": 1.2693351181097086,
+        "peak_to_mean": 1.6559689688215913,
+        "peak_arrival_rate": 2.3328462848274163,
+        "quoted_daily_mean_rate": 1.15,
+        "reps": 60,
+        "metrics": {
+          "util": 0.521768,
+          "peak_busy_ratio": 0.798334,
+          "mean_busy_ratio": 0.517991,
+          "los_p50": 4.575867,
+          "los_p90": 10.730947,
+          "los_p95": 12.638287,
+          "mean_los": 5.223557,
+          "balk_rate": 0.199088,
+          "abandon_rate": 0.199703,
+          "served": 511.35,
+          "arrivals": 673.916667,
+          "profit_per_hour": 211.073051,
+          "revenue_per_hour": 491.9375
+        },
+        "ci95": {
+          "util": 0.004014,
+          "los_p95": 0.336982,
+          "balk_rate": 0.006849,
+          "served": 4.190423,
+          "profit_per_hour": 4.20043
+        }
+      },
+      {
+        "factor": 1.6,
+        "label": "peak_factor_1.6",
+        "peak_multiplier": 2.3373205325150073,
+        "daily_mean_multiplier": 1.35374965245294,
+        "peak_to_mean": 1.726553006517768,
+        "peak_arrival_rate": 2.4322815479319058,
+        "quoted_daily_mean_rate": 1.15,
+        "reps": 60,
+        "metrics": {
+          "util": 0.508706,
+          "peak_busy_ratio": 0.800639,
+          "mean_busy_ratio": 0.508451,
+          "los_p50": 5.065746,
+          "los_p90": 11.250733,
+          "los_p95": 13.101856,
+          "mean_los": 5.537089,
+          "balk_rate": 0.222035,
+          "abandon_rate": 0.222505,
+          "served": 501.516667,
+          "arrivals": 675.35,
+          "profit_per_hour": 195.039881,
+          "revenue_per_hour": 482.433333
+        },
+        "ci95": {
+          "util": 0.003977,
+          "los_p95": 0.353602,
+          "balk_rate": 0.007914,
+          "served": 4.509648,
+          "profit_per_hour": 4.958014
+        }
+      },
+      {
+        "factor": 1.8,
+        "label": "peak_factor_1.8",
+        "peak_multiplier": 2.599010646182191,
+        "daily_mean_multiplier": 1.4515621652071988,
+        "peak_to_mean": 1.7904921390750104,
+        "peak_arrival_rate": 2.522355800921921,
+        "quoted_daily_mean_rate": 1.15,
+        "reps": 60,
+        "metrics": {
+          "util": 0.494165,
+          "peak_busy_ratio": 0.803002,
+          "mean_busy_ratio": 0.497476,
+          "los_p50": 5.609652,
+          "los_p90": 11.702989,
+          "los_p95": 13.491691,
+          "mean_los": 5.84686,
+          "balk_rate": 0.246039,
+          "abandon_rate": 0.246591,
+          "served": 490.916667,
+          "arrivals": 677.416667,
+          "profit_per_hour": 179.000127,
+          "revenue_per_hour": 472.220833
+        },
+        "ci95": {
+          "util": 0.003872,
+          "los_p95": 0.286053,
+          "balk_rate": 0.007368,
+          "served": 4.977428,
+          "profit_per_hour": 5.168451
+        }
+      },
+      {
+        "factor": 2.0,
+        "label": "peak_factor_2",
+        "peak_multiplier": 2.8899999999999997,
+        "daily_mean_multiplier": 1.56375,
+        "peak_to_mean": 1.8481215027977616,
+        "peak_arrival_rate": 2.6035411670663464,
+        "quoted_daily_mean_rate": 1.15,
+        "reps": 60,
+        "metrics": {
+          "util": 0.480732,
+          "peak_busy_ratio": 0.803882,
+          "mean_busy_ratio": 0.486901,
+          "los_p50": 5.938515,
+          "los_p90": 12.008974,
+          "los_p95": 13.664362,
+          "mean_los": 6.048,
+          "balk_rate": 0.265965,
+          "abandon_rate": 0.266448,
+          "served": 481.883333,
+          "arrivals": 678.933333,
+          "profit_per_hour": 167.012337,
+          "revenue_per_hour": 463.008333
+        },
+        "ci95": {
+          "util": 0.003935,
+          "los_p95": 0.262885,
+          "balk_rate": 0.008148,
+          "served": 4.363777,
+          "profit_per_hour": 4.840646
+        }
+      }
+    ],
+    "peak_factor_deltas": [
+      {
+        "name": "peak_factor_1.2_minus_baseline",
+        "comparison": "peak_factor_1.2 - peak_factor_1",
+        "reps": 60,
+        "metrics": {
+          "mean_busy_ratio": {
+            "diff": -0.007478,
+            "ci95": 0.004313
+          },
+          "peak_busy_ratio": {
+            "diff": 0.013472,
+            "ci95": 0.004128
+          },
+          "los_p95": {
+            "diff": 0.385865,
+            "ci95": 0.334591
+          },
+          "balk_rate": {
+            "diff": 0.024241,
+            "ci95": 0.004871
+          },
+          "util": {
+            "diff": -0.012804,
+            "ci95": 0.004835
+          },
+          "served": {
+            "diff": -6.166667,
+            "ci95": 4.250931
+          },
+          "profit_per_hour": {
+            "diff": -12.883441,
+            "ci95": 4.38747
+          }
+        },
+        "note": "peak_factor cell minus the factor=1.0 (campus_rush) cell at the same daily mean rate; demand shape is the only difference."
+      },
+      {
+        "name": "peak_factor_1.4_minus_baseline",
+        "comparison": "peak_factor_1.4 - peak_factor_1",
+        "reps": 60,
+        "metrics": {
+          "mean_busy_ratio": {
+            "diff": -0.017621,
+            "ci95": 0.00519
+          },
+          "peak_busy_ratio": {
+            "diff": 0.02131,
+            "ci95": 0.006244
+          },
+          "los_p95": {
+            "diff": 0.86374,
+            "ci95": 0.303342
+          },
+          "balk_rate": {
+            "diff": 0.048448,
+            "ci95": 0.005415
+          },
+          "util": {
+            "diff": -0.026929,
+            "ci95": 0.005224
+          },
+          "served": {
+            "diff": -16.016667,
+            "ci95": 4.425607
+          },
+          "profit_per_hour": {
+            "diff": -28.273837,
+            "ci95": 4.582391
+          }
+        },
+        "note": "peak_factor cell minus the factor=1.0 (campus_rush) cell at the same daily mean rate; demand shape is the only difference."
+      },
+      {
+        "name": "peak_factor_1.6_minus_baseline",
+        "comparison": "peak_factor_1.6 - peak_factor_1",
+        "reps": 60,
+        "metrics": {
+          "mean_busy_ratio": {
+            "diff": -0.027161,
+            "ci95": 0.005024
+          },
+          "peak_busy_ratio": {
+            "diff": 0.023615,
+            "ci95": 0.006909
+          },
+          "los_p95": {
+            "diff": 1.327308,
+            "ci95": 0.413315
+          },
+          "balk_rate": {
+            "diff": 0.071395,
+            "ci95": 0.007313
+          },
+          "util": {
+            "diff": -0.039991,
+            "ci95": 0.005496
+          },
+          "served": {
+            "diff": -25.85,
+            "ci95": 4.775489
+          },
+          "profit_per_hour": {
+            "diff": -44.307008,
+            "ci95": 5.403479
+          }
+        },
+        "note": "peak_factor cell minus the factor=1.0 (campus_rush) cell at the same daily mean rate; demand shape is the only difference."
+      },
+      {
+        "name": "peak_factor_1.8_minus_baseline",
+        "comparison": "peak_factor_1.8 - peak_factor_1",
+        "reps": 60,
+        "metrics": {
+          "mean_busy_ratio": {
+            "diff": -0.038136,
+            "ci95": 0.004529
+          },
+          "peak_busy_ratio": {
+            "diff": 0.025979,
+            "ci95": 0.007111
+          },
+          "los_p95": {
+            "diff": 1.717143,
+            "ci95": 0.352267
+          },
+          "balk_rate": {
+            "diff": 0.095399,
+            "ci95": 0.006555
+          },
+          "util": {
+            "diff": -0.054532,
+            "ci95": 0.005055
+          },
+          "served": {
+            "diff": -36.45,
+            "ci95": 4.826706
+          },
+          "profit_per_hour": {
+            "diff": -60.346761,
+            "ci95": 5.14547
+          }
+        },
+        "note": "peak_factor cell minus the factor=1.0 (campus_rush) cell at the same daily mean rate; demand shape is the only difference."
+      },
+      {
+        "name": "peak_factor_2_minus_baseline",
+        "comparison": "peak_factor_2 - peak_factor_1",
+        "reps": 60,
+        "metrics": {
+          "mean_busy_ratio": {
+            "diff": -0.048711,
+            "ci95": 0.004906
+          },
+          "peak_busy_ratio": {
+            "diff": 0.026858,
+            "ci95": 0.007333
+          },
+          "los_p95": {
+            "diff": 1.889815,
+            "ci95": 0.372975
+          },
+          "balk_rate": {
+            "diff": 0.115325,
+            "ci95": 0.007167
+          },
+          "util": {
+            "diff": -0.067965,
+            "ci95": 0.005329
+          },
+          "served": {
+            "diff": -45.483333,
+            "ci95": 4.998791
+          },
+          "profit_per_hour": {
+            "diff": -72.334552,
+            "ci95": 5.291097
+          }
+        },
+        "note": "peak_factor cell minus the factor=1.0 (campus_rush) cell at the same daily mean rate; demand shape is the only difference."
+      }
+    ],
+    "variability_scan": [
+      {
+        "lambda": 1.0,
+        "theoretical_rho": 0.70555,
+        "variant": "fixed",
+        "note": "deterministic make times (v1 assumption)",
+        "reps": 100,
+        "metrics": {
+          "util": 0.710494,
+          "mean_los": 2.85526,
+          "los_p50": 2.620195,
+          "los_p90": 4.671473,
+          "los_p95": 5.474557,
+          "served": 420.9,
+          "profit_per_hour": 255.368084,
+          "revenue_per_hour": 405.695
+        },
+        "ci95": {
+          "mean_los": 0.056724,
+          "los_p50": 0.029768,
+          "los_p90": 0.151571,
+          "los_p95": 0.213408,
+          "profit_per_hour": 2.649017
+        }
+      },
+      {
+        "lambda": 1.0,
+        "theoretical_rho": 0.70555,
+        "variant": "exponential",
+        "note": "exponential make times; the cell declares CV 1.0, which is the exponential distribution's own CV. The engine draws an exponential for kind='exponential' regardless of the declared component CV, so the cell is genuinely exponential.",
+        "reps": 100,
+        "metrics": {
+          "util": 0.713818,
+          "mean_los": 3.582984,
+          "los_p50": 2.623946,
+          "los_p90": 8.143764,
+          "los_p95": 10.096606,
+          "served": 420.9,
+          "profit_per_hour": 235.99285,
+          "revenue_per_hour": 405.695
+        },
+        "ci95": {
+          "mean_los": 0.168319,
+          "los_p50": 0.144622,
+          "los_p90": 0.395052,
+          "los_p95": 0.46448,
+          "profit_per_hour": 4.332523
+        }
+      },
+      {
+        "lambda": 1.0,
+        "theoretical_rho": 0.70555,
+        "variant": "lognormal_cv0.25",
+        "note": "lognormal, CV 0.25 on every component",
+        "reps": 100,
+        "metrics": {
+          "util": 0.709923,
+          "mean_los": 2.875613,
+          "los_p50": 2.811353,
+          "los_p90": 4.83615,
+          "los_p95": 5.708948,
+          "served": 420.9,
+          "profit_per_hour": 254.807345,
+          "revenue_per_hour": 405.695
+        },
+        "ci95": {
+          "mean_los": 0.062445,
+          "los_p50": 0.02246,
+          "los_p90": 0.161023,
+          "los_p95": 0.228905,
+          "profit_per_hour": 2.610591
+        }
+      },
+      {
+        "lambda": 1.0,
+        "theoretical_rho": 0.70555,
+        "variant": "lognormal_cv0.50",
+        "note": "lognormal, CV 0.50 on every component",
+        "reps": 100,
+        "metrics": {
+          "util": 0.709334,
+          "mean_los": 2.954358,
+          "los_p50": 2.794551,
+          "los_p90": 5.363713,
+          "los_p95": 6.400489,
+          "served": 420.9,
+          "profit_per_hour": 252.70121,
+          "revenue_per_hour": 405.695
+        },
+        "ci95": {
+          "mean_los": 0.073749,
+          "los_p50": 0.034045,
+          "los_p90": 0.183797,
+          "los_p95": 0.264051,
+          "profit_per_hour": 2.635286
+        }
+      },
+      {
+        "lambda": 1.0,
+        "theoretical_rho": 0.70555,
+        "variant": "lognormal_cv0.75",
+        "note": "lognormal, CV 0.75 on every component",
+        "reps": 100,
+        "metrics": {
+          "util": 0.708818,
+          "mean_los": 3.082697,
+          "los_p50": 2.776028,
+          "los_p90": 5.998104,
+          "los_p95": 7.341444,
+          "served": 420.9,
+          "profit_per_hour": 249.286614,
+          "revenue_per_hour": 405.695
+        },
+        "ci95": {
+          "mean_los": 0.092803,
+          "los_p50": 0.044614,
+          "los_p90": 0.253189,
+          "los_p95": 0.342534,
+          "profit_per_hour": 2.820577
+        }
+      },
+      {
+        "lambda": 1.2,
+        "theoretical_rho": 0.84666,
+        "variant": "fixed",
+        "note": "deterministic make times (v1 assumption)",
+        "reps": 100,
+        "metrics": {
+          "util": 0.852325,
+          "mean_los": 4.092452,
+          "los_p50": 3.498194,
+          "los_p90": 7.489822,
+          "los_p95": 8.596877,
+          "served": 504.87,
+          "profit_per_hour": 281.581691,
+          "revenue_per_hour": 486.72
+        },
+        "ci95": {
+          "mean_los": 0.192748,
+          "los_p50": 0.158812,
+          "los_p90": 0.464158,
+          "los_p95": 0.511013,
+          "profit_per_hour": 4.734526
+        }
+      },
+      {
+        "lambda": 1.2,
+        "theoretical_rho": 0.84666,
+        "variant": "exponential",
+        "note": "exponential make times; the cell declares CV 1.0, which is the exponential distribution's own CV. The engine draws an exponential for kind='exponential' regardless of the declared component CV, so the cell is genuinely exponential.",
+        "reps": 100,
+        "metrics": {
+          "util": 0.859474,
+          "mean_los": 6.30276,
+          "los_p50": 5.324521,
+          "los_p90": 13.217937,
+          "los_p95": 15.308069,
+          "served": 504.87,
+          "profit_per_hour": 211.210835,
+          "revenue_per_hour": 486.72
+        },
+        "ci95": {
+          "mean_los": 0.670904,
+          "los_p50": 0.712217,
+          "los_p90": 1.084491,
+          "los_p95": 1.128726,
+          "profit_per_hour": 20.950235
+        }
+      },
+      {
+        "lambda": 1.2,
+        "theoretical_rho": 0.84666,
+        "variant": "lognormal_cv0.25",
+        "note": "lognormal, CV 0.25 on every component",
+        "reps": 100,
+        "metrics": {
+          "util": 0.852715,
+          "mean_los": 4.133788,
+          "los_p50": 3.613206,
+          "los_p90": 7.567663,
+          "los_p95": 8.714748,
+          "served": 504.87,
+          "profit_per_hour": 280.212475,
+          "revenue_per_hour": 486.72
+        },
+        "ci95": {
+          "mean_los": 0.204058,
+          "los_p50": 0.169395,
+          "los_p90": 0.479022,
+          "los_p95": 0.528589,
+          "profit_per_hour": 5.037404
+        }
+      },
+      {
+        "lambda": 1.2,
+        "theoretical_rho": 0.84666,
+        "variant": "lognormal_cv0.50",
+        "note": "lognormal, CV 0.50 on every component",
+        "reps": 100,
+        "metrics": {
+          "util": 0.853081,
+          "mean_los": 4.343848,
+          "los_p50": 3.80239,
+          "los_p90": 8.177842,
+          "los_p95": 9.468758,
+          "served": 504.87,
+          "profit_per_hour": 273.391457,
+          "revenue_per_hour": 486.72
+        },
+        "ci95": {
+          "mean_los": 0.260615,
+          "los_p50": 0.252329,
+          "los_p90": 0.547351,
+          "los_p95": 0.591589,
+          "profit_per_hour": 7.022539
+        }
+      },
+      {
+        "lambda": 1.2,
+        "theoretical_rho": 0.84666,
+        "variant": "lognormal_cv0.75",
+        "note": "lognormal, CV 0.75 on every component",
+        "reps": 100,
+        "metrics": {
+          "util": 0.853428,
+          "mean_los": 4.703466,
+          "los_p50": 4.053174,
+          "los_p90": 9.215797,
+          "los_p95": 10.752147,
+          "served": 504.87,
+          "profit_per_hour": 261.756013,
+          "revenue_per_hour": 486.72
+        },
+        "ci95": {
+          "mean_los": 0.370953,
+          "los_p50": 0.41801,
+          "los_p90": 0.709979,
+          "los_p95": 0.761019,
+          "profit_per_hour": 10.941802
+        }
+      }
+    ],
+    "variability_deltas": [
+      {
+        "name": "variability_exponential_minus_fixed_lam1",
+        "comparison": "variability_exponential_lam1 - variability_fixed_lam1",
+        "reps": 100,
+        "metrics": {
+          "los_p95": {
+            "diff": 4.62205,
+            "ci95": 0.426733
+          },
+          "los_p90": {
+            "diff": 3.472291,
+            "ci95": 0.350384
+          },
+          "mean_los": {
+            "diff": 0.727724,
+            "ci95": 0.146882
+          },
+          "profit_per_hour": {
+            "diff": -19.375234,
+            "ci95": 4.014212
+          },
+          "util": {
+            "diff": 0.003324,
+            "ci95": 0.006644
+          }
+        },
+        "note": "same arrival stream, only the make-time distribution changes"
+      },
+      {
+        "name": "variability_lognormal_cv0.25_minus_fixed_lam1",
+        "comparison": "variability_lognormal_cv0.25_lam1 - variability_fixed_lam1",
+        "reps": 100,
+        "metrics": {
+          "los_p95": {
+            "diff": 0.234391,
+            "ci95": 0.09528
+          },
+          "los_p90": {
+            "diff": 0.164676,
+            "ci95": 0.058243
+          },
+          "mean_los": {
+            "diff": 0.020353,
+            "ci95": 0.019245
+          },
+          "profit_per_hour": {
+            "diff": -0.560739,
+            "ci95": 0.519858
+          },
+          "util": {
+            "diff": -0.000571,
+            "ci95": 0.001336
+          }
+        },
+        "note": "same arrival stream, only the make-time distribution changes"
+      },
+      {
+        "name": "variability_lognormal_cv0.50_minus_fixed_lam1",
+        "comparison": "variability_lognormal_cv0.50_lam1 - variability_fixed_lam1",
+        "reps": 100,
+        "metrics": {
+          "los_p95": {
+            "diff": 0.925932,
+            "ci95": 0.18082
+          },
+          "los_p90": {
+            "diff": 0.69224,
+            "ci95": 0.116216
+          },
+          "mean_los": {
+            "diff": 0.099098,
+            "ci95": 0.040203
+          },
+          "profit_per_hour": {
+            "diff": -2.666873,
+            "ci95": 1.089037
+          },
+          "util": {
+            "diff": -0.00116,
+            "ci95": 0.002666
+          }
+        },
+        "note": "same arrival stream, only the make-time distribution changes"
+      },
+      {
+        "name": "variability_lognormal_cv0.75_minus_fixed_lam1",
+        "comparison": "variability_lognormal_cv0.75_lam1 - variability_fixed_lam1",
+        "reps": 100,
+        "metrics": {
+          "los_p95": {
+            "diff": 1.866887,
+            "ci95": 0.292617
+          },
+          "los_p90": {
+            "diff": 1.326631,
+            "ci95": 0.20304
+          },
+          "mean_los": {
+            "diff": 0.227437,
+            "ci95": 0.066314
+          },
+          "profit_per_hour": {
+            "diff": -6.08147,
+            "ci95": 1.79204
+          },
+          "util": {
+            "diff": -0.001676,
+            "ci95": 0.004005
+          }
+        },
+        "note": "same arrival stream, only the make-time distribution changes"
+      },
+      {
+        "name": "variability_exponential_minus_fixed_lam1.2",
+        "comparison": "variability_exponential_lam1.2 - variability_fixed_lam1.2",
+        "reps": 100,
+        "metrics": {
+          "los_p95": {
+            "diff": 6.711192,
+            "ci95": 0.994739
+          },
+          "los_p90": {
+            "diff": 5.728115,
+            "ci95": 0.98006
+          },
+          "mean_los": {
+            "diff": 2.210308,
+            "ci95": 0.61779
+          },
+          "profit_per_hour": {
+            "diff": -70.370856,
+            "ci95": 19.957131
+          },
+          "util": {
+            "diff": 0.007149,
+            "ci95": 0.007962
+          }
+        },
+        "note": "same arrival stream, only the make-time distribution changes"
+      },
+      {
+        "name": "variability_lognormal_cv0.25_minus_fixed_lam1.2",
+        "comparison": "variability_lognormal_cv0.25_lam1.2 - variability_fixed_lam1.2",
+        "reps": 100,
+        "metrics": {
+          "los_p95": {
+            "diff": 0.117872,
+            "ci95": 0.181057
+          },
+          "los_p90": {
+            "diff": 0.077841,
+            "ci95": 0.156202
+          },
+          "mean_los": {
+            "diff": 0.041336,
+            "ci95": 0.065729
+          },
+          "profit_per_hour": {
+            "diff": -1.369216,
+            "ci95": 2.201219
+          },
+          "util": {
+            "diff": 0.00039,
+            "ci95": 0.001406
+          }
+        },
+        "note": "same arrival stream, only the make-time distribution changes"
+      },
+      {
+        "name": "variability_lognormal_cv0.50_minus_fixed_lam1.2",
+        "comparison": "variability_lognormal_cv0.50_lam1.2 - variability_fixed_lam1.2",
+        "reps": 100,
+        "metrics": {
+          "los_p95": {
+            "diff": 0.871882,
+            "ci95": 0.361187
+          },
+          "los_p90": {
+            "diff": 0.688021,
+            "ci95": 0.31008
+          },
+          "mean_los": {
+            "diff": 0.251396,
+            "ci95": 0.153959
+          },
+          "profit_per_hour": {
+            "diff": -8.190235,
+            "ci95": 5.226704
+          },
+          "util": {
+            "diff": 0.000756,
+            "ci95": 0.002887
+          }
+        },
+        "note": "same arrival stream, only the make-time distribution changes"
+      },
+      {
+        "name": "variability_lognormal_cv0.75_minus_fixed_lam1.2",
+        "comparison": "variability_lognormal_cv0.75_lam1.2 - variability_fixed_lam1.2",
+        "reps": 100,
+        "metrics": {
+          "los_p95": {
+            "diff": 2.155271,
+            "ci95": 0.595238
+          },
+          "los_p90": {
+            "diff": 1.725976,
+            "ci95": 0.523704
+          },
+          "mean_los": {
+            "diff": 0.611014,
+            "ci95": 0.284594
+          },
+          "profit_per_hour": {
+            "diff": -19.825678,
+            "ci95": 9.669133
+          },
+          "util": {
+            "diff": 0.001103,
+            "ci95": 0.004432
+          }
+        },
+        "note": "same arrival stream, only the make-time distribution changes"
+      }
+    ],
+    "patience_scan": [
+      {
+        "lambda": 1.0,
+        "balk_mean": 3.0,
+        "renege_mean": 10.0,
+        "reps": 100,
+        "metrics": {
+          "balk_rate": 0.247274,
+          "renege_rate": 0.0,
+          "abandon_rate": 0.247274,
+          "served": 315.33,
+          "mean_los": 2.194312,
+          "los_p95": 3.012952,
+          "profit_per_hour": 185.246246,
+          "revenue_per_hour": 303.48
+        },
+        "ci95": {
+          "abandon_rate": 0.002992,
+          "mean_los": 0.012466,
+          "profit_per_hour": 1.933399
+        }
+      },
+      {
+        "lambda": 1.0,
+        "balk_mean": 3.0,
+        "renege_mean": 15.0,
+        "reps": 100,
+        "metrics": {
+          "balk_rate": 0.247274,
+          "renege_rate": 0.0,
+          "abandon_rate": 0.247274,
+          "served": 315.33,
+          "mean_los": 2.194312,
+          "los_p95": 3.012952,
+          "profit_per_hour": 185.246246,
+          "revenue_per_hour": 303.48
+        },
+        "ci95": {
+          "abandon_rate": 0.002992,
+          "mean_los": 0.012466,
+          "profit_per_hour": 1.933399
+        }
+      },
+      {
+        "lambda": 1.0,
+        "balk_mean": 3.0,
+        "renege_mean": 20.0,
+        "reps": 100,
+        "metrics": {
+          "balk_rate": 0.247274,
+          "renege_rate": 0.0,
+          "abandon_rate": 0.247274,
+          "served": 315.33,
+          "mean_los": 2.194312,
+          "los_p95": 3.012952,
+          "profit_per_hour": 185.246246,
+          "revenue_per_hour": 303.48
+        },
+        "ci95": {
+          "abandon_rate": 0.002992,
+          "mean_los": 0.012466,
+          "profit_per_hour": 1.933399
+        }
+      },
+      {
+        "lambda": 1.0,
+        "balk_mean": 5.0,
+        "renege_mean": 10.0,
+        "reps": 100,
+        "metrics": {
+          "balk_rate": 0.107178,
+          "renege_rate": 2.2e-05,
+          "abandon_rate": 0.1072,
+          "served": 374.14,
+          "mean_los": 2.360968,
+          "los_p95": 3.828165,
+          "profit_per_hour": 229.836172,
+          "revenue_per_hour": 360.05
+        },
+        "ci95": {
+          "abandon_rate": 0.002752,
+          "mean_los": 0.015151,
+          "profit_per_hour": 2.216906
+        }
+      },
+      {
+        "lambda": 1.0,
+        "balk_mean": 5.0,
+        "renege_mean": 15.0,
+        "reps": 100,
+        "metrics": {
+          "balk_rate": 0.1072,
+          "renege_rate": 0.0,
+          "abandon_rate": 0.1072,
+          "served": 374.14,
+          "mean_los": 2.36104,
+          "los_p95": 3.82827,
+          "profit_per_hour": 229.834659,
+          "revenue_per_hour": 360.05
+        },
+        "ci95": {
+          "abandon_rate": 0.002752,
+          "mean_los": 0.015141,
+          "profit_per_hour": 2.217467
+        }
+      },
+      {
+        "lambda": 1.0,
+        "balk_mean": 5.0,
+        "renege_mean": 20.0,
+        "reps": 100,
+        "metrics": {
+          "balk_rate": 0.1072,
+          "renege_rate": 0.0,
+          "abandon_rate": 0.1072,
+          "served": 374.14,
+          "mean_los": 2.36104,
+          "los_p95": 3.82827,
+          "profit_per_hour": 229.834659,
+          "revenue_per_hour": 360.05
+        },
+        "ci95": {
+          "abandon_rate": 0.002752,
+          "mean_los": 0.015141,
+          "profit_per_hour": 2.217467
+        }
+      },
+      {
+        "lambda": 1.0,
+        "balk_mean": 8.0,
+        "renege_mean": 10.0,
+        "reps": 100,
+        "metrics": {
+          "balk_rate": 0.036106,
+          "renege_rate": 0.000477,
+          "abandon_rate": 0.036583,
+          "served": 403.94,
+          "mean_los": 2.579442,
+          "los_p95": 4.481719,
+          "profit_per_hour": 248.599803,
+          "revenue_per_hour": 388.7575
+        },
+        "ci95": {
+          "abandon_rate": 0.001946,
+          "mean_los": 0.022367,
+          "profit_per_hour": 2.3977
+        }
+      },
+      {
+        "lambda": 1.0,
+        "balk_mean": 8.0,
+        "renege_mean": 15.0,
+        "reps": 100,
+        "metrics": {
+          "balk_rate": 0.036211,
+          "renege_rate": 1.9e-05,
+          "abandon_rate": 0.03623,
+          "served": 404.1,
+          "mean_los": 2.582757,
+          "los_p95": 4.497388,
+          "profit_per_hour": 248.644995,
+          "revenue_per_hour": 388.9125
+        },
+        "ci95": {
+          "abandon_rate": 0.001909,
+          "mean_los": 0.02265,
+          "profit_per_hour": 2.397931
+        }
+      },
+      {
+        "lambda": 1.0,
+        "balk_mean": 8.0,
+        "renege_mean": 20.0,
+        "reps": 100,
+        "metrics": {
+          "balk_rate": 0.036211,
+          "renege_rate": 1.9e-05,
+          "abandon_rate": 0.03623,
+          "served": 404.1,
+          "mean_los": 2.582757,
+          "los_p95": 4.497388,
+          "profit_per_hour": 248.644995,
+          "revenue_per_hour": 388.9125
+        },
+        "ci95": {
+          "abandon_rate": 0.001909,
+          "mean_los": 0.02265,
+          "profit_per_hour": 2.397931
+        }
+      },
+      {
+        "lambda": 1.0,
+        "balk_mean": 12.0,
+        "renege_mean": 10.0,
+        "reps": 100,
+        "metrics": {
+          "balk_rate": 0.009653,
+          "renege_rate": 0.00169,
+          "abandon_rate": 0.011343,
+          "served": 414.75,
+          "mean_los": 2.714597,
+          "los_p95": 4.903027,
+          "profit_per_hour": 253.762099,
+          "revenue_per_hour": 399.2
+        },
+        "ci95": {
+          "abandon_rate": 0.001412,
+          "mean_los": 0.030908,
+          "profit_per_hour": 2.425322
+        }
+      },
+      {
+        "lambda": 1.0,
+        "balk_mean": 12.0,
+        "renege_mean": 15.0,
+        "reps": 100,
+        "metrics": {
+          "balk_rate": 0.009842,
+          "renege_rate": 0.000206,
+          "abandon_rate": 0.010048,
+          "served": 415.32,
+          "mean_los": 2.729997,
+          "los_p95": 4.976788,
+          "profit_per_hour": 253.808882,
+          "revenue_per_hour": 399.75
+        },
+        "ci95": {
+          "abandon_rate": 0.001299,
+          "mean_los": 0.032371,
+          "profit_per_hour": 2.437856
+        }
+      },
+      {
+        "lambda": 1.0,
+        "balk_mean": 12.0,
+        "renege_mean": 20.0,
+        "reps": 100,
+        "metrics": {
+          "balk_rate": 0.009863,
+          "renege_rate": 3.9e-05,
+          "abandon_rate": 0.009902,
+          "served": 415.39,
+          "mean_los": 2.731802,
+          "los_p95": 4.982751,
+          "profit_per_hour": 253.817248,
+          "revenue_per_hour": 399.8175
+        },
+        "ci95": {
+          "abandon_rate": 0.00127,
+          "mean_los": 0.032713,
+          "profit_per_hour": 2.434446
+        }
+      },
+      {
+        "lambda": 1.2,
+        "balk_mean": 3.0,
+        "renege_mean": 10.0,
+        "reps": 100,
+        "metrics": {
+          "balk_rate": 0.293108,
+          "renege_rate": 0.0,
+          "abandon_rate": 0.293108,
+          "served": 355.11,
+          "mean_los": 2.226203,
+          "los_p95": 3.229155,
+          "profit_per_hour": 217.423745,
+          "revenue_per_hour": 341.8275
+        },
+        "ci95": {
+          "abandon_rate": 0.002659,
+          "mean_los": 0.012406,
+          "profit_per_hour": 1.949921
+        }
+      },
+      {
+        "lambda": 1.2,
+        "balk_mean": 3.0,
+        "renege_mean": 15.0,
+        "reps": 100,
+        "metrics": {
+          "balk_rate": 0.293108,
+          "renege_rate": 0.0,
+          "abandon_rate": 0.293108,
+          "served": 355.11,
+          "mean_los": 2.226203,
+          "los_p95": 3.229155,
+          "profit_per_hour": 217.423745,
+          "revenue_per_hour": 341.8275
+        },
+        "ci95": {
+          "abandon_rate": 0.002659,
+          "mean_los": 0.012406,
+          "profit_per_hour": 1.949921
+        }
+      },
+      {
+        "lambda": 1.2,
+        "balk_mean": 3.0,
+        "renege_mean": 20.0,
+        "reps": 100,
+        "metrics": {
+          "balk_rate": 0.293108,
+          "renege_rate": 0.0,
+          "abandon_rate": 0.293108,
+          "served": 355.11,
+          "mean_los": 2.226203,
+          "los_p95": 3.229155,
+          "profit_per_hour": 217.423745,
+          "revenue_per_hour": 341.8275
+        },
+        "ci95": {
+          "abandon_rate": 0.002659,
+          "mean_los": 0.012406,
+          "profit_per_hour": 1.949921
+        }
+      },
+      {
+        "lambda": 1.2,
+        "balk_mean": 5.0,
+        "renege_mean": 10.0,
+        "reps": 100,
+        "metrics": {
+          "balk_rate": 0.148362,
+          "renege_rate": 0.000103,
+          "abandon_rate": 0.148465,
+          "served": 428.05,
+          "mean_los": 2.490042,
+          "los_p95": 4.178379,
+          "profit_per_hour": 270.259674,
+          "revenue_per_hour": 411.885
+        },
+        "ci95": {
+          "abandon_rate": 0.002825,
+          "mean_los": 0.018555,
+          "profit_per_hour": 2.117213
+        }
+      },
+      {
+        "lambda": 1.2,
+        "balk_mean": 5.0,
+        "renege_mean": 15.0,
+        "reps": 100,
+        "metrics": {
+          "balk_rate": 0.148413,
+          "renege_rate": 0.0,
+          "abandon_rate": 0.148413,
+          "served": 428.08,
+          "mean_los": 2.490797,
+          "los_p95": 4.180274,
+          "profit_per_hour": 270.267373,
+          "revenue_per_hour": 411.9175
+        },
+        "ci95": {
+          "abandon_rate": 0.002829,
+          "mean_los": 0.018507,
+          "profit_per_hour": 2.118499
+        }
+      },
+      {
+        "lambda": 1.2,
+        "balk_mean": 5.0,
+        "renege_mean": 20.0,
+        "reps": 100,
+        "metrics": {
+          "balk_rate": 0.148413,
+          "renege_rate": 0.0,
+          "abandon_rate": 0.148413,
+          "served": 428.08,
+          "mean_los": 2.490797,
+          "los_p95": 4.180274,
+          "profit_per_hour": 270.267373,
+          "revenue_per_hour": 411.9175
+        },
+        "ci95": {
+          "abandon_rate": 0.002829,
+          "mean_los": 0.018507,
+          "profit_per_hour": 2.118499
+        }
+      },
+      {
+        "lambda": 1.2,
+        "balk_mean": 8.0,
+        "renege_mean": 10.0,
+        "reps": 100,
+        "metrics": {
+          "balk_rate": 0.065804,
+          "renege_rate": 0.00142,
+          "abandon_rate": 0.067224,
+          "served": 468.78,
+          "mean_los": 2.883128,
+          "los_p95": 5.106388,
+          "profit_per_hour": 291.817434,
+          "revenue_per_hour": 451.3325
+        },
+        "ci95": {
+          "abandon_rate": 0.002554,
+          "mean_los": 0.031223,
+          "profit_per_hour": 2.149426
+        }
+      },
+      {
+        "lambda": 1.2,
+        "balk_mean": 8.0,
+        "renege_mean": 15.0,
+        "reps": 100,
+        "metrics": {
+          "balk_rate": 0.066458,
+          "renege_rate": 0.000154,
+          "abandon_rate": 0.066613,
+          "served": 469.09,
+          "mean_los": 2.893601,
+          "los_p95": 5.140885,
+          "profit_per_hour": 291.755065,
+          "revenue_per_hour": 451.635
+        },
+        "ci95": {
+          "abandon_rate": 0.002534,
+          "mean_los": 0.03182,
+          "profit_per_hour": 2.139788
+        }
+      },
+      {
+        "lambda": 1.2,
+        "balk_mean": 8.0,
+        "renege_mean": 20.0,
+        "reps": 100,
+        "metrics": {
+          "balk_rate": 0.066543,
+          "renege_rate": 0.0,
+          "abandon_rate": 0.066543,
+          "served": 469.12,
+          "mean_los": 2.895906,
+          "los_p95": 5.148027,
+          "profit_per_hour": 291.711131,
+          "revenue_per_hour": 451.665
+        },
+        "ci95": {
+          "abandon_rate": 0.002533,
+          "mean_los": 0.032222,
+          "profit_per_hour": 2.137746
+        }
+      },
+      {
+        "lambda": 1.2,
+        "balk_mean": 12.0,
+        "renege_mean": 10.0,
+        "reps": 100,
+        "metrics": {
+          "balk_rate": 0.026454,
+          "renege_rate": 0.005577,
+          "abandon_rate": 0.032031,
+          "served": 486.64,
+          "mean_los": 3.221089,
+          "los_p95": 5.943949,
+          "profit_per_hour": 295.388256,
+          "revenue_per_hour": 468.4625
+        },
+        "ci95": {
+          "abandon_rate": 0.002325,
+          "mean_los": 0.048568,
+          "profit_per_hour": 2.217064
+        }
+      },
+      {
+        "lambda": 1.2,
+        "balk_mean": 12.0,
+        "renege_mean": 15.0,
+        "reps": 100,
+        "metrics": {
+          "balk_rate": 0.028131,
+          "renege_rate": 0.001157,
+          "abandon_rate": 0.029289,
+          "served": 488.07,
+          "mean_los": 3.284972,
+          "los_p95": 6.158259,
+          "profit_per_hour": 294.544098,
+          "revenue_per_hour": 469.875
+        },
+        "ci95": {
+          "abandon_rate": 0.002197,
+          "mean_los": 0.054425,
+          "profit_per_hour": 2.227493
+        }
+      },
+      {
+        "lambda": 1.2,
+        "balk_mean": 12.0,
+        "renege_mean": 20.0,
+        "reps": 100,
+        "metrics": {
+          "balk_rate": 0.028493,
+          "renege_rate": 0.000209,
+          "abandon_rate": 0.028701,
+          "served": 488.39,
+          "mean_los": 3.299127,
+          "los_p95": 6.204272,
+          "profit_per_hour": 294.346578,
+          "revenue_per_hour": 470.1825
+        },
+        "ci95": {
+          "abandon_rate": 0.002171,
+          "mean_los": 0.055952,
+          "profit_per_hour": 2.225669
+        }
+      }
+    ],
+    "patience_reneging_only": [
+      {
+        "lambda": 1.0,
+        "balk_mean": null,
+        "renege_mean": 10.0,
+        "reps": 100,
+        "metrics": {
+          "balk_rate": 0.0,
+          "renege_rate": 0.00265,
+          "abandon_rate": 0.00265,
+          "served": 418.55,
+          "mean_los": 2.744982,
+          "los_p95": 5.034299,
+          "profit_per_hour": 256.062197
+        }
+      },
+      {
+        "lambda": 1.0,
+        "balk_mean": null,
+        "renege_mean": 15.0,
+        "reps": 100,
+        "metrics": {
+          "balk_rate": 0.0,
+          "renege_rate": 0.000545,
+          "abandon_rate": 0.000545,
+          "served": 419.44,
+          "mean_los": 2.771635,
+          "los_p95": 5.153024,
+          "profit_per_hour": 256.023382
+        }
+      },
+      {
+        "lambda": 1.0,
+        "balk_mean": null,
+        "renege_mean": 20.0,
+        "reps": 100,
+        "metrics": {
+          "balk_rate": 0.0,
+          "renege_rate": 0.000119,
+          "abandon_rate": 0.000119,
+          "served": 419.63,
+          "mean_los": 2.778027,
+          "los_p95": 5.185035,
+          "profit_per_hour": 255.987485
+        }
+      },
+      {
+        "lambda": 1.2,
+        "balk_mean": null,
+        "renege_mean": 10.0,
+        "reps": 100,
+        "metrics": {
+          "balk_rate": 0.0,
+          "renege_rate": 0.013197,
+          "abandon_rate": 0.013197,
+          "served": 497.33,
+          "mean_los": 3.475961,
+          "los_p95": 6.66925,
+          "profit_per_hour": 295.034754
+        }
+      },
+      {
+        "lambda": 1.2,
+        "balk_mean": null,
+        "renege_mean": 15.0,
+        "reps": 100,
+        "metrics": {
+          "balk_rate": 0.0,
+          "renege_rate": 0.005536,
+          "abandon_rate": 0.005536,
+          "served": 501.31,
+          "mean_los": 3.691012,
+          "los_p95": 7.409808,
+          "profit_per_hour": 291.131488
+        }
+      },
+      {
+        "lambda": 1.2,
+        "balk_mean": null,
+        "renege_mean": 20.0,
+        "reps": 100,
+        "metrics": {
+          "balk_rate": 0.0,
+          "renege_rate": 0.002428,
+          "abandon_rate": 0.002428,
+          "served": 503.0,
+          "mean_los": 3.800322,
+          "los_p95": 7.762001,
+          "profit_per_hour": 288.807976
+        }
+      }
+    ],
+    "batch_scan": [
+      {
+        "rate_policy": "arrival_events_fixed",
+        "batch_probability": 0.0,
+        "expected_arrival_size": 1.0,
+        "quoted_daily_mean_rate": 1.010989010989011,
+        "effective_arrival_rate": 1.010989010989011,
+        "reps": 60,
+        "metrics": {
+          "arrivals": 551.5,
+          "served": 478.683333,
+          "balk_rate": 0.075069,
+          "abandon_rate": 0.075685,
+          "peak_busy_ratio": 0.717892,
+          "peak_hour_arrivals": 110.683333,
+          "peak_hour_los": 6.096566,
+          "mean_los": 3.757188,
+          "los_p95": 9.898198,
+          "profit_per_hour": 235.38373
+        },
+        "ci95": {
+          "balk_rate": 0.005063,
+          "los_p95": 0.410879,
+          "peak_hour_los": 0.267737,
+          "profit_per_hour": 4.472547
+        }
+      },
+      {
+        "rate_policy": "arrival_events_fixed",
+        "batch_probability": 0.1,
+        "expected_arrival_size": 1.15,
+        "quoted_daily_mean_rate": 1.010989010989011,
+        "effective_arrival_rate": 1.010989010989011,
+        "reps": 60,
+        "metrics": {
+          "arrivals": 630.166667,
+          "served": 514.516667,
+          "balk_rate": 0.122951,
+          "abandon_rate": 0.123803,
+          "peak_busy_ratio": 0.765448,
+          "peak_hour_arrivals": 129.183333,
+          "peak_hour_los": 7.055555,
+          "mean_los": 4.321183,
+          "los_p95": 11.097958,
+          "profit_per_hour": 242.167001
+        },
+        "ci95": {
+          "balk_rate": 0.00613,
+          "los_p95": 0.414247,
+          "peak_hour_los": 0.277984,
+          "profit_per_hour": 3.852359
+        }
+      },
+      {
+        "rate_policy": "arrival_events_fixed",
+        "batch_probability": 0.2,
+        "expected_arrival_size": 1.3,
+        "quoted_daily_mean_rate": 1.010989010989011,
+        "effective_arrival_rate": 1.010989010989011,
+        "reps": 60,
+        "metrics": {
+          "arrivals": 714.4,
+          "served": 546.5,
+          "balk_rate": 0.176538,
+          "abandon_rate": 0.177698,
+          "peak_busy_ratio": 0.790141,
+          "peak_hour_arrivals": 146.283333,
+          "peak_hour_los": 7.775669,
+          "mean_los": 4.953391,
+          "los_p95": 12.251519,
+          "profit_per_hour": 241.416558
+        },
+        "ci95": {
+          "balk_rate": 0.006211,
+          "los_p95": 0.285099,
+          "peak_hour_los": 0.256295,
+          "profit_per_hour": 4.461959
+        }
+      },
+      {
+        "rate_policy": "arrival_events_fixed",
+        "batch_probability": 0.3,
+        "expected_arrival_size": 1.45,
+        "quoted_daily_mean_rate": 1.010989010989011,
+        "effective_arrival_rate": 1.010989010989011,
+        "reps": 60,
+        "metrics": {
+          "arrivals": 804.766667,
+          "served": 576.166667,
+          "balk_rate": 0.226788,
+          "abandon_rate": 0.227673,
+          "peak_busy_ratio": 0.801273,
+          "peak_hour_arrivals": 163.983333,
+          "peak_hour_los": 8.420803,
+          "mean_los": 5.469582,
+          "los_p95": 12.969563,
+          "profit_per_hour": 242.267808
+        },
+        "ci95": {
+          "balk_rate": 0.006374,
+          "los_p95": 0.336635,
+          "peak_hour_los": 0.240496,
+          "profit_per_hour": 5.455376
+        }
+      },
+      {
+        "rate_policy": "customer_mean_fixed",
+        "batch_probability": 0.0,
+        "expected_arrival_size": 1.0,
+        "quoted_daily_mean_rate": 1.010989010989011,
+        "effective_arrival_rate": 1.010989010989011,
+        "reps": 60,
+        "metrics": {
+          "arrivals": 551.5,
+          "served": 478.683333,
+          "balk_rate": 0.075069,
+          "abandon_rate": 0.075685,
+          "peak_busy_ratio": 0.717892,
+          "peak_hour_arrivals": 110.683333,
+          "peak_hour_los": 6.096566,
+          "mean_los": 3.757188,
+          "los_p95": 9.898198,
+          "profit_per_hour": 235.38373
+        },
+        "ci95": {
+          "balk_rate": 0.005063,
+          "los_p95": 0.410879,
+          "peak_hour_los": 0.267737,
+          "profit_per_hour": 4.472547
+        }
+      },
+      {
+        "rate_policy": "customer_mean_fixed",
+        "batch_probability": 0.1,
+        "expected_arrival_size": 1.15,
+        "quoted_daily_mean_rate": 1.010989010989011,
+        "effective_arrival_rate": 0.8791208791208791,
+        "reps": 60,
+        "metrics": {
+          "arrivals": 546.533333,
+          "served": 470.533333,
+          "balk_rate": 0.078561,
+          "abandon_rate": 0.079242,
+          "peak_busy_ratio": 0.713539,
+          "peak_hour_arrivals": 111.95,
+          "peak_hour_los": 5.866531,
+          "mean_los": 3.736517,
+          "los_p95": 9.588057,
+          "profit_per_hour": 229.179647
+        },
+        "ci95": {
+          "balk_rate": 0.006782,
+          "los_p95": 0.478799,
+          "peak_hour_los": 0.303959,
+          "profit_per_hour": 4.511197
+        }
+      },
+      {
+        "rate_policy": "customer_mean_fixed",
+        "batch_probability": 0.2,
+        "expected_arrival_size": 1.3,
+        "quoted_daily_mean_rate": 1.010989010989011,
+        "effective_arrival_rate": 0.7776838546069315,
+        "reps": 60,
+        "metrics": {
+          "arrivals": 548.55,
+          "served": 467.65,
+          "balk_rate": 0.087632,
+          "abandon_rate": 0.088515,
+          "peak_busy_ratio": 0.706494,
+          "peak_hour_arrivals": 113.066667,
+          "peak_hour_los": 6.127368,
+          "mean_los": 3.889028,
+          "los_p95": 9.887675,
+          "profit_per_hour": 221.881379
+        },
+        "ci95": {
+          "balk_rate": 0.006786,
+          "los_p95": 0.470084,
+          "peak_hour_los": 0.325921,
+          "profit_per_hour": 5.164309
+        }
+      },
+      {
+        "rate_policy": "customer_mean_fixed",
+        "batch_probability": 0.3,
+        "expected_arrival_size": 1.45,
+        "quoted_daily_mean_rate": 1.010989010989011,
+        "effective_arrival_rate": 0.6972338006820765,
+        "reps": 60,
+        "metrics": {
+          "arrivals": 551.333333,
+          "served": 466.616667,
+          "balk_rate": 0.092669,
+          "abandon_rate": 0.093733,
+          "peak_busy_ratio": 0.703407,
+          "peak_hour_arrivals": 114.166667,
+          "peak_hour_los": 6.117082,
+          "mean_los": 3.938407,
+          "los_p95": 9.785682,
+          "profit_per_hour": 219.826495
+        },
+        "ci95": {
+          "balk_rate": 0.007004,
+          "los_p95": 0.42988,
+          "peak_hour_los": 0.304663,
+          "profit_per_hour": 4.771305
+        }
+      }
+    ]
+  },
+  "series": {
+    "peak_vs_flat_hourly": {
+      "peak_shape": [
+        {
+          "hour_start": 0.0,
+          "included": false,
+          "arrivals": 37.2833,
+          "served": 0.0,
+          "busy_minutes": 76.8617,
+          "busy_ratio": 0.2562,
+          "mean_los": null
+        },
+        {
+          "hour_start": 60.0,
+          "included": true,
+          "arrivals": 126.5333,
+          "served": 102.4167,
+          "busy_minutes": 224.1806,
+          "busy_ratio": 0.7473,
+          "mean_los": 4.0924
+        },
+        {
+          "hour_start": 120.0,
+          "included": true,
+          "arrivals": 125.0,
+          "served": 108.2667,
+          "busy_minutes": 229.5393,
+          "busy_ratio": 0.7651,
+          "mean_los": 4.5856
+        },
+        {
+          "hour_start": 180.0,
+          "included": true,
+          "arrivals": 41.3333,
+          "served": 46.9667,
+          "busy_minutes": 98.0964,
+          "busy_ratio": 0.327,
+          "mean_los": 3.0195
+        },
+        {
+          "hour_start": 240.0,
+          "included": true,
+          "arrivals": 43.2167,
+          "served": 42.2833,
+          "busy_minutes": 89.2461,
+          "busy_ratio": 0.2975,
+          "mean_los": 2.4724
+        },
+        {
+          "hour_start": 300.0,
+          "included": true,
+          "arrivals": 115.9167,
+          "served": 75.7,
+          "busy_minutes": 160.0875,
+          "busy_ratio": 0.5336,
+          "mean_los": 6.514
+        },
+        {
+          "hour_start": 360.0,
+          "included": true,
+          "arrivals": 119.9667,
+          "served": 89.7167,
+          "busy_minutes": 193.2515,
+          "busy_ratio": 0.6442,
+          "mean_los": 6.8911
+        },
+        {
+          "hour_start": 420.0,
+          "included": true,
+          "arrivals": 57.9167,
+          "served": 62.0167,
+          "busy_minutes": 130.3837,
+          "busy_ratio": 0.4346,
+          "mean_los": 2.963
+        }
+      ],
+      "flat_same_daily_mean": [
+        {
+          "hour_start": 0.0,
+          "included": false,
+          "arrivals": 84.65,
+          "served": 0.0,
+          "busy_minutes": 146.8288,
+          "busy_ratio": 0.4894,
+          "mean_los": null
+        },
+        {
+          "hour_start": 60.0,
+          "included": true,
+          "arrivals": 85.56,
+          "served": 77.89,
+          "busy_minutes": 180.1498,
+          "busy_ratio": 0.6005,
+          "mean_los": 2.9942
+        },
+        {
+          "hour_start": 120.0,
+          "included": true,
+          "arrivals": 83.48,
+          "served": 81.68,
+          "busy_minutes": 173.0196,
+          "busy_ratio": 0.5767,
+          "mean_los": 2.902
+        },
+        {
+          "hour_start": 180.0,
+          "included": true,
+          "arrivals": 84.42,
+          "served": 82.13,
+          "busy_minutes": 175.1658,
+          "busy_ratio": 0.5839,
+          "mean_los": 2.8752
+        },
+        {
+          "hour_start": 240.0,
+          "included": true,
+          "arrivals": 84.69,
+          "served": 78.62,
+          "busy_minutes": 167.8986,
+          "busy_ratio": 0.5597,
+          "mean_los": 3.1981
+        },
+        {
+          "hour_start": 300.0,
+          "included": true,
+          "arrivals": 83.66,
+          "served": 70.13,
+          "busy_minutes": 148.9809,
+          "busy_ratio": 0.4966,
+          "mean_los": 4.8606
+        },
+        {
+          "hour_start": 360.0,
+          "included": true,
+          "arrivals": 82.21,
+          "served": 76.84,
+          "busy_minutes": 164.6825,
+          "busy_ratio": 0.5489,
+          "mean_los": 4.3362
+        },
+        {
+          "hour_start": 420.0,
+          "included": true,
+          "arrivals": 84.24,
+          "served": 81.56,
+          "busy_minutes": 170.9274,
+          "busy_ratio": 0.5698,
+          "mean_los": 2.8862
+        }
+      ]
+    },
+    "peak_factor": {
+      "curve": [
+        {
+          "factor": 1.0,
+          "peak_to_mean": 1.4945054945054945,
+          "util": 0.548697,
+          "los_p95": 11.774548,
+          "balk_rate": 0.15064,
+          "profit_per_hour": 239.346888,
+          "served": 527.366667
+        },
+        {
+          "factor": 1.2,
+          "peak_to_mean": 1.5785878713681858,
+          "util": 0.535893,
+          "los_p95": 12.160412,
+          "balk_rate": 0.17488,
+          "profit_per_hour": 226.463447,
+          "served": 521.2
+        },
+        {
+          "factor": 1.4,
+          "peak_to_mean": 1.6559689688215913,
+          "util": 0.521768,
+          "los_p95": 12.638287,
+          "balk_rate": 0.199088,
+          "profit_per_hour": 211.073051,
+          "served": 511.35
+        },
+        {
+          "factor": 1.6,
+          "peak_to_mean": 1.726553006517768,
+          "util": 0.508706,
+          "los_p95": 13.101856,
+          "balk_rate": 0.222035,
+          "profit_per_hour": 195.039881,
+          "served": 501.516667
+        },
+        {
+          "factor": 1.8,
+          "peak_to_mean": 1.7904921390750104,
+          "util": 0.494165,
+          "los_p95": 13.491691,
+          "balk_rate": 0.246039,
+          "profit_per_hour": 179.000127,
+          "served": 490.916667
+        },
+        {
+          "factor": 2.0,
+          "peak_to_mean": 1.8481215027977616,
+          "util": 0.480732,
+          "los_p95": 13.664362,
+          "balk_rate": 0.265965,
+          "profit_per_hour": 167.012337,
+          "served": 481.883333
+        }
+      ],
+      "baseline_peak_to_mean": 1.4945054945054945,
+      "definition": "multiplier_i(f) = multiplier_i ** f, daily mean rescaled back to the quoted rate"
+    },
+    "variability": {
+      "lambda_1": [
+        {
+          "variant": "fixed",
+          "p50": 2.620195,
+          "p90": 4.671473,
+          "p95": 5.474557,
+          "profit_per_hour": 255.368084
+        },
+        {
+          "variant": "exponential",
+          "p50": 2.623946,
+          "p90": 8.143764,
+          "p95": 10.096606,
+          "profit_per_hour": 235.99285
+        },
+        {
+          "variant": "lognormal_cv0.25",
+          "p50": 2.811353,
+          "p90": 4.83615,
+          "p95": 5.708948,
+          "profit_per_hour": 254.807345
+        },
+        {
+          "variant": "lognormal_cv0.50",
+          "p50": 2.794551,
+          "p90": 5.363713,
+          "p95": 6.400489,
+          "profit_per_hour": 252.70121
+        },
+        {
+          "variant": "lognormal_cv0.75",
+          "p50": 2.776028,
+          "p90": 5.998104,
+          "p95": 7.341444,
+          "profit_per_hour": 249.286614
+        }
+      ],
+      "lambda_1.2": [
+        {
+          "variant": "fixed",
+          "p50": 3.498194,
+          "p90": 7.489822,
+          "p95": 8.596877,
+          "profit_per_hour": 281.581691
+        },
+        {
+          "variant": "exponential",
+          "p50": 5.324521,
+          "p90": 13.217937,
+          "p95": 15.308069,
+          "profit_per_hour": 211.210835
+        },
+        {
+          "variant": "lognormal_cv0.25",
+          "p50": 3.613206,
+          "p90": 7.567663,
+          "p95": 8.714748,
+          "profit_per_hour": 280.212475
+        },
+        {
+          "variant": "lognormal_cv0.50",
+          "p50": 3.80239,
+          "p90": 8.177842,
+          "p95": 9.468758,
+          "profit_per_hour": 273.391457
+        },
+        {
+          "variant": "lognormal_cv0.75",
+          "p50": 4.053174,
+          "p90": 9.215797,
+          "p95": 10.752147,
+          "profit_per_hour": 261.756013
+        }
+      ]
+    },
+    "patience": {
+      "grid": [
+        {
+          "lambda": 1.0,
+          "balk_mean": 3.0,
+          "renege_mean": 10.0,
+          "abandon_rate": 0.247274,
+          "mean_los": 2.194312,
+          "profit_per_hour": 185.246246
+        },
+        {
+          "lambda": 1.0,
+          "balk_mean": 3.0,
+          "renege_mean": 15.0,
+          "abandon_rate": 0.247274,
+          "mean_los": 2.194312,
+          "profit_per_hour": 185.246246
+        },
+        {
+          "lambda": 1.0,
+          "balk_mean": 3.0,
+          "renege_mean": 20.0,
+          "abandon_rate": 0.247274,
+          "mean_los": 2.194312,
+          "profit_per_hour": 185.246246
+        },
+        {
+          "lambda": 1.0,
+          "balk_mean": 5.0,
+          "renege_mean": 10.0,
+          "abandon_rate": 0.1072,
+          "mean_los": 2.360968,
+          "profit_per_hour": 229.836172
+        },
+        {
+          "lambda": 1.0,
+          "balk_mean": 5.0,
+          "renege_mean": 15.0,
+          "abandon_rate": 0.1072,
+          "mean_los": 2.36104,
+          "profit_per_hour": 229.834659
+        },
+        {
+          "lambda": 1.0,
+          "balk_mean": 5.0,
+          "renege_mean": 20.0,
+          "abandon_rate": 0.1072,
+          "mean_los": 2.36104,
+          "profit_per_hour": 229.834659
+        },
+        {
+          "lambda": 1.0,
+          "balk_mean": 8.0,
+          "renege_mean": 10.0,
+          "abandon_rate": 0.036583,
+          "mean_los": 2.579442,
+          "profit_per_hour": 248.599803
+        },
+        {
+          "lambda": 1.0,
+          "balk_mean": 8.0,
+          "renege_mean": 15.0,
+          "abandon_rate": 0.03623,
+          "mean_los": 2.582757,
+          "profit_per_hour": 248.644995
+        },
+        {
+          "lambda": 1.0,
+          "balk_mean": 8.0,
+          "renege_mean": 20.0,
+          "abandon_rate": 0.03623,
+          "mean_los": 2.582757,
+          "profit_per_hour": 248.644995
+        },
+        {
+          "lambda": 1.0,
+          "balk_mean": 12.0,
+          "renege_mean": 10.0,
+          "abandon_rate": 0.011343,
+          "mean_los": 2.714597,
+          "profit_per_hour": 253.762099
+        },
+        {
+          "lambda": 1.0,
+          "balk_mean": 12.0,
+          "renege_mean": 15.0,
+          "abandon_rate": 0.010048,
+          "mean_los": 2.729997,
+          "profit_per_hour": 253.808882
+        },
+        {
+          "lambda": 1.0,
+          "balk_mean": 12.0,
+          "renege_mean": 20.0,
+          "abandon_rate": 0.009902,
+          "mean_los": 2.731802,
+          "profit_per_hour": 253.817248
+        },
+        {
+          "lambda": 1.2,
+          "balk_mean": 3.0,
+          "renege_mean": 10.0,
+          "abandon_rate": 0.293108,
+          "mean_los": 2.226203,
+          "profit_per_hour": 217.423745
+        },
+        {
+          "lambda": 1.2,
+          "balk_mean": 3.0,
+          "renege_mean": 15.0,
+          "abandon_rate": 0.293108,
+          "mean_los": 2.226203,
+          "profit_per_hour": 217.423745
+        },
+        {
+          "lambda": 1.2,
+          "balk_mean": 3.0,
+          "renege_mean": 20.0,
+          "abandon_rate": 0.293108,
+          "mean_los": 2.226203,
+          "profit_per_hour": 217.423745
+        },
+        {
+          "lambda": 1.2,
+          "balk_mean": 5.0,
+          "renege_mean": 10.0,
+          "abandon_rate": 0.148465,
+          "mean_los": 2.490042,
+          "profit_per_hour": 270.259674
+        },
+        {
+          "lambda": 1.2,
+          "balk_mean": 5.0,
+          "renege_mean": 15.0,
+          "abandon_rate": 0.148413,
+          "mean_los": 2.490797,
+          "profit_per_hour": 270.267373
+        },
+        {
+          "lambda": 1.2,
+          "balk_mean": 5.0,
+          "renege_mean": 20.0,
+          "abandon_rate": 0.148413,
+          "mean_los": 2.490797,
+          "profit_per_hour": 270.267373
+        },
+        {
+          "lambda": 1.2,
+          "balk_mean": 8.0,
+          "renege_mean": 10.0,
+          "abandon_rate": 0.067224,
+          "mean_los": 2.883128,
+          "profit_per_hour": 291.817434
+        },
+        {
+          "lambda": 1.2,
+          "balk_mean": 8.0,
+          "renege_mean": 15.0,
+          "abandon_rate": 0.066613,
+          "mean_los": 2.893601,
+          "profit_per_hour": 291.755065
+        },
+        {
+          "lambda": 1.2,
+          "balk_mean": 8.0,
+          "renege_mean": 20.0,
+          "abandon_rate": 0.066543,
+          "mean_los": 2.895906,
+          "profit_per_hour": 291.711131
+        },
+        {
+          "lambda": 1.2,
+          "balk_mean": 12.0,
+          "renege_mean": 10.0,
+          "abandon_rate": 0.032031,
+          "mean_los": 3.221089,
+          "profit_per_hour": 295.388256
+        },
+        {
+          "lambda": 1.2,
+          "balk_mean": 12.0,
+          "renege_mean": 15.0,
+          "abandon_rate": 0.029289,
+          "mean_los": 3.284972,
+          "profit_per_hour": 294.544098
+        },
+        {
+          "lambda": 1.2,
+          "balk_mean": 12.0,
+          "renege_mean": 20.0,
+          "abandon_rate": 0.028701,
+          "mean_los": 3.299127,
+          "profit_per_hour": 294.346578
+        }
+      ],
+      "renege_only": [
+        {
+          "lambda": 1.0,
+          "renege_mean": 10.0,
+          "renege_rate": 0.00265,
+          "abandon_rate": 0.00265,
+          "profit_per_hour": 256.062197
+        },
+        {
+          "lambda": 1.0,
+          "renege_mean": 15.0,
+          "renege_rate": 0.000545,
+          "abandon_rate": 0.000545,
+          "profit_per_hour": 256.023382
+        },
+        {
+          "lambda": 1.0,
+          "renege_mean": 20.0,
+          "renege_rate": 0.000119,
+          "abandon_rate": 0.000119,
+          "profit_per_hour": 255.987485
+        },
+        {
+          "lambda": 1.2,
+          "renege_mean": 10.0,
+          "renege_rate": 0.013197,
+          "abandon_rate": 0.013197,
+          "profit_per_hour": 295.034754
+        },
+        {
+          "lambda": 1.2,
+          "renege_mean": 15.0,
+          "renege_rate": 0.005536,
+          "abandon_rate": 0.005536,
+          "profit_per_hour": 291.131488
+        },
+        {
+          "lambda": 1.2,
+          "renege_mean": 20.0,
+          "renege_rate": 0.002428,
+          "abandon_rate": 0.002428,
+          "profit_per_hour": 288.807976
+        }
+      ]
+    },
+    "batch": {
+      "arrival_events_fixed": [
+        {
+          "batch_probability": 0.0,
+          "peak_busy_ratio": 0.717892,
+          "peak_hour_los": 6.096566,
+          "balk_rate": 0.075069,
+          "profit_per_hour": 235.38373,
+          "arrivals": 551.5
+        },
+        {
+          "batch_probability": 0.1,
+          "peak_busy_ratio": 0.765448,
+          "peak_hour_los": 7.055555,
+          "balk_rate": 0.122951,
+          "profit_per_hour": 242.167001,
+          "arrivals": 630.166667
+        },
+        {
+          "batch_probability": 0.2,
+          "peak_busy_ratio": 0.790141,
+          "peak_hour_los": 7.775669,
+          "balk_rate": 0.176538,
+          "profit_per_hour": 241.416558,
+          "arrivals": 714.4
+        },
+        {
+          "batch_probability": 0.3,
+          "peak_busy_ratio": 0.801273,
+          "peak_hour_los": 8.420803,
+          "balk_rate": 0.226788,
+          "profit_per_hour": 242.267808,
+          "arrivals": 804.766667
+        }
+      ],
+      "customer_mean_fixed": [
+        {
+          "batch_probability": 0.0,
+          "peak_busy_ratio": 0.717892,
+          "peak_hour_los": 6.096566,
+          "balk_rate": 0.075069,
+          "profit_per_hour": 235.38373,
+          "arrivals": 551.5
+        },
+        {
+          "batch_probability": 0.1,
+          "peak_busy_ratio": 0.713539,
+          "peak_hour_los": 5.866531,
+          "balk_rate": 0.078561,
+          "profit_per_hour": 229.179647,
+          "arrivals": 546.533333
+        },
+        {
+          "batch_probability": 0.2,
+          "peak_busy_ratio": 0.706494,
+          "peak_hour_los": 6.127368,
+          "balk_rate": 0.087632,
+          "profit_per_hour": 221.881379,
+          "arrivals": 548.55
+        },
+        {
+          "batch_probability": 0.3,
+          "peak_busy_ratio": 0.703407,
+          "peak_hour_los": 6.117082,
+          "balk_rate": 0.092669,
+          "profit_per_hour": 219.826495,
+          "arrivals": 551.333333
+        }
+      ]
+    }
+  },
+  "findings": {
+    "peak_vs_flat": {
+      "p95_ratio_peak_over_flat": 1.4623973705396407,
+      "peak_hour_busy_ratio_peak": 0.777024,
+      "peak_hour_busy_ratio_flat": 0.659671,
+      "daily_util_peak": 0.548697,
+      "daily_util_flat": 0.606234,
+      "balk_rate_peak": 0.15064,
+      "balk_rate_flat": 0.068715,
+      "profit_per_hour_peak": 239.346888,
+      "profit_per_hour_flat": 295.954537,
+      "note": "Same daily mean demand. The peak profile raises the peak-hour busy ratio and the p95 wait while the daily utilisation actually falls, because abandonment removes work from the system."
+    },
+    "peak_factor_scan": {
+      "baseline_factor": 1.0,
+      "baseline_peak_to_mean": 1.4945054945054945,
+      "max_factor": 2.0,
+      "max_peak_to_mean": 1.8481215027977616,
+      "p95_change": 1.8898140000000012,
+      "balk_rate_change": 0.11532500000000001,
+      "profit_change": -72.334551,
+      "served_change": -45.48333400000001,
+      "note": "Daily mean demand is held fixed; the multiplier shape is raised to multiplier**factor. J-shaped cost of peakiness: p95, balking and profit move even though the daily mean is unchanged."
+    },
+    "variability": {
+      "p95_ratio_cv075_over_fixed_lam1.2": 1.2507038311703194,
+      "p95_range_lam1.0": 4.622049,
+      "p95_range_lam1.2": 6.7111920000000005,
+      "mean_los_range_lam1.2": 2.2103080000000004,
+      "note": "Make-time variability moves the upper tail much more than the mean: the p95 ratio at CV 0.75 versus deterministic grows with load while the mean wait moves only a little."
+    },
+    "patience": {
+      "abandon_rate_balk3_lam1.2": 0.293108,
+      "abandon_rate_balk12_lam1.2": 0.032031,
+      "reneging_binds_in_grid": true,
+      "note": "With arrival-time balking active, reneging almost never binds: the balk threshold decides who leaves. The balk decision compares the customer's threshold with the engine's wait estimate divided by the number of staff units on shift at that instant (these cells have no shift windows, so that is the worker count). The reneging-only table isolates reneging by switching balking off."
+    },
+    "batch": {
+      "balk_rate_p0": 0.075069,
+      "balk_rate_p0.3_arrival_events_fixed": 0.226788,
+      "balk_rate_p0.3_customer_mean_fixed": 0.092669,
+      "profit_p0": 235.38373,
+      "profit_p0.3_customer_mean_fixed": 219.826495,
+      "note": "At a fixed arrival-event rate a higher batch probability is mostly a demand increase; holding the daily customer mean fixed isolates the burstiness effect, which is smaller but still negative for profit."
+    }
+  }
+}
