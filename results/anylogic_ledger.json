@@ -1,0 +1,1704 @@
+{
+  "meta": {
+    "experiment": "anylogic_ledger",
+    "schema_version": 1,
+    "package_version": "1.0.0",
+    "python_version": "3.14.5",
+    "seed": 0,
+    "seed_stride": 1,
+    "engine": "bubble_tea_sim.engine.Simulation (stdlib only)",
+    "note": "All numbers are produced by re-running the Python engine; no value in this file was typed in by hand. Re-running the same script with the same seed reproduces them exactly.",
+    "ledger_settings": {
+      "workers": 3,
+      "sim_minutes": 1000.0,
+      "warmup_minutes": 0.0,
+      "mix": {
+        "tea": 0.55,
+        "bread": 0.2,
+        "ice": 0.05,
+        "mix": 0.2
+      },
+      "service_times": {
+        "order": 0.5,
+        "tea": 2.0,
+        "bread": 0.167,
+        "ice": 0.333
+      },
+      "economics": {
+        "prices": {
+          "tea": 8.0,
+          "bread": 6.0,
+          "ice": 2.0,
+          "mix": 10.0
+        },
+        "wage_per_worker_hour": 25.0,
+        "waiting_cost_per_customer_minute": 0.5
+      },
+      "p_bar": 2.11665,
+      "single_run_seed": 1,
+      "multi_rep_reps": 200
+    },
+    "archive_source": "docs/experiment_log.md (E-series tables) and docs/assets/slides/E_series/E1..E6.png (model screenshots)",
+    "anylogic_rerun_possible": false,
+    "comparison_note": "The AnyLogic rows are single runs on a different random stream; the Python multi-rep mean is the expected value of the same configuration. Single-run Python numbers are reported as well so the comparison is not flattered by averaging."
+  },
+  "archive": [
+    {
+      "id": "E1",
+      "arrival_rate": 1.0,
+      "split_mix": false,
+      "fast_priority": false,
+      "revenue_total": 7424.0,
+      "revenue_per_hour": 445.902,
+      "profit_per_hour": 292.917,
+      "flow_time_total": 2594.052,
+      "served": 975,
+      "counts": {
+        "tea": 523,
+        "bread": 220,
+        "ice": 50,
+        "mix": 182
+      },
+      "los": {
+        "tea": 3.06,
+        "bread": 1.4,
+        "ice": 1.28,
+        "mix_sync": 3.4
+      },
+      "util_display": 0.67,
+      "screenshot": "docs/assets/slides/E_series/E1.png"
+    },
+    {
+      "id": "E2",
+      "arrival_rate": 1.0,
+      "split_mix": true,
+      "fast_priority": false,
+      "revenue_total": 7424.0,
+      "revenue_per_hour": 445.802,
+      "profit_per_hour": 295.906,
+      "flow_time_total": 2494.499,
+      "served": 975,
+      "counts": {
+        "tea": 523,
+        "bread": 220,
+        "ice": 50,
+        "mix": 182
+      },
+      "los": {
+        "tea": 3.09,
+        "bread": 1.39,
+        "ice": 1.35,
+        "mix_tea": 2.77,
+        "mix_ice_hand": 1.21,
+        "mix_sync": 0.0
+      },
+      "util_display": 0.67,
+      "screenshot": "docs/assets/slides/E_series/E2.png"
+    },
+    {
+      "id": "E3",
+      "arrival_rate": 1.25,
+      "split_mix": false,
+      "fast_priority": false,
+      "revenue_total": 9346.0,
+      "revenue_per_hour": 560.969,
+      "profit_per_hour": 349.478,
+      "flow_time_total": 4949.015,
+      "served": 1227,
+      "counts": {
+        "tea": 658,
+        "bread": 268,
+        "ice": 67,
+        "mix": 234
+      },
+      "los": {
+        "tea": 4.11,
+        "bread": 2.43,
+        "ice": 2.5,
+        "mix_sync": 4.38
+      },
+      "util_display": 0.84,
+      "screenshot": "docs/assets/slides/E_series/E3.png"
+    },
+    {
+      "id": "E4",
+      "arrival_rate": 1.25,
+      "split_mix": true,
+      "fast_priority": false,
+      "revenue_total": 9348.0,
+      "revenue_per_hour": 561.168,
+      "profit_per_hour": 349.184,
+      "flow_time_total": 4563.771,
+      "served": 1227,
+      "counts": {
+        "tea": 658,
+        "bread": 268,
+        "ice": 67,
+        "mix": 235
+      },
+      "los": {
+        "tea": 4.23,
+        "bread": 2.53,
+        "ice": 2.67,
+        "mix_tea": 3.93,
+        "mix_ice_hand": 1.27,
+        "mix_sync": 0.0
+      },
+      "util_display": 0.84,
+      "screenshot": "docs/assets/slides/E_series/E4.png"
+    },
+    {
+      "id": "E5",
+      "arrival_rate": 1.25,
+      "split_mix": false,
+      "fast_priority": true,
+      "revenue_total": 9352.0,
+      "revenue_per_hour": 561.22,
+      "profit_per_hour": 358.359,
+      "flow_time_total": 4261.278,
+      "served": 1228,
+      "counts": {
+        "tea": 658,
+        "bread": 269,
+        "ice": 67,
+        "mix": 234
+      },
+      "los": {
+        "tea": 4.23,
+        "bread": 1.22,
+        "ice": 1.35,
+        "mix_sync": 4.53
+      },
+      "util_display": 0.84,
+      "screenshot": "docs/assets/slides/E_series/E5.png"
+    },
+    {
+      "id": "E6",
+      "arrival_rate": 1.25,
+      "split_mix": true,
+      "fast_priority": true,
+      "revenue_total": 9360.0,
+      "revenue_per_hour": 561.622,
+      "profit_per_hour": 359.161,
+      "flow_time_total": 4248.505,
+      "served": 1229,
+      "counts": {
+        "tea": 658,
+        "bread": 270,
+        "ice": 67,
+        "mix": 235
+      },
+      "los": {
+        "tea": 4.38,
+        "bread": 1.13,
+        "ice": 1.38,
+        "mix_tea": 4.14,
+        "mix_ice_hand": 1.34,
+        "mix_sync": 0.0
+      },
+      "util_display": 0.84,
+      "screenshot": "docs/assets/slides/E_series/E6.png"
+    }
+  ],
+  "python": [
+    {
+      "id": "E1",
+      "config": {
+        "name": "ledger-lam1-synchro+fcfs",
+        "workers": 3,
+        "arrival_rate": 1.0,
+        "sim_minutes": 1000.0,
+        "warmup_minutes": 0.0,
+        "mix": {
+          "tea": 0.55,
+          "bread": 0.2,
+          "ice": 0.05,
+          "mix": 0.2
+        },
+        "service_time_mean": 2.11665,
+        "utilization": 0.70555,
+        "policy": "synchro"
+      },
+      "single_seed": {
+        "seed": 1,
+        "served": 1000.0,
+        "flow_time_total": 2873.768661,
+        "revenue_total": 7766.0,
+        "revenue_per_hour": 465.96,
+        "profit_per_hour": 304.74694,
+        "util": 0.703553,
+        "mean_los": 2.873769,
+        "mix_los": 3.702533,
+        "mix_ice_hand": 3.702533,
+        "los_tea": 3.233069,
+        "los_bread": 1.455891,
+        "los_ice": 1.273493,
+        "count_tea": 541.0,
+        "count_bread": 218.0,
+        "count_ice": 35.0,
+        "count_mix": 206.0,
+        "hours": 16.666667
+      },
+      "multi_rep": {
+        "reps": 200,
+        "means": {
+          "balked": 0.0,
+          "busy_minutes": 2122.6995,
+          "count_bread": 200.61,
+          "count_ice": 50.555,
+          "count_mix": 201.555,
+          "count_tea": 550.31,
+          "flow_time_total": 2845.631211,
+          "los_bread": 1.396444,
+          "los_ice": 1.563699,
+          "los_mix": 3.558947,
+          "los_tea": 3.209721,
+          "mean_los": 2.834018,
+          "mix_ice_hand": 3.558947,
+          "mix_los": 3.558947,
+          "profit_per_hour": 302.999064,
+          "reneged": 0.0,
+          "revenue_per_hour": 463.368,
+          "revenue_total": 7722.8,
+          "served": 1003.03,
+          "util": 0.707567,
+          "wage_per_hour": 75.0,
+          "waiting_cost_total": 1422.815605
+        },
+        "ci95": {
+          "served": 4.502366,
+          "mean_los": 0.025435,
+          "mix_los": 0.026905,
+          "mix_ice_hand": 0.026905,
+          "util": 0.003447,
+          "profit_per_hour": 1.478768,
+          "revenue_per_hour": 2.148983,
+          "flow_time_total": 33.960283,
+          "waiting_cost_total": 16.980142,
+          "los_tea": 0.024912,
+          "los_bread": 0.025682,
+          "los_ice": 0.032186,
+          "balked": 0.0,
+          "reneged": 0.0
+        }
+      },
+      "censored_single_seed": {
+        "served": 993.0,
+        "flow_time_total": 2849.860831,
+        "revenue_total": 7704.0,
+        "revenue_per_hour": 462.24,
+        "profit_per_hour": 301.744175,
+        "util": null,
+        "mean_los": 2.86995,
+        "mix_los": 3.708027,
+        "mix_ice_hand": 3.708027,
+        "los_tea": 3.231238,
+        "los_bread": 1.455891,
+        "los_ice": 1.273493,
+        "count_tea": 537.0,
+        "count_bread": 218.0,
+        "count_ice": 35.0,
+        "count_mix": 203.0,
+        "hours": 16.666667
+      }
+    },
+    {
+      "id": "E2",
+      "config": {
+        "name": "ledger-lam1-split+fcfs",
+        "workers": 3,
+        "arrival_rate": 1.0,
+        "sim_minutes": 1000.0,
+        "warmup_minutes": 0.0,
+        "mix": {
+          "tea": 0.55,
+          "bread": 0.2,
+          "ice": 0.05,
+          "mix": 0.2
+        },
+        "service_time_mean": 2.11665,
+        "utilization": 0.70555,
+        "policy": "split"
+      },
+      "single_seed": {
+        "seed": 1,
+        "served": 1000.0,
+        "flow_time_total": 2829.809367,
+        "revenue_total": 7766.0,
+        "revenue_per_hour": 465.96,
+        "profit_per_hour": 306.065719,
+        "util": 0.703553,
+        "mean_los": 2.829809,
+        "mix_los": 3.249245,
+        "mix_ice_hand": 1.122156,
+        "los_tea": 3.296083,
+        "los_bread": 1.523429,
+        "los_ice": 1.290758,
+        "count_tea": 541.0,
+        "count_bread": 218.0,
+        "count_ice": 35.0,
+        "count_mix": 206.0,
+        "hours": 16.666667
+      },
+      "multi_rep": {
+        "reps": 200,
+        "means": {
+          "balked": 0.0,
+          "busy_minutes": 2122.6995,
+          "count_bread": 200.61,
+          "count_ice": 50.555,
+          "count_mix": 201.555,
+          "count_tea": 550.31,
+          "flow_time_total": 2785.22515,
+          "los_bread": 1.443949,
+          "los_ice": 1.612081,
+          "los_mix": 3.071832,
+          "los_tea": 3.256155,
+          "mean_los": 2.773571,
+          "mix_ice_hand": 1.075986,
+          "mix_los": 3.071832,
+          "profit_per_hour": 304.811245,
+          "reneged": 0.0,
+          "revenue_per_hour": 463.368,
+          "revenue_total": 7722.8,
+          "served": 1003.03,
+          "util": 0.707567,
+          "wage_per_hour": 75.0,
+          "waiting_cost_total": 1392.612575
+        },
+        "ci95": {
+          "served": 4.502366,
+          "mean_los": 0.027074,
+          "mix_los": 0.029283,
+          "mix_ice_hand": 0.004812,
+          "util": 0.003447,
+          "profit_per_hour": 1.480063,
+          "revenue_per_hour": 2.148983,
+          "flow_time_total": 35.392231,
+          "waiting_cost_total": 17.696116,
+          "los_tea": 0.026532,
+          "los_bread": 0.027539,
+          "los_ice": 0.03396,
+          "balked": 0.0,
+          "reneged": 0.0
+        }
+      },
+      "censored_single_seed": {
+        "served": 994.0,
+        "flow_time_total": 2809.088815,
+        "revenue_total": 7714.0,
+        "revenue_per_hour": 462.84,
+        "profit_per_hour": 303.567336,
+        "util": null,
+        "mean_los": 2.826045,
+        "mix_los": 3.255403,
+        "mix_ice_hand": 1.124205,
+        "los_tea": 3.291811,
+        "los_bread": 1.523429,
+        "los_ice": 1.290758,
+        "count_tea": 537.0,
+        "count_bread": 218.0,
+        "count_ice": 35.0,
+        "count_mix": 204.0,
+        "hours": 16.666667
+      }
+    },
+    {
+      "id": "E3",
+      "config": {
+        "name": "ledger-lam1.25-synchro+fcfs",
+        "workers": 3,
+        "arrival_rate": 1.25,
+        "sim_minutes": 1000.0,
+        "warmup_minutes": 0.0,
+        "mix": {
+          "tea": 0.55,
+          "bread": 0.2,
+          "ice": 0.05,
+          "mix": 0.2
+        },
+        "service_time_mean": 2.11665,
+        "utilization": 0.881937,
+        "policy": "synchro"
+      },
+      "single_seed": {
+        "seed": 1,
+        "served": 1238.0,
+        "flow_time_total": 5494.91068,
+        "revenue_total": 9600.0,
+        "revenue_per_hour": 576.0,
+        "profit_per_hour": 336.15268,
+        "util": 0.871552,
+        "mean_los": 4.438539,
+        "mix_los": 5.458366,
+        "mix_ice_hand": 5.458366,
+        "los_tea": 4.742182,
+        "los_bread": 3.006083,
+        "los_ice": 2.685946,
+        "count_tea": 674.0,
+        "count_bread": 266.0,
+        "count_ice": 46.0,
+        "count_mix": 252.0,
+        "hours": 16.666667
+      },
+      "multi_rep": {
+        "reps": 200,
+        "means": {
+          "balked": 0.0,
+          "busy_minutes": 2653.483725,
+          "count_bread": 250.92,
+          "count_ice": 62.62,
+          "count_mix": 252.125,
+          "count_tea": 687.875,
+          "flow_time_total": 6034.148641,
+          "los_bread": 3.392996,
+          "los_ice": 3.481185,
+          "los_mix": 5.515695,
+          "los_tea": 5.160072,
+          "mean_los": 4.793607,
+          "mix_ice_hand": 5.515695,
+          "mix_los": 5.515695,
+          "profit_per_hour": 323.276141,
+          "reneged": 0.0,
+          "revenue_per_hour": 579.3006,
+          "revenue_total": 9655.01,
+          "served": 1253.54,
+          "util": 0.884495,
+          "wage_per_hour": 75.0,
+          "waiting_cost_total": 3017.074321
+        },
+        "ci95": {
+          "served": 5.070631,
+          "mean_los": 0.140391,
+          "mix_los": 0.144037,
+          "mix_ice_hand": 0.144037,
+          "util": 0.003941,
+          "profit_per_hour": 4.311802,
+          "revenue_per_hour": 2.430357,
+          "flow_time_total": 196.944196,
+          "waiting_cost_total": 98.472098,
+          "los_tea": 0.13963,
+          "los_bread": 0.140438,
+          "los_ice": 0.140939,
+          "balked": 0.0,
+          "reneged": 0.0
+        }
+      },
+      "censored_single_seed": {
+        "served": 1234.0,
+        "flow_time_total": 5485.401978,
+        "revenue_total": 9572.0,
+        "revenue_per_hour": 574.32,
+        "profit_per_hour": 334.757941,
+        "util": null,
+        "mean_los": 4.44522,
+        "mix_los": 5.468826,
+        "mix_ice_hand": 5.468826,
+        "los_tea": 4.748855,
+        "los_bread": 3.006083,
+        "los_ice": 2.708396,
+        "count_tea": 672.0,
+        "count_bread": 266.0,
+        "count_ice": 45.0,
+        "count_mix": 251.0,
+        "hours": 16.666667
+      }
+    },
+    {
+      "id": "E4",
+      "config": {
+        "name": "ledger-lam1.25-split+fcfs",
+        "workers": 3,
+        "arrival_rate": 1.25,
+        "sim_minutes": 1000.0,
+        "warmup_minutes": 0.0,
+        "mix": {
+          "tea": 0.55,
+          "bread": 0.2,
+          "ice": 0.05,
+          "mix": 0.2
+        },
+        "service_time_mean": 2.11665,
+        "utilization": 0.881937,
+        "policy": "split"
+      },
+      "single_seed": {
+        "seed": 1,
+        "served": 1238.0,
+        "flow_time_total": 5658.432784,
+        "revenue_total": 9600.0,
+        "revenue_per_hour": 576.0,
+        "profit_per_hour": 331.247016,
+        "util": 0.871552,
+        "mean_los": 4.570624,
+        "mix_los": 5.214227,
+        "mix_ice_hand": 1.221829,
+        "los_tea": 4.974403,
+        "los_bread": 3.223013,
+        "los_ice": 2.921267,
+        "count_tea": 674.0,
+        "count_bread": 266.0,
+        "count_ice": 46.0,
+        "count_mix": 252.0,
+        "hours": 16.666667
+      },
+      "multi_rep": {
+        "reps": 200,
+        "means": {
+          "balked": 0.0,
+          "busy_minutes": 2653.483725,
+          "count_bread": 250.92,
+          "count_ice": 62.62,
+          "count_mix": 252.125,
+          "count_tea": 687.875,
+          "flow_time_total": 6170.881088,
+          "los_bread": 3.608195,
+          "los_ice": 3.697911,
+          "los_mix": 5.210757,
+          "los_tea": 5.369384,
+          "mean_los": 4.900957,
+          "mix_ice_hand": 1.24109,
+          "mix_los": 5.210757,
+          "profit_per_hour": 319.174167,
+          "reneged": 0.0,
+          "revenue_per_hour": 579.3006,
+          "revenue_total": 9655.01,
+          "served": 1253.54,
+          "util": 0.884495,
+          "wage_per_hour": 75.0,
+          "waiting_cost_total": 3085.440544
+        },
+        "ci95": {
+          "served": 5.070631,
+          "mean_los": 0.152488,
+          "mix_los": 0.156894,
+          "mix_ice_hand": 0.005933,
+          "util": 0.003941,
+          "profit_per_hour": 4.76917,
+          "revenue_per_hour": 2.430357,
+          "flow_time_total": 212.801666,
+          "waiting_cost_total": 106.400833,
+          "los_tea": 0.151937,
+          "los_bread": 0.152278,
+          "los_ice": 0.153601,
+          "balked": 0.0,
+          "reneged": 0.0
+        }
+      },
+      "censored_single_seed": {
+        "served": 1234.0,
+        "flow_time_total": 5650.051499,
+        "revenue_total": 9572.0,
+        "revenue_per_hour": 574.32,
+        "profit_per_hour": 329.818455,
+        "util": null,
+        "mean_los": 4.578648,
+        "mix_los": 5.227033,
+        "mix_ice_hand": 1.223378,
+        "los_tea": 4.980997,
+        "los_bread": 3.223013,
+        "los_ice": 2.966986,
+        "count_tea": 672.0,
+        "count_bread": 266.0,
+        "count_ice": 45.0,
+        "count_mix": 251.0,
+        "hours": 16.666667
+      }
+    },
+    {
+      "id": "E5",
+      "config": {
+        "name": "ledger-lam1.25-synchro+fast",
+        "workers": 3,
+        "arrival_rate": 1.25,
+        "sim_minutes": 1000.0,
+        "warmup_minutes": 0.0,
+        "mix": {
+          "tea": 0.55,
+          "bread": 0.2,
+          "ice": 0.05,
+          "mix": 0.2
+        },
+        "service_time_mean": 2.11665,
+        "utilization": 0.881937,
+        "policy": "synchro+fast-priority"
+      },
+      "single_seed": {
+        "seed": 1,
+        "served": 1238.0,
+        "flow_time_total": 5142.572573,
+        "revenue_total": 9600.0,
+        "revenue_per_hour": 576.0,
+        "profit_per_hour": 346.722823,
+        "util": 0.871552,
+        "mean_los": 4.153936,
+        "mix_los": 5.681468,
+        "mix_ice_hand": 5.681468,
+        "los_tea": 4.964793,
+        "los_bread": 1.165585,
+        "los_ice": 1.185359,
+        "count_tea": 674.0,
+        "count_bread": 266.0,
+        "count_ice": 46.0,
+        "count_mix": 252.0,
+        "hours": 16.666667
+      },
+      "multi_rep": {
+        "reps": 200,
+        "means": {
+          "balked": 0.0,
+          "busy_minutes": 2653.483725,
+          "count_bread": 250.92,
+          "count_ice": 62.62,
+          "count_mix": 252.125,
+          "count_tea": 687.875,
+          "flow_time_total": 5553.182707,
+          "los_bread": 1.219742,
+          "los_ice": 1.382698,
+          "los_mix": 5.723902,
+          "los_tea": 5.367606,
+          "mean_los": 4.413244,
+          "mix_ice_hand": 5.723902,
+          "mix_los": 5.723902,
+          "profit_per_hour": 337.705119,
+          "reneged": 0.0,
+          "revenue_per_hour": 579.3006,
+          "revenue_total": 9655.01,
+          "served": 1253.54,
+          "util": 0.884495,
+          "wage_per_hour": 75.0,
+          "waiting_cost_total": 2776.591354
+        },
+        "ci95": {
+          "served": 5.070631,
+          "mean_los": 0.117677,
+          "mix_los": 0.155229,
+          "mix_ice_hand": 0.155229,
+          "util": 0.003941,
+          "profit_per_hour": 3.44841,
+          "revenue_per_hour": 2.430357,
+          "flow_time_total": 166.455037,
+          "waiting_cost_total": 83.227519,
+          "los_tea": 0.150311,
+          "los_bread": 0.008781,
+          "los_ice": 0.012896,
+          "balked": 0.0,
+          "reneged": 0.0
+        }
+      },
+      "censored_single_seed": {
+        "served": 1234.0,
+        "flow_time_total": 5133.063871,
+        "revenue_total": 9572.0,
+        "revenue_per_hour": 574.32,
+        "profit_per_hour": 345.328084,
+        "util": null,
+        "mean_los": 4.159695,
+        "mix_los": 5.692817,
+        "mix_ice_hand": 5.692817,
+        "los_tea": 4.972129,
+        "los_bread": 1.165585,
+        "los_ice": 1.174462,
+        "count_tea": 672.0,
+        "count_bread": 266.0,
+        "count_ice": 45.0,
+        "count_mix": 251.0,
+        "hours": 16.666667
+      }
+    },
+    {
+      "id": "E6",
+      "config": {
+        "name": "ledger-lam1.25-split+fast",
+        "workers": 3,
+        "arrival_rate": 1.25,
+        "sim_minutes": 1000.0,
+        "warmup_minutes": 0.0,
+        "mix": {
+          "tea": 0.55,
+          "bread": 0.2,
+          "ice": 0.05,
+          "mix": 0.2
+        },
+        "service_time_mean": 2.11665,
+        "utilization": 0.881937,
+        "policy": "split+fast-priority"
+      },
+      "single_seed": {
+        "seed": 1,
+        "served": 1238.0,
+        "flow_time_total": 5214.661652,
+        "revenue_total": 9600.0,
+        "revenue_per_hour": 576.0,
+        "profit_per_hour": 344.56015,
+        "util": 0.871552,
+        "mean_los": 4.212166,
+        "mix_los": 5.488573,
+        "mix_ice_hand": 1.304702,
+        "los_tea": 5.167236,
+        "los_bread": 1.106644,
+        "los_ice": 1.183854,
+        "count_tea": 674.0,
+        "count_bread": 266.0,
+        "count_ice": 46.0,
+        "count_mix": 252.0,
+        "hours": 16.666667
+      },
+      "multi_rep": {
+        "reps": 200,
+        "means": {
+          "balked": 0.0,
+          "busy_minutes": 2653.483725,
+          "count_bread": 250.92,
+          "count_ice": 62.62,
+          "count_mix": 252.125,
+          "count_tea": 687.875,
+          "flow_time_total": 5638.705411,
+          "los_bread": 1.161871,
+          "los_ice": 1.317025,
+          "los_mix": 5.482819,
+          "los_tea": 5.604268,
+          "mean_los": 4.48,
+          "mix_ice_hand": 1.320175,
+          "mix_los": 5.482819,
+          "profit_per_hour": 335.139438,
+          "reneged": 0.0,
+          "revenue_per_hour": 579.3006,
+          "revenue_total": 9655.01,
+          "served": 1253.54,
+          "util": 0.884495,
+          "wage_per_hour": 75.0,
+          "waiting_cost_total": 2819.352706
+        },
+        "ci95": {
+          "served": 5.070631,
+          "mean_los": 0.128356,
+          "mix_los": 0.169995,
+          "mix_ice_hand": 0.008089,
+          "util": 0.003941,
+          "profit_per_hour": 3.844134,
+          "revenue_per_hour": 2.430357,
+          "flow_time_total": 180.292116,
+          "waiting_cost_total": 90.146058,
+          "los_tea": 0.164766,
+          "los_bread": 0.007581,
+          "los_ice": 0.011064,
+          "balked": 0.0,
+          "reneged": 0.0
+        }
+      },
+      "censored_single_seed": {
+        "served": 1234.0,
+        "flow_time_total": 5206.280367,
+        "revenue_total": 9572.0,
+        "revenue_per_hour": 574.32,
+        "profit_per_hour": 343.131589,
+        "util": null,
+        "mean_los": 4.219028,
+        "mix_los": 5.502471,
+        "mix_ice_hand": 1.306581,
+        "los_tea": 5.174404,
+        "los_bread": 1.106644,
+        "los_ice": 1.190964,
+        "count_tea": 672.0,
+        "count_bread": 266.0,
+        "count_ice": 45.0,
+        "count_mix": 251.0,
+        "hours": 16.666667
+      }
+    }
+  ],
+  "deviations": [
+    {
+      "id": "E1",
+      "load_class": "low",
+      "arrival_rate": 1.0,
+      "archive_profit_per_hour": 292.917,
+      "python_multi_rep_profit_per_hour": 302.999064,
+      "python_multi_rep_ci95": 1.478768,
+      "python_single_seed_profit_per_hour": 304.74694,
+      "python_censored_profit_per_hour": 301.744175,
+      "profit_deviation_multi_rep": 0.03442,
+      "profit_deviation_single_seed": 0.040387,
+      "profit_deviation_censored": 0.030135,
+      "served_archive": 975,
+      "served_python_multi_rep": 1003.03,
+      "served_deviation": 0.028749,
+      "util_archive_display": 0.67,
+      "util_python_multi_rep": 0.707567,
+      "util_theory": 0.70555,
+      "mean_los": {
+        "archive": 2.660566,
+        "python": 2.834018,
+        "archive_single_run_sanity": 2.660566,
+        "deviation": 0.065194
+      },
+      "los_deviation": {
+        "tea": {
+          "archive": 3.06,
+          "python": 3.209721,
+          "deviation": 0.048928,
+          "not_applicable": false,
+          "note": null
+        },
+        "bread": {
+          "archive": 1.4,
+          "python": 1.396444,
+          "deviation": -0.00254,
+          "not_applicable": false,
+          "note": null
+        },
+        "ice": {
+          "archive": 1.28,
+          "python": 1.563699,
+          "deviation": 0.22164,
+          "not_applicable": false,
+          "note": null
+        },
+        "mix_sync": {
+          "archive": 3.4,
+          "python": 3.558947,
+          "deviation": 0.046749,
+          "not_applicable": false,
+          "note": null
+        }
+      },
+      "profit_decomposition": {
+        "hours": 16.666667,
+        "archive_profit_on_common_hours": 292.61844,
+        "python_profit_on_common_hours": 302.999064,
+        "revenue_component": 17.928,
+        "wage_component": 0.0,
+        "waiting_component": -7.547376,
+        "net": 10.380624,
+        "residual": -0.0,
+        "archive_revenue_total": 7424.0,
+        "python_revenue_total": 7722.8,
+        "archive_flow_time_total": 2594.052,
+        "python_flow_time_total": 2845.631211
+      },
+      "tolerance": 0.05,
+      "profit_within_tolerance": true
+    },
+    {
+      "id": "E2",
+      "load_class": "low",
+      "arrival_rate": 1.0,
+      "archive_profit_per_hour": 295.906,
+      "python_multi_rep_profit_per_hour": 304.811245,
+      "python_multi_rep_ci95": 1.480063,
+      "python_single_seed_profit_per_hour": 306.065719,
+      "python_censored_profit_per_hour": 303.567336,
+      "profit_deviation_multi_rep": 0.030095,
+      "profit_deviation_single_seed": 0.034334,
+      "profit_deviation_censored": 0.025891,
+      "served_archive": 975,
+      "served_python_multi_rep": 1003.03,
+      "served_deviation": 0.028749,
+      "util_archive_display": 0.67,
+      "util_python_multi_rep": 0.707567,
+      "util_theory": 0.70555,
+      "mean_los": {
+        "archive": 2.558461,
+        "python": 2.773571,
+        "archive_single_run_sanity": 2.558461,
+        "deviation": 0.084078
+      },
+      "los_deviation": {
+        "tea": {
+          "archive": 3.09,
+          "python": 3.256155,
+          "deviation": 0.053772,
+          "not_applicable": false,
+          "note": null
+        },
+        "bread": {
+          "archive": 1.39,
+          "python": 1.443949,
+          "deviation": 0.038812,
+          "not_applicable": false,
+          "note": null
+        },
+        "ice": {
+          "archive": 1.35,
+          "python": 1.612081,
+          "deviation": 0.194134,
+          "not_applicable": false,
+          "note": null
+        },
+        "mix_tea": {
+          "archive": 2.77,
+          "python": 3.071832,
+          "deviation": 0.108965,
+          "not_applicable": false,
+          "note": null
+        },
+        "mix_ice_hand": {
+          "archive": 1.21,
+          "python": 1.075986,
+          "deviation": -0.110755,
+          "not_applicable": false,
+          "note": null
+        },
+        "mix_sync": {
+          "archive": 0.0,
+          "python": 3.071832,
+          "deviation": null,
+          "not_applicable": true,
+          "note": "split delivery has no mixed-sync event, so the archived value is 0 and the deviation is undefined"
+        }
+      },
+      "profit_decomposition": {
+        "hours": 16.666667,
+        "archive_profit_on_common_hours": 295.60503,
+        "python_profit_on_common_hours": 304.811245,
+        "revenue_component": 17.928,
+        "wage_component": 0.0,
+        "waiting_component": -8.721785,
+        "net": 9.206215,
+        "residual": -0.0,
+        "archive_revenue_total": 7424.0,
+        "python_revenue_total": 7722.8,
+        "archive_flow_time_total": 2494.499,
+        "python_flow_time_total": 2785.22515
+      },
+      "tolerance": 0.05,
+      "profit_within_tolerance": true
+    },
+    {
+      "id": "E3",
+      "load_class": "high",
+      "arrival_rate": 1.25,
+      "archive_profit_per_hour": 349.478,
+      "python_multi_rep_profit_per_hour": 323.276141,
+      "python_multi_rep_ci95": 4.311802,
+      "python_single_seed_profit_per_hour": 336.15268,
+      "python_censored_profit_per_hour": 334.757941,
+      "profit_deviation_multi_rep": -0.074974,
+      "profit_deviation_single_seed": -0.038129,
+      "profit_deviation_censored": -0.04212,
+      "served_archive": 1227,
+      "served_python_multi_rep": 1253.54,
+      "served_deviation": 0.02163,
+      "util_archive_display": 0.84,
+      "util_python_multi_rep": 0.884495,
+      "util_theory": 0.881937,
+      "mean_los": {
+        "archive": 4.033427,
+        "python": 4.793607,
+        "archive_single_run_sanity": 4.033427,
+        "deviation": 0.18847
+      },
+      "los_deviation": {
+        "tea": {
+          "archive": 4.11,
+          "python": 5.160072,
+          "deviation": 0.255492,
+          "not_applicable": false,
+          "note": null
+        },
+        "bread": {
+          "archive": 2.43,
+          "python": 3.392996,
+          "deviation": 0.396295,
+          "not_applicable": false,
+          "note": null
+        },
+        "ice": {
+          "archive": 2.5,
+          "python": 3.481185,
+          "deviation": 0.392474,
+          "not_applicable": false,
+          "note": null
+        },
+        "mix_sync": {
+          "archive": 4.38,
+          "python": 5.515695,
+          "deviation": 0.259291,
+          "not_applicable": false,
+          "note": null
+        }
+      },
+      "profit_decomposition": {
+        "hours": 16.666667,
+        "archive_profit_on_common_hours": 337.28955,
+        "python_profit_on_common_hours": 323.276141,
+        "revenue_component": 18.5406,
+        "wage_component": 0.0,
+        "waiting_component": -32.554009,
+        "net": -14.013409,
+        "residual": 0.0,
+        "archive_revenue_total": 9346.0,
+        "python_revenue_total": 9655.01,
+        "archive_flow_time_total": 4949.015,
+        "python_flow_time_total": 6034.148641
+      },
+      "tolerance": 0.12,
+      "profit_within_tolerance": true
+    },
+    {
+      "id": "E4",
+      "load_class": "high",
+      "arrival_rate": 1.25,
+      "archive_profit_per_hour": 349.184,
+      "python_multi_rep_profit_per_hour": 319.174167,
+      "python_multi_rep_ci95": 4.76917,
+      "python_single_seed_profit_per_hour": 331.247016,
+      "python_censored_profit_per_hour": 329.818455,
+      "profit_deviation_multi_rep": -0.085943,
+      "profit_deviation_single_seed": -0.051368,
+      "profit_deviation_censored": -0.055459,
+      "served_archive": 1227,
+      "served_python_multi_rep": 1253.54,
+      "served_deviation": 0.02163,
+      "util_archive_display": 0.84,
+      "util_python_multi_rep": 0.884495,
+      "util_theory": 0.881937,
+      "mean_los": {
+        "archive": 3.719455,
+        "python": 4.900957,
+        "archive_single_run_sanity": 3.719455,
+        "deviation": 0.317655
+      },
+      "los_deviation": {
+        "tea": {
+          "archive": 4.23,
+          "python": 5.369384,
+          "deviation": 0.269358,
+          "not_applicable": false,
+          "note": null
+        },
+        "bread": {
+          "archive": 2.53,
+          "python": 3.608195,
+          "deviation": 0.426164,
+          "not_applicable": false,
+          "note": null
+        },
+        "ice": {
+          "archive": 2.67,
+          "python": 3.697911,
+          "deviation": 0.384985,
+          "not_applicable": false,
+          "note": null
+        },
+        "mix_tea": {
+          "archive": 3.93,
+          "python": 5.210757,
+          "deviation": 0.325892,
+          "not_applicable": false,
+          "note": null
+        },
+        "mix_ice_hand": {
+          "archive": 1.27,
+          "python": 1.24109,
+          "deviation": -0.022764,
+          "not_applicable": false,
+          "note": null
+        },
+        "mix_sync": {
+          "archive": 0.0,
+          "python": 5.210757,
+          "deviation": null,
+          "not_applicable": true,
+          "note": "split delivery has no mixed-sync event, so the archived value is 0 and the deviation is undefined"
+        }
+      },
+      "profit_decomposition": {
+        "hours": 16.666667,
+        "archive_profit_on_common_hours": 348.96687,
+        "python_profit_on_common_hours": 319.174167,
+        "revenue_component": 18.4206,
+        "wage_component": 0.0,
+        "waiting_component": -48.213303,
+        "net": -29.792703,
+        "residual": -0.0,
+        "archive_revenue_total": 9348.0,
+        "python_revenue_total": 9655.01,
+        "archive_flow_time_total": 4563.771,
+        "python_flow_time_total": 6170.881088
+      },
+      "tolerance": 0.12,
+      "profit_within_tolerance": true
+    },
+    {
+      "id": "E5",
+      "load_class": "high",
+      "arrival_rate": 1.25,
+      "archive_profit_per_hour": 358.359,
+      "python_multi_rep_profit_per_hour": 337.705119,
+      "python_multi_rep_ci95": 3.44841,
+      "python_single_seed_profit_per_hour": 346.722823,
+      "python_censored_profit_per_hour": 345.328084,
+      "profit_deviation_multi_rep": -0.057635,
+      "profit_deviation_single_seed": -0.032471,
+      "profit_deviation_censored": -0.036363,
+      "served_archive": 1228,
+      "served_python_multi_rep": 1253.54,
+      "served_deviation": 0.020798,
+      "util_archive_display": 0.84,
+      "util_python_multi_rep": 0.884495,
+      "util_theory": 0.881937,
+      "mean_los": {
+        "archive": 3.470096,
+        "python": 4.413244,
+        "archive_single_run_sanity": 3.470096,
+        "deviation": 0.271793
+      },
+      "los_deviation": {
+        "tea": {
+          "archive": 4.23,
+          "python": 5.367606,
+          "deviation": 0.268937,
+          "not_applicable": false,
+          "note": null
+        },
+        "bread": {
+          "archive": 1.22,
+          "python": 1.219742,
+          "deviation": -0.000211,
+          "not_applicable": false,
+          "note": null
+        },
+        "ice": {
+          "archive": 1.35,
+          "python": 1.382698,
+          "deviation": 0.024221,
+          "not_applicable": false,
+          "note": null
+        },
+        "mix_sync": {
+          "archive": 4.53,
+          "python": 5.723902,
+          "deviation": 0.263555,
+          "not_applicable": false,
+          "note": null
+        }
+      },
+      "profit_decomposition": {
+        "hours": 16.666667,
+        "archive_profit_on_common_hours": 358.28166,
+        "python_profit_on_common_hours": 337.705119,
+        "revenue_component": 18.1806,
+        "wage_component": 0.0,
+        "waiting_component": -38.757141,
+        "net": -20.576541,
+        "residual": 0.0,
+        "archive_revenue_total": 9352.0,
+        "python_revenue_total": 9655.01,
+        "archive_flow_time_total": 4261.278,
+        "python_flow_time_total": 5553.182707
+      },
+      "tolerance": 0.12,
+      "profit_within_tolerance": true
+    },
+    {
+      "id": "E6",
+      "load_class": "high",
+      "arrival_rate": 1.25,
+      "archive_profit_per_hour": 359.161,
+      "python_multi_rep_profit_per_hour": 335.139438,
+      "python_multi_rep_ci95": 3.844134,
+      "python_single_seed_profit_per_hour": 344.56015,
+      "python_censored_profit_per_hour": 343.131589,
+      "profit_deviation_multi_rep": -0.066882,
+      "profit_deviation_single_seed": -0.040653,
+      "profit_deviation_censored": -0.04463,
+      "served_archive": 1229,
+      "served_python_multi_rep": 1253.54,
+      "served_deviation": 0.019967,
+      "util_archive_display": 0.84,
+      "util_python_multi_rep": 0.884495,
+      "util_theory": 0.881937,
+      "mean_los": {
+        "archive": 3.45688,
+        "python": 4.48,
+        "archive_single_run_sanity": 3.45688,
+        "deviation": 0.295966
+      },
+      "los_deviation": {
+        "tea": {
+          "archive": 4.38,
+          "python": 5.604268,
+          "deviation": 0.279513,
+          "not_applicable": false,
+          "note": null
+        },
+        "bread": {
+          "archive": 1.13,
+          "python": 1.161871,
+          "deviation": 0.028205,
+          "not_applicable": false,
+          "note": null
+        },
+        "ice": {
+          "archive": 1.38,
+          "python": 1.317025,
+          "deviation": -0.045634,
+          "not_applicable": false,
+          "note": null
+        },
+        "mix_tea": {
+          "archive": 4.14,
+          "python": 5.482819,
+          "deviation": 0.324352,
+          "not_applicable": false,
+          "note": null
+        },
+        "mix_ice_hand": {
+          "archive": 1.34,
+          "python": 1.320175,
+          "deviation": -0.014795,
+          "not_applicable": false,
+          "note": null
+        },
+        "mix_sync": {
+          "archive": 0.0,
+          "python": 5.482819,
+          "deviation": null,
+          "not_applicable": true,
+          "note": "split delivery has no mixed-sync event, so the archived value is 0 and the deviation is undefined"
+        }
+      },
+      "profit_decomposition": {
+        "hours": 16.666667,
+        "archive_profit_on_common_hours": 359.14485,
+        "python_profit_on_common_hours": 335.139438,
+        "revenue_component": 17.7006,
+        "wage_component": 0.0,
+        "waiting_component": -41.706012,
+        "net": -24.005412,
+        "residual": 0.0,
+        "archive_revenue_total": 9360.0,
+        "python_revenue_total": 9655.01,
+        "archive_flow_time_total": 4248.505,
+        "python_flow_time_total": 5638.705411
+      },
+      "tolerance": 0.12,
+      "profit_within_tolerance": true
+    }
+  ],
+  "paired": [
+    {
+      "label": "split_at_low_load",
+      "a": "E2",
+      "b": "E1",
+      "reps": 200,
+      "diff": {
+        "served": 0.0,
+        "mean_los": -0.060447,
+        "mix_los": -0.487114,
+        "mix_ice_hand": -2.482961,
+        "util": -0.0,
+        "profit_per_hour": 1.812182,
+        "revenue_per_hour": 0.0,
+        "flow_time_total": -60.406061,
+        "waiting_cost_total": -30.20303,
+        "los_tea": 0.046434,
+        "los_bread": 0.047505,
+        "los_ice": 0.048381,
+        "balked": 0.0,
+        "reneged": 0.0
+      },
+      "ci95": {
+        "served": 0.0,
+        "mean_los": 0.002781,
+        "mix_los": 0.004966,
+        "mix_ice_hand": 0.024185,
+        "util": 0.0,
+        "profit_per_hour": 0.082038,
+        "revenue_per_hour": 0.0,
+        "flow_time_total": 2.734607,
+        "waiting_cost_total": 1.367304,
+        "los_tea": 0.002688,
+        "los_bread": 0.003789,
+        "los_ice": 0.006764,
+        "balked": 0.0,
+        "reneged": 0.0
+      }
+    },
+    {
+      "label": "split_at_high_load",
+      "a": "E4",
+      "b": "E3",
+      "reps": 200,
+      "diff": {
+        "served": 0.0,
+        "mean_los": 0.10735,
+        "mix_los": -0.304938,
+        "mix_ice_hand": -4.274605,
+        "util": -0.0,
+        "profit_per_hour": -4.101973,
+        "revenue_per_hour": 0.0,
+        "flow_time_total": 136.732447,
+        "waiting_cost_total": 68.366223,
+        "los_tea": 0.209312,
+        "los_bread": 0.215199,
+        "los_ice": 0.216726,
+        "balked": 0.0,
+        "reneged": 0.0
+      },
+      "ci95": {
+        "served": 0.0,
+        "mean_los": 0.012989,
+        "mix_los": 0.014315,
+        "mix_ice_hand": 0.140534,
+        "util": 0.0,
+        "profit_per_hour": 0.509083,
+        "revenue_per_hour": 0.0,
+        "flow_time_total": 16.969428,
+        "waiting_cost_total": 8.484714,
+        "los_tea": 0.013352,
+        "los_bread": 0.013201,
+        "los_ice": 0.015688,
+        "balked": 0.0,
+        "reneged": 0.0
+      }
+    },
+    {
+      "label": "fast_priority_at_high_load",
+      "a": "E5",
+      "b": "E3",
+      "reps": 200,
+      "diff": {
+        "served": 0.0,
+        "mean_los": -0.380362,
+        "mix_los": 0.208208,
+        "mix_ice_hand": 0.208208,
+        "util": 0.0,
+        "profit_per_hour": 14.428978,
+        "revenue_per_hour": 0.0,
+        "flow_time_total": -480.965934,
+        "waiting_cost_total": -240.482967,
+        "los_tea": 0.207534,
+        "los_bread": -2.173254,
+        "los_ice": -2.098487,
+        "balked": 0.0,
+        "reneged": 0.0
+      },
+      "ci95": {
+        "served": 0.0,
+        "mean_los": 0.023313,
+        "mix_los": 0.012442,
+        "mix_ice_hand": 0.012442,
+        "util": 0.0,
+        "profit_per_hour": 0.936625,
+        "revenue_per_hour": 0.0,
+        "flow_time_total": 31.220833,
+        "waiting_cost_total": 15.610417,
+        "los_tea": 0.011285,
+        "los_bread": 0.135024,
+        "los_ice": 0.134036,
+        "balked": 0.0,
+        "reneged": 0.0
+      }
+    },
+    {
+      "label": "split_plus_fast_vs_split",
+      "a": "E6",
+      "b": "E4",
+      "reps": 200,
+      "diff": {
+        "served": 0.0,
+        "mean_los": -0.420957,
+        "mix_los": 0.272062,
+        "mix_ice_hand": 0.079085,
+        "util": 0.0,
+        "profit_per_hour": 15.96527,
+        "revenue_per_hour": 0.0,
+        "flow_time_total": -532.175677,
+        "waiting_cost_total": -266.087839,
+        "los_tea": 0.234884,
+        "los_bread": -2.446324,
+        "los_ice": -2.380886,
+        "balked": 0.0,
+        "reneged": 0.0
+      },
+      "ci95": {
+        "served": 0.0,
+        "mean_los": 0.02477,
+        "mix_los": 0.014384,
+        "mix_ice_hand": 0.005576,
+        "util": 0.0,
+        "profit_per_hour": 0.997917,
+        "revenue_per_hour": 0.0,
+        "flow_time_total": 33.263915,
+        "waiting_cost_total": 16.631958,
+        "los_tea": 0.013412,
+        "los_bread": 0.147875,
+        "los_ice": 0.148233,
+        "balked": 0.0,
+        "reneged": 0.0
+      }
+    },
+    {
+      "label": "split_plus_fast_vs_fast",
+      "a": "E6",
+      "b": "E5",
+      "reps": 200,
+      "diff": {
+        "served": 0.0,
+        "mean_los": 0.066756,
+        "mix_los": -0.241084,
+        "mix_ice_hand": -4.403728,
+        "util": -0.0,
+        "profit_per_hour": -2.565681,
+        "revenue_per_hour": 0.0,
+        "flow_time_total": 85.522704,
+        "waiting_cost_total": 42.761352,
+        "los_tea": 0.236663,
+        "los_bread": -0.057871,
+        "los_ice": -0.065672,
+        "balked": 0.0,
+        "reneged": 0.0
+      },
+      "ci95": {
+        "served": 0.0,
+        "mean_los": 0.011462,
+        "mix_los": 0.016667,
+        "mix_ice_hand": 0.15034,
+        "util": 0.0,
+        "profit_per_hour": 0.445953,
+        "revenue_per_hour": 0.0,
+        "flow_time_total": 14.865109,
+        "waiting_cost_total": 7.432555,
+        "los_tea": 0.01556,
+        "los_bread": 0.006062,
+        "los_ice": 0.010926,
+        "balked": 0.0,
+        "reneged": 0.0
+      }
+    },
+    {
+      "label": "fast_priority_low_load_reference",
+      "a": "E5",
+      "b": "E3",
+      "reps": 200,
+      "diff": {
+        "served": 0.0,
+        "mean_los": -0.380362,
+        "mix_los": 0.208208,
+        "mix_ice_hand": 0.208208,
+        "util": 0.0,
+        "profit_per_hour": 14.428978,
+        "revenue_per_hour": 0.0,
+        "flow_time_total": -480.965934,
+        "waiting_cost_total": -240.482967,
+        "los_tea": 0.207534,
+        "los_bread": -2.173254,
+        "los_ice": -2.098487,
+        "balked": 0.0,
+        "reneged": 0.0
+      },
+      "ci95": {
+        "served": 0.0,
+        "mean_los": 0.023313,
+        "mix_los": 0.012442,
+        "mix_ice_hand": 0.012442,
+        "util": 0.0,
+        "profit_per_hour": 0.936625,
+        "revenue_per_hour": 0.0,
+        "flow_time_total": 31.220833,
+        "waiting_cost_total": 15.610417,
+        "los_tea": 0.011285,
+        "los_bread": 0.135024,
+        "los_ice": 0.134036,
+        "balked": 0.0,
+        "reneged": 0.0
+      }
+    }
+  ],
+  "archive_internal_audit": [
+    {
+      "id": "E1",
+      "implied_hours_from_revenue": 16.649398,
+      "implied_minutes_from_revenue": 998.963898,
+      "profit_recomputed_from_own_fields": 292.999725,
+      "profit_archived": 292.917,
+      "deviation": 0.000282,
+      "consistent": true,
+      "formula": "profit/h = (revenueTotal - wage*hours - waiting_cost*flowTimeTotal)/hours",
+      "waiting_cost": 1297.026,
+      "wage_cost": 1248.704872
+    },
+    {
+      "id": "E2",
+      "implied_hours_from_revenue": 16.653133,
+      "implied_minutes_from_revenue": 999.18798,
+      "profit_recomputed_from_own_fields": 295.906213,
+      "profit_archived": 295.906,
+      "deviation": 1e-06,
+      "consistent": true,
+      "formula": "profit/h = (revenueTotal - wage*hours - waiting_cost*flowTimeTotal)/hours",
+      "waiting_cost": 1247.2495,
+      "wage_cost": 1248.984975
+    },
+    {
+      "id": "E3",
+      "implied_hours_from_revenue": 16.660457,
+      "implied_minutes_from_revenue": 999.62743,
+      "profit_recomputed_from_own_fields": 337.443214,
+      "profit_archived": 349.478,
+      "deviation": -0.034436,
+      "consistent": false,
+      "formula": "profit/h = (revenueTotal - wage*hours - waiting_cost*flowTimeTotal)/hours",
+      "waiting_cost": 2474.5075,
+      "wage_cost": 1249.534288
+    },
+    {
+      "id": "E4",
+      "implied_hours_from_revenue": 16.658113,
+      "implied_minutes_from_revenue": 999.486785,
+      "profit_recomputed_from_own_fields": 349.184568,
+      "profit_archived": 349.184,
+      "deviation": 2e-06,
+      "consistent": true,
+      "formula": "profit/h = (revenueTotal - wage*hours - waiting_cost*flowTimeTotal)/hours",
+      "waiting_cost": 2281.8855,
+      "wage_cost": 1249.358481
+    },
+    {
+      "id": "E5",
+      "implied_hours_from_revenue": 16.663697,
+      "implied_minutes_from_revenue": 999.821817,
+      "profit_recomputed_from_own_fields": 358.358877,
+      "profit_archived": 358.359,
+      "deviation": -0.0,
+      "consistent": true,
+      "formula": "profit/h = (revenueTotal - wage*hours - waiting_cost*flowTimeTotal)/hours",
+      "waiting_cost": 2130.639,
+      "wage_cost": 1249.777271
+    },
+    {
+      "id": "E6",
+      "implied_hours_from_revenue": 16.666014,
+      "implied_minutes_from_revenue": 999.960828,
+      "profit_recomputed_from_own_fields": 359.161857,
+      "profit_archived": 359.161,
+      "deviation": 2e-06,
+      "consistent": true,
+      "formula": "profit/h = (revenueTotal - wage*hours - waiting_cost*flowTimeTotal)/hours",
+      "waiting_cost": 2124.2525,
+      "wage_cost": 1249.951035
+    }
+  ],
+  "archive_utilization_audit": [
+    {
+      "id": "E1",
+      "served": 975.0,
+      "displayed_utilization": 0.67,
+      "busy_minutes_implied": 2063.73375,
+      "utilization_implied_by_served": 0.687911,
+      "implied_measurement_window_minutes": 1026.733209,
+      "gap_vs_theory_pp": null,
+      "gap_vs_served_implied": 0.017911,
+      "implied_window_vs_nominal_ratio": 1.026733
+    },
+    {
+      "id": "E2",
+      "served": 975.0,
+      "displayed_utilization": 0.67,
+      "busy_minutes_implied": 2063.73375,
+      "utilization_implied_by_served": 0.687911,
+      "implied_measurement_window_minutes": 1026.733209,
+      "gap_vs_theory_pp": null,
+      "gap_vs_served_implied": 0.017911,
+      "implied_window_vs_nominal_ratio": 1.026733
+    },
+    {
+      "id": "E3",
+      "served": 1227.0,
+      "displayed_utilization": 0.84,
+      "busy_minutes_implied": 2597.12955,
+      "utilization_implied_by_served": 0.86571,
+      "implied_measurement_window_minutes": 1030.606964,
+      "gap_vs_theory_pp": null,
+      "gap_vs_served_implied": 0.02571,
+      "implied_window_vs_nominal_ratio": 1.030607
+    },
+    {
+      "id": "E4",
+      "served": 1227.0,
+      "displayed_utilization": 0.84,
+      "busy_minutes_implied": 2597.12955,
+      "utilization_implied_by_served": 0.86571,
+      "implied_measurement_window_minutes": 1030.606964,
+      "gap_vs_theory_pp": null,
+      "gap_vs_served_implied": 0.02571,
+      "implied_window_vs_nominal_ratio": 1.030607
+    },
+    {
+      "id": "E5",
+      "served": 1228.0,
+      "displayed_utilization": 0.84,
+      "busy_minutes_implied": 2599.2462,
+      "utilization_implied_by_served": 0.866415,
+      "implied_measurement_window_minutes": 1031.446905,
+      "gap_vs_theory_pp": null,
+      "gap_vs_served_implied": 0.026415,
+      "implied_window_vs_nominal_ratio": 1.031447
+    },
+    {
+      "id": "E6",
+      "served": 1229.0,
+      "displayed_utilization": 0.84,
+      "busy_minutes_implied": 2601.36285,
+      "utilization_implied_by_served": 0.867121,
+      "implied_measurement_window_minutes": 1032.286845,
+      "gap_vs_theory_pp": null,
+      "gap_vs_served_implied": 0.027121,
+      "implied_window_vs_nominal_ratio": 1.032287
+    }
+  ],
+  "verdict": {
+    "criteria": {
+      "low_load": "|profit deviation| <= 5% at lambda=1.00",
+      "high_load": "|profit deviation| <= 12% at lambda=1.25",
+      "ordering": "fast-priority runs (E5, E6) must be the most profitable and split delivery must not change utilisation"
+    },
+    "low_load_cases": 2,
+    "low_load_passed": 2,
+    "high_load_cases": 4,
+    "high_load_passed": 4,
+    "archive_ranking": [
+      "E1",
+      "E2",
+      "E4",
+      "E3",
+      "E5",
+      "E6"
+    ],
+    "python_ranking": [
+      "E1",
+      "E2",
+      "E4",
+      "E3",
+      "E6",
+      "E5"
+    ],
+    "ranking_matches": false,
+    "best_pair_archive": [
+      "E5",
+      "E6"
+    ],
+    "best_pair_python": [
+      "E6",
+      "E5"
+    ],
+    "top_two_set_matches": true,
+    "ranking_note": "The only ranking difference is the E5/E6 order: the archive has E6 (split + fast) a hair above E5 (fast only), the Python engine has E5 a hair above E6. Both gaps are around 1%, and at 88% utilisation the split break-even is already behind us, so a small penalty for splitting is the expected sign in this engine.",
+    "fast_priority_is_best_python": true,
+    "utilization_policy_invariant_python": {
+      "lambda_1.00_split_minus_synchro": 0.0,
+      "lambda_1.25_split_minus_synchro": 0.0
+    },
+    "passed": true,
+    "deviation_sources": [
+      "Different random streams: the AnyLogic model draws its own Poisson arrival stream and class uniforms, so a like-for-like single run differs by several percent even with the same parameters.",
+      "Single run versus 200 replicates: at 88% utilisation the queue is extremely sensitive to the random draw, so a single archived run is one sample from a wide distribution and the 200-replicate mean is the expected value (the visible high-load deviations are in the expected direction: this engine's mean is below the archived single run for E3-E6).",
+      "Stop-time accounting: AnyLogic counts only customers that reach the sink before the 1000-minute stop, while the Python engine drains the queue; the censored variant in this file isolates that effect (it moves the deviation by 2-4 percentage points, i.e. it explains part of, but not all, the raw difference).",
+      "Archival read-out windows: the archived revenue rate implies about 999.6 minutes while the archived utilisation display implies about 1027-1032 minutes, so the two archive columns are not on exactly the same denominator (see archive_utilization_audit).",
+      "E3 is internally inconsistent: the documented formula applied to E3's own revenueTotal and flowTimeTotal gives 337.4/hour, not the archived 349.478. Every other row reproduces to within 0.03%."
+    ]
+  }
+}
