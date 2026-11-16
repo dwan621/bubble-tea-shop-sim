@@ -151,7 +151,7 @@ closed form, and it depends on the assumed prices and waiting-cost weight.
 
 ---
 
-## layer results: four layers, one engine
+## Layer results: four layers, one engine
 
 The layer study re-uses the same engine and adds the four optional layers documented in
 [`src/bubble_tea_sim/data_spec.py`](src/bubble_tea_sim/data_spec.py). Results live in
@@ -451,7 +451,7 @@ The P-series original configuration (used for the fast-priority table) differs: 
 orders, order mix tea 65% / bread 20% / ice cream 15%, and ice-cream make time 0.33 min.
 Both configurations are defined in [`src/bubble_tea_sim/scenarios.py`](src/bubble_tea_sim/scenarios.py).
 
-### mechanism layer assumptions
+### Mechanism-layer assumptions
 
 The mechanism layers are opt-in; a scenario JSON enables the ones it needs. Each scenario file
 carries a provenance block (`source`, `method`, `uncertainty`, `notes`) and every entry
