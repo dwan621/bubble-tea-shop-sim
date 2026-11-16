@@ -2,7 +2,7 @@
 
 Outputs
 -------
-``archive/report-2026-11.html``  the archived earlier report (English main text, Chinese paragraphs).
+``archive/report-2026-11.html``  the archived earlier report (English main text).
                          inline SVG figures, no JavaScript, no CDN, no fonts or
                          CSS loaded from the network - it opens from ``file://``.
 ``docs/experiments.md``  every result table as GitHub-flavoured Markdown.
@@ -34,7 +34,6 @@ FIGURES = common.FIGURES
 RESULTS = common.RESULTS
 
 TITLE_EN = "Bubble-tea shop simulation: triage, delivery mode and the cost of waiting"
-TITLE_ZH = "奶茶店离散事件仿真：快速分诊、交付方式与等待成本"
 
 POLICY_ORDER = ("synchro+fcfs", "synchro+fast", "split+fcfs", "split+fast")
 POLICY_COLOR = {key: svg.PALETTE[key] for key in POLICY_ORDER}
@@ -126,10 +125,6 @@ TAG_AN = '<span class="tag an">AnyLogic archive</span>'
 def callout(kind: str, body: str, *, title: Optional[str] = None) -> str:
     head = f'<p class="callout-title">{title}</p>' if title else ""
     return f'<div class="callout {kind}">{head}{body}</div>'
-
-
-def zh(paragraph: str) -> str:
-    return f'<p class="zh">{paragraph}</p>'
 
 
 # --------------------------------------------------------------------------
@@ -776,7 +771,6 @@ a{color:var(--teal)}
 .hero .wrap{padding-bottom:0}
 .hero h1{font-size:clamp(1.65rem,3.3vw,2.45rem);line-height:1.2;margin:0 0 10px;color:#fff;letter-spacing:-.5px}
 .hero .sub{font-size:1.04rem;color:#99f6e4;margin:0 0 4px}
-.hero .zh-title{font-size:1.13rem;color:#ccfbf1;margin:0 0 16px}
 .hero .meta{font-size:.8rem;color:#a5b4fc;font-family:var(--mono)}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(195px,1fr));gap:13px;margin:24px 0 0}
 .stat{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:13px 15px}
@@ -790,10 +784,8 @@ nav.toc a:hover{background:#e2e8f0}
 section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:26px 30px;margin:22px 0}
 h2{font-size:1.4rem;margin:0 0 6px;letter-spacing:-.3px}
 h2 .num{color:var(--teal);font-variant-numeric:tabular-nums;margin-right:8px}
-h2 .zh-h{display:block;font-size:.98rem;color:var(--muted);font-weight:500;margin-top:2px}
 h3{font-size:1.05rem;margin:22px 0 8px}
 p{margin:0 0 12px}
-p.zh{color:#334155;background:#f8fafc;border-left:3px solid #cbd5e1;padding:9px 14px;border-radius:0 6px 6px 0;font-size:.95rem}
 .lead{font-size:1.02rem;color:#1e293b}
 .table-wrap{overflow-x:auto;margin:14px 0}
 table{border-collapse:collapse;width:100%;font-size:.85rem;font-variant-numeric:tabular-nums}
@@ -901,7 +893,6 @@ def hero(data: Data) -> str:
   <div class="wrap">
     <p class="sub">SYE5006 service-operations project · reproducible re-implementation and extension</p>
     <h1>{esc(TITLE_EN)}</h1>
-    <p class="zh-title">{esc(TITLE_ZH)}</p>
     <p class="meta">bubble_tea_sim {esc(data.sweep["meta"]["package_version"])} ·
       Python {esc(data.sweep["meta"]["python_version"])} · seed {data.sweep["meta"]["seed"]} ·
       standard library only · every number regenerated from results/*.json</p>
@@ -932,11 +923,10 @@ def nav() -> str:
     return f'<nav class="toc"><div class="wrap">{links}</div></nav>'
 
 
-def section(number: int, title_en: str, title_zh: str, anchor: str, body: str) -> str:
+def section(number: int, title_en: str, anchor: str, body: str) -> str:
     return (
         f'<section id="{anchor}">'
-        f'<h2><span class="num">{number}.</span>{esc(title_en)}'
-        f'<span class="zh-h">{esc(title_zh)}</span></h2>{body}</section>'
+        f'<h2><span class="num">{number}.</span>{esc(title_en)}</h2>{body}</section>'
     )
 
 
@@ -969,11 +959,6 @@ survive - and the scripts each had their own seed convention and statistics wind
 report keeps the questions and the answers, but rebuilds the evidence as <strong>one
 deterministic engine plus five experiments</strong> whose numbers can be regenerated
 from this repository in minutes.</p>
-
-<p class="zh">课程原始项目用 AnyLogic 模型加三个一次性 Python 脚本回答了这两个问题。
-AnyLogic 模型已无法重跑（只剩截图存档），三个脚本的随机种子与统计口径也各不相同。
-本报告保留问题与结论，但把证据重建为一个确定性仿真引擎 + 五组实验：所有数字都能在
-本仓库内用固定随机种子重新生成，结果以 JSON 形式提交。</p>
 
 <h3>What is new compared with the archived study</h3>
 <ul>
@@ -1008,7 +993,7 @@ model itself is not available, so those numbers can only be compared, never rege
        note="The four new experiments (sections 6-9) sit between the metrics section and the archival audit; "
             "every archival claim is re-checked against reproducible numbers.")}
 """
-    return section(1, "Background: why this problem", "项目背景：为什么要研究这个问题", "s1", body)
+    return section(1, "Background: why this problem", "s1", body)
 
 
 def s2_model(data: Data) -> str:
@@ -1018,10 +1003,10 @@ def s2_model(data: Data) -> str:
     prices = baseline["economics"]["prices"]
     rows = []
     for key, label in (
-        ("tea", "Tea only / 纯奶茶"),
-        ("bread", "Bread only / 面包"),
-        ("ice", "Ice cream only / 纯冰淇淋"),
-        ("mix", "Mixed tea + ice / 混合单"),
+        ("tea", "Tea only"),
+        ("bread", "Bread only"),
+        ("ice", "Ice cream only"),
+        ("mix", "Mixed tea + ice"),
     ):
         if key == "mix":
             make = times["tea"] + times["ice"]
@@ -1048,10 +1033,6 @@ mixed order it is either one long job (synchronised delivery) or two jobs (split
 All clerks are cross-trained and share one FIFO queue with a priority override for fast
 items, so the clerk pool is the only bottleneck.</p>
 
-<p class="zh">模型把门店视为单一排队系统：泊松到达，四类订单，一个共享队列，员工全部跨岗。
-"任务（job）"是不可中断的一段员工工时。纯订单只有一个任务（点单+制作），混合单在同步交付下
-是一个长任务、在拆分交付下是两个任务。瓶颈只有员工池一处。</p>
-
 {table(["Order class", "Share of arrivals", "Service time / min", "Price", "Share × time"],
        rows, caption="Order mix and service times (the archived AnyLogic parameters)",
        note="p̄ = 0.55(2.500) + 0.20(0.667) + 0.05(0.833) + 0.20(2.833) = 2.1167 clerk-minutes per customer.")}
@@ -1068,10 +1049,6 @@ behaviour rules can never feed back into the arrival stream - which is what make
 common-random-number comparisons in this report valid. Given a seed the run is
 deterministic; two different seeds are independent replicates.</p>
 
-<p class="zh">引擎是标准库实现的离散事件循环：二叉堆事件表、优先级+FIFO 任务表、员工空闲时间表。
-到达流在开跑前一次性生成，因此行为规则不会反过来改变到达序列——这正是本报告"公共随机数"
-配对比较成立的前提。给定随机种子，一次运行完全确定。</p>
-
 <div class="callout key">
 <p class="callout-title">Statistics window</p>
 <p>Each replicate simulates a 480-minute day with a 60-minute warm-up: customers who arrive
@@ -1081,7 +1058,7 @@ steady state at the start of the measurement window. Section 5 shows the price o
 choice and how to undo it.</p>
 </div>
 """
-    return section(2, "What the model actually is", "模型口径", "s2", body)
+    return section(2, "What the model actually is", "s2", body)
 
 
 def data_figure(data: Data, key: str) -> str:
@@ -1111,10 +1088,6 @@ waiting is distributed between the mixed customer, the tea queue and the fast-it
 That is the theoretical reason the split/synchro question is interesting, and it is also why
 the break-even in section 7 is driven by queueing nonlinearity rather than by capacity.</p>
 
-<p class="zh">两种交付方式的总工作量完全相同，因此<strong>利用率不能作为决策指标</strong>；
-差别只在于等待如何分配给不同顾客。这也解释了为什么第 7 节的盈亏平衡点由排队非线性决定，
-而不是由产能决定。</p>
-
 {table(["Aspect", "Synchronised (synchro)", "Split"], compare,
        caption="The two delivery strategies are workload-identical", align=["l", "l", "l"])}
 
@@ -1131,7 +1104,7 @@ mixed-order table was withdrawn: letting the whole mixed order jump would double
 priority and break the workload identity.</p>
 </div>
 """
-    return section(3, "Two delivery strategies", "两种交付策略", "s3", body)
+    return section(3, "Two delivery strategies", "s3", body)
 
 
 def s4_theory(data: Data) -> str:
@@ -1248,13 +1221,8 @@ used no warm-up, and their Python recomputation gives {fx(float(data.ledger_pyth
 per hour at λ = 1.25 versus {fx(corrected, 1)} here. Two different measurement windows, one
 formula.</p>
 </div>
-
-<p class="zh">课程四讲给了可检验的预测：Little 定律、产能与利用率、多服务台等待近似、MPS/BOM/CRP。
-本节先只用参数算出预测，再用 200 次重复的仿真去验证，偏差在 85% 利用率以下不超过 1%。
-经济层需要注意一个口径：引擎只统计预热后到达的顾客（占全天 87.5%）的收入，却计入整整 8 小时的工资，
-因此报告的利润水平是偏保守的仿射变换，不改变任何排序与盈亏平衡点。</p>
 """
-    return section(4, "Theory predictions, tested", "理论预测与仿真验证", "s4", body)
+    return section(4, "Theory predictions, tested", "s4", body)
 
 
 def s5_design(data: Data) -> str:
@@ -1338,14 +1306,8 @@ therefore not in the LOS average, so a balking rule mechanically lowers mean LOS
 therefore reports the abandonment rate next to every LOS number.</li>
 </ul>
 </div>
-
-<p class="zh">五组实验由五个脚本分别产出五个 JSON 文件，报告只从这些文件读数字。
-表 5.2 的六项有效性检查每次生成报告时都会重新计算：工作量守恒、服务人数不变、
-利用率与理论值偏差、订单比例实现、行为机制的流量守恒、以及 pytest 的锚点回归。
-三条使用注意：利润水平因预热口径偏保守（不影响排序）、过载区不作为决策依据、
-启用 balking 后的 LOS 是条件均值（要同时看流失率）。</p>
 """
-    return section(5, "Metrics, design and validity", "指标、实验设计与有效性检查", "s5", body)
+    return section(5, "Metrics, design and validity", "s5", body)
 
 
 # --------------------------------------------------------------------------
@@ -1506,16 +1468,8 @@ short high-priority job in front of a long queue.</li>
 <li>Above ρ ≈ 0.95 no policy helps: only capacity does.</li>
 </ul>
 </div>
-
-<p class="zh">策略扫描是整项研究的主干：356 个配置、共
-{sum(int(row["reps"]) for row in data.sweep["records"]):,} 个仿真"天"，全部使用公共随机数配对。
-三个形状立刻可见：产能压倒一切（λ=1.25 时多一名员工价值 {signed(p4_125 - p3_125, 1)}/小时）；
-快品优先的收益随负载放大（λ=1.0 {sign_small(d_fast_100)}，1.25 时 {signed(d_fast_125, 1)}，
-1.30 时 {signed(d_fast_130, 1)}）；拆分交付则是一个"随负载变化的小礼物"，
-在 λ≈0.8 附近达到最大 {signed(d_split_mid, 2)}，到 1.25 时转为 {signed(d_split_125, 2)}。
-利润最高点出现在利用率 75%–85% 区间；4–5 名员工时网格在利润峰值前就截断了，这一点必须如实说明。</p>
 """
-    return section(6, "Policy sweep: load × headcount × policy", "策略扫描：负载 × 人数 × 策略", "s6", body)
+    return section(6, "Policy sweep: load × headcount × policy", "s6", body)
 
 
 def sign_small(value: float) -> str:
@@ -1583,14 +1537,8 @@ split delivery still pays. This is the queueing-nonlinearity intuition from the 
 utilisation produces much longer queues - and therefore much more damage from an inserted priority
 job - when there are fewer servers. A single "split below 65%" rule is therefore too coarse, which
 is the main correction this report makes to the original management guidance.</p>
-
-<p class="zh">"何时不该拆分交付"这个问题在把配对差值看成负载的函数后有了明确答案。用与引擎相同的
-二分法（容差 0.01）分别对利润与平均停留时间求根：两名员工 ρ*={pct(data.util_star(2),1)}，
-三名 {pct(data.util_star(3),1)}，四名 {pct(data.util_star(4),1)}。可见<b>不存在统一利用率阈值</b>：
-员工越少，同样的利用率对应更长的队列，插队任务的破坏也越大。原文"低于 65% 拆分"的经验规则过粗，
-应改为按人数分档。利润与时间两种口径的根完全相同，因为收入与策略无关、等待成本是总流时间的线性函数。</p>
 """
-    return section(7, "Break-even: where split delivery stops paying", "盈亏平衡：拆分交付何时不再划算", "s7", body)
+    return section(7, "Break-even: where split delivery stops paying", "s7", body)
 
 
 def s8_sensitivity(data: Data) -> str:
@@ -1686,15 +1634,8 @@ and split wins by {signed(float(tea_points[0]['means']['profit_per_hour']) - flo
 exactly the low-utilisation regime where split is supposed to win.</li>
 </ul>
 </div>
-
-<p class="zh">以 λ=1.25、3 名员工为基线做单因素敏感性。结论分四层：奶茶制作时间才是真正的运营杠杆
-（1.5 分钟时每小时多赚 {signed(tea_low - base, 1)}，2.5 分钟时直接把系统推入 {pct(tea_high_util, 0)} 过载、每小时亏损
-{signed(tea_high - base, 1)}）；工资与等待成本这两维根本不是"实验"——它们只进入后处理经济学，
-不改变事件序列，因此是精确的线性变换（斜率为 −3/小时与 −总流时间/8），报告用数值验证而不是包装成新实验；
-混合单占比在 0.10–0.30 之间几乎中性；策略排序在所有 {total_points} 个设定中都保持"同步优于拆分"，
-没有任何单参数调整能在 88% 利用率下救回拆分交付。</p>
 """
-    return section(8, "Sensitivity: which lever actually moves profit", "敏感性分析：哪个杠杆真正影响利润", "s8", body)
+    return section(8, "Sensitivity: which lever actually moves profit", "s8", body)
 
 
 def s9_behaviour(data: Data) -> str:
@@ -1840,21 +1781,8 @@ willingness-to-pay. What the experiment does establish is the *sign and size of 
 some form of admission control has real economic value. That is a capacity-planning signal, not a
 licence to shoo customers away.</p>
 </div>
-
-<p class="zh">真实门店不会面对无限耐心、无限的队列。三项行为规则逐一开启：balking（到店看到长队直接离开）、
-reneging（等待过久离开）、混合单冰淇淋动态优先级。
-在 88% 利用率下，5 分钟 balking 阈值把每小时利润提高
-{signed(float(balk_best["means"]["profit_per_hour"]) - float(balk_base["profit_per_hour"]), 1)}
-（代价是流失 {pct(float(balk_best["means"]["abandon_rate"]), 1)} 的需求），
-机制是"剔除最长的等待尾部"；3 分钟阈值则过度触发（流失 19%）反而抵消收益。
-10 分钟 reneging 规则几乎无成本（流失 {pct(float(data.reneging[(1.25,10.0)]["means"]["abandon_rate"]),1)}），
-却带来 {signed(float(data.reneging[(1.25,10.0)]["means"]["profit_per_hour"]) - float(renege_base["profit_per_hour"]),1)}/小时 的改善。
-动态冰淇淋优先级是一条"可调刻度"而非开关：立即插队让混合顾客提前
-{fx(float(fcfs["mix_ice_hand"]) - float(jump["mix_ice_hand"]), 2)} 分钟拿到冰淇淋，
-但全店平均等待增加 {fx(float(jump["mean_los"]) - float(fcfs["mean_los"]), 2)} 分钟。
-必须强调：balking 提升"利润"不等于应该赶客——模型缺少顾客回流与口碑效应，只证明了机制的方向与量级。</p>
 """
-    return section(9, "Behaviour mechanisms", "行为机制：离开、流失与动态优先级", "s9", body)
+    return section(9, "Behaviour mechanisms", "s9", body)
 
 
 # --------------------------------------------------------------------------
@@ -1973,9 +1901,6 @@ but the runs cannot be repeated here, so the only evidence is the screenshot set
 things: it restates the archival numbers, it re-simulates the identical configurations with the
 Python engine, and it audits the archive against itself.</p>
 
-<p class="zh">存档的 E1–E6 是 AnyLogic 单次运行结果，模型无法在本机重跑，只有截图与台账。
-本节做三件事：复述存档数字、用 Python 引擎按完全相同的参数重新仿真、并对台账做自洽性审计。</p>
-
 <h3>10.1 The archived ledger {TAG_AN}</h3>
 {table(["Run", "λ", "Delivery", "Triage", "Revenue", "Profit/h", "Flow time", "Served", "LOS tea/bread/ice (+mix)", "Util (screen)"],
        archive_rows, caption="E1-E6 exactly as recorded in the screenshots and docs/experiment_log.md",
@@ -2084,14 +2009,8 @@ at both loads - the two delivery modes do the same work, in the archive as in th
 <p class="callout-title">Where the 3-9% deviation comes from (all five causes, none of them a tuned parameter)</p>
 <ul>{sources}</ul>
 </div>
-
-<p class="zh">对齐结论：低负载 2/2、高负载 4/4 全部落在容差带内（±5% / ±12%），利润排序在
-"快品优先最优"这一点上完全一致，仅 E5 与 E6 互换（差距约 0.2%–0.8%，属于噪声级）。
-偏差的五个来源已逐条写清：不同的随机流、单种子单次 vs 200 次重复、AnyLogic 停止时间只统计到达 sink 的顾客、
-台账自身读数窗口不一致（收入口径约 999.6 分钟，利用率口径约 1027–1032 分钟），以及 E3 行自相矛盾（-3.44%）。
-没有为了让数字吻合而调整任何引擎参数。</p>
 """
-    return section(10, "AnyLogic E1-E6: archived numbers vs re-implementation", "与 AnyLogic 台账 E1–E6 对齐", "s10", body)
+    return section(10, "AnyLogic E1-E6: archived numbers vs re-implementation", "s10", body)
 
 
 def s11_conclusions(data: Data) -> str:
@@ -2244,18 +2163,8 @@ rather than quoting only the flattering aggregate.</li>
 {table(["Service target (all-store mean LOS)", *[name for name, _, _ in cap_columns]], capacity_rows,
        caption="Highest load (λ) that still meets a waiting target (0.05 grid resolution)",
        note="Read across a row: triage improves the same headcount; moving down a headcount column is a different order of magnitude. The table only uses cells below 100% utilisation.")}
-
-<p class="zh">六条结论都经过稳健性检验：(1) 产能压倒排程——λ=1.25 时多一名员工价值
-{signed(p4_125 - p3_125, 1)}/小时，而整个策略矩阵在该点的跨度只有
-{fx(max(data.mean(3, 1.25, key, "profit_per_hour") for key in POLICY_ORDER) - min(data.mean(3, 1.25, key, "profit_per_hour") for key in POLICY_ORDER), 1)}/小时；
-(2) 快品优先的收益随负载放大（λ=1.25 时 {signed(d_fast_125, 1)}/小时）；
-(3) 拆分交付价值有限且会"过期"，盈亏平衡点随员工数变化（71%/81%/86%），
-原文"65% 以下拆分"的统一规则应改为按人数分档；
-(4) 利润口径与等待口径给出同一个平衡点，因为收入与策略无关、等待成本线性；
-(5) 行为规则在高负载下比交付策略更有效、成本更低（5 分钟 balking = {signed(float(data.balking[(1.25, 5.0)]["means"]["profit_per_hour"]) - float(data.balking[(1.25, None)]["means"]["profit_per_hour"]), 1)}/小时）；
-(6) 存档 AnyLogic 结果在自身噪声范围内可复现，且台账中 E3 一行自相矛盾 3.4%。</p>
 """
-    return section(11, "Conclusions and management rules", "结论与管理建议", "s11", body)
+    return section(11, "Conclusions and management rules", "s11", body)
 
 
 def s12_limitations(data: Data) -> str:
@@ -2323,17 +2232,12 @@ utilisation stays near 80%; the queueing approximation suggests it will move dow
 <li>Model balking with a returning-customer process before recommending admission control.</li>
 </ul>
 
-<p class="zh">本节如实列出口径与局限：品类内服务时间确定性（变异只来自订单结构）、单节点且唯一瓶颈是人力、
-利润水平因预热口径偏低（不影响排序）、过载区不作为决策依据、行为规则是示意性的（离开者不回流、
-不区分品类）、敏感性只做单因素、AnyLogic 存档无法重跑且 E3 自相矛盾、价格与等待成本沿用存档假设。
-复现方式与文件清单见表 12.2；JSON 文件重跑后逐字节一致。</p>
-
 <footer>
 <p>Generated by <code>analysis/build_report.py</code> from <code>results/*.json</code>.
 {SECTIONS_NOTE}</p>
 </footer>
 """
-    return section(12, "Limitations and reproducibility", "局限性与可复现性", "s12", body)
+    return section(12, "Limitations and reproducibility", "s12", body)
 
 
 SECTIONS_NOTE = (
@@ -2389,8 +2293,6 @@ def build_markdown(data: Data) -> str:
     lines: List[str] = []
     add = lines.append
     add(f"# {TITLE_EN}")
-    add("")
-    add(f"*{TITLE_ZH}*")
     add("")
     add(
         "Every table in this file is generated by `analysis/build_report.py` from the results/*.json "

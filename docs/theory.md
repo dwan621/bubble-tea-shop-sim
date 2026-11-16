@@ -6,10 +6,6 @@ comparison between theoretical and simulated results. It is written so that the 
 can be checked independently of the report and without access to the original course
 directory.
 
-> **中文**：本文把课程 Lecture 1–4 的公式翻译成可检验的预测，并给出与仿真结果的对照。
-> 所有仿真数字均来自仓库内引擎的可重算命令；文中不引用本机路径，课程材料只用
-> “Lecture 1–4” 指代。
-
 **Companion files:** [../README.md](../README.md) for the headline results,
 [experiment_log.md](experiment_log.md) for the archival AnyLogic ledger,
 [reproducing.md](reproducing.md) for commands and seed conventions.
@@ -27,9 +23,6 @@ The project is not a simulation demo. The analysis is structured as:
 The model is deliberately simple — one queue, fixed service times per class, Poisson
 arrivals — so that the gap between formula and simulation measures the modelling
 assumptions rather than hidden complexity.
-
-> **中文**：先公式预测、再仿真检验、最后解释策略差异的机制。模型刻意保持简单，
-> 使“理论 vs 仿真”的偏差可归因于假设，而不是实现复杂度。
 
 ---
 
@@ -52,9 +45,6 @@ component) under Split; the total work is identical by construction.
 The original fast-priority series (P-series) uses a different mix — tea 65% / bread 20% /
 ice cream 15%, no mixed orders, ice-cream make time 0.33 min — and is documented
 separately in [experiment_log.md](experiment_log.md).
-
-> **中文**：流程单元是订单，服务时间含点单与制作；混合单拆分前后总工作量严格相同。
-> P 系列（快品优先历史实验）使用不同订单结构的旧口径，单独记录。
 
 ---
 
@@ -90,9 +80,6 @@ the numbers are directly comparable with the tables in this document.
 Interpretation: the policy does not create or destroy demand. A lower `T` at the same λ
 means fewer customers inside the shop; that is the whole operational benefit, and it is
 why waiting time is the natural intermediate variable for the economic layer.
-
-> **中文**：Little 定律把仿真得到的流程时间 T 换算成店内人数 I。策略不改变需求，
-> 只改变 T，从而改变店内堆积人数。
 
 ---
 
@@ -139,9 +126,6 @@ either one 2.833-min job or two jobs summing to 2.833 min. Therefore utilisation
 *not* a decision metric; the policies only redistribute waiting. The simulation confirms
 this exactly: utilisation is identical to three decimals between the paired policies at
 every load in the M2 table.
-
-> **中文**：加权平均服务时间 p̄=2.11665 min，3 人产能 1.4173 人/min（85.0 人/h）。
-> 理论利用率与仿真利用率吻合；拆分/同步的总工作量相同，因此利用率不能作为决策指标。
 
 ---
 
@@ -211,10 +195,6 @@ Caveats:
 * with finite 480-min runs and a 60-min warm-up, simulation estimates carry sampling
   error (the reported tables use 200 paired replicates to keep it small).
 
-> **中文**：Lecture 3 的多服务台近似以泊松到达、4 点混合服务时间分布代入，预测的
-> 流程时间与 200 次仿真在 λ=0.5–1.25 区间内相差约 0.2%–1.6%，验证了仿真机制。
-> 该近似只对应 FCFS/同步基线，不预测优先级效应。
-
 ---
 
 ## 6. Why Split is non-trivial
@@ -255,10 +235,6 @@ Observed pattern (mixed-order M2, 3 clerks, `reproduce --reps 200`):
 *Negative = Split is better for that metric.* The ice hand-off always improves; the
 all-order and bread columns flip sign between λ = 1.10 and 1.25. That flip is the
 empirical content of hypotheses 2 and 3.
-
-> **中文**：拆分并不改变顾客离开时间的定义，而是改变共享员工“先做哪个任务”的顺序。
-> 三个假设：产能不变、等待在品类间重新分配、排队对利用率的非线性响应。
-> 仿真显示冰淇淋到手始终提前，但全店等待在 λ≈1.1–1.25 之间由改善转为恶化。
 
 ---
 
@@ -339,10 +315,6 @@ This is identical to the Lecture 2 utilisation calculation by construction: CRP 
 process-capacity analysis must agree when the same order mix and the same time standards
 are used.
 
-> **中文**：在 λ=1.25 下，MPS 为奶茶 41.25、面包 15、冰淇淋 3.75、混合单 15 单/小时；
-> 物料毛需求为奶茶套件 56.25、冰淇淋套件 18.75、面包 15；所需员工分钟 158.75，
-> 可用 180，利用率 88.2%，与 Lecture 2 的产能分析一致。
-
 ---
 
 ## 8. Economic layer
@@ -420,11 +392,6 @@ reports the like-for-like deviation: archived profit is reproduced within +3.4% 
 across E1–E6 (see [experiment_log.md §4](experiment_log.md#4-engine-re-check-of-the-archive)).
 The sign and break-even location are unaffected.
 
-> **中文**：经济层只通过等待成本区分策略：ΔProfit/h = 30 × λ × (T_sync − T_split)。
-> 用仿真 T 代入得到低负载下 Split 略赚、λ=1.25 时亏损，解析平衡点在 1.10–1.25 之间，
-> 引擎二分得到 λ*≈1.147（约 80.9% 利用率，识别带 1.10–1.20）。引擎的利润实现按“预热后收入 + 全天 8 小时”
-> 计算，因此利润绝对水平不能与 AnyLogic 存档数字直接比较。
-
 ---
 
 ## 9. Theory-to-test map
@@ -459,9 +426,6 @@ hand from the parameter table in Section 2.
 * All economic parameters (prices, wage, waiting cost) are assumptions.
 * The archived AnyLogic runs and the Python engine have different horizons and parameter
   lineages; only direction-of-effect comparisons are meaningful across them.
-
-> **中文**：解析层的局限在于两矩近似、只覆盖 FCFS 基线、服务时间独立同分布假设，
-> 以及价格/工资/等待成本均为假设值；AnyLogic 存档只能做方向性对照。
 
 ---
 
@@ -512,12 +476,6 @@ load the shop experiences during the peak. Raising the shape further (multiplier
 `m(t)**factor`, daily mean fixed, from ×1.49 to ×1.85 peak-to-mean) adds another 1.89
 minutes of p95, +11.5 points of walk-away and −72.3 /h of profit: the cost of peakiness
 is J-shaped.
-
-> **中文**：四层机制用分段常数乘数把“日均需求”和“峰值形状”分开：λ(t)=λ₀·m(t)，当归一化日均时
-> λ₀=λ_quoted/m̄。于是日均利用率 ρ̄=λ·p̄/m，峰值小时利用率 ρ_peak=P·ρ̄（P 为峰均比）。
-> 由于排队延迟对负载是凸函数，同样的日均需求一旦集中到峰值，尾部必然变差。仿真实证：
-> 日均利用率 60.6%→54.9%（因为流失减少工作量）、峰值繁忙度 66.0%→77.7%、p95 8.05→11.77 分钟、
-> 流失率 6.9%→15.1%、利润 296.0→239.3。结论：**按峰值配置，不要按日均配置**。
 
 ### 11.2 Peak-factor sweep
 
@@ -583,13 +541,6 @@ brings several customers; with the daily customer mean fixed, only the burstines
 remains (walk-away 7.5% → 9.3% and profit 235.4 → 219.8 at q = 0.3). Burstiness is real
 but second-order next to the peak shape.
 
-> **中文**：服务时间变异通过 `(CV_a²+CV_p²)` 放大整个排队项，且在 U→1 时放大倍数更大，所以
-> 它主要抬高尾部而非均值；引擎对 `exponential` 强制 CV=1。耐心机制方面，到达即评估等待的
-> balking 会“吞掉”reneging（3 分钟阈值下流失 29.3%，12 分钟阈值下 3.2%），因为会 renege 的
-> 顾客通常已经先 balk 了；四层机制的等待估计分母改为**在班人力**。批量到达必须区分口径：固定到达
-> 事件率时批量化主要是需求增加，固定日均顾客数后只剩突发性效应（流失 7.5%→9.3%，利润
-> 235.4→219.8），量级明显小于峰型效应。
-
 ---
 
 ## 13. mechanism layer 2 — the station network and bottleneck migration
@@ -641,13 +592,6 @@ break placed near the peak raises peak-hour waiting even though the wage bill fa
 A mid-shift barista adds headcount but not station capacity; when the tea station is the
 binding resource, the extra headcount cannot shorten the peak queue (measured
 peak-hour Δ = +0.06 ± 0.08 min versus no shift).
-
-> **中文**：站台利用率按设备容量计，人力池利用率按排班分钟计；baseline 的单一 U 只是特例。瓶颈迁移
-> 用“配对边际利润”定义：Δ(k)=Profit(k)−Profit(k−1)，临界容量为第一个 Δ≤0 的 k。茶站实验显示
-> 茶站始终是最忙站台（1 站时 84–99%，4 站时 22–43%），但临界容量为 3/3/4（λ=0.6/0.9/1.2），
-> 超过后真正决定排队的是共享吧台池与下单台。技能方面，同样人数与工资下“全员通才”比“专职分工”
-> 高 +84.5±5.1 元/小时（池化收益），单向交叉培训几乎无效；班次方面，休息把容量从峰值移走，
-> 中班吧台在茶站瓶颈时无法缩短峰值队列（+0.06±0.08 分钟）。
 
 ---
 
@@ -703,12 +647,6 @@ E[gain] = P(shortage) · λ_affected · E[price_target − price_substitute] · 
 and it is positive only when the shortage is in a component that has a substitute: with
 ice short, routing mix orders to tea recovers +14.11 /h; with pearls short, all three
 policies collapse onto the same lost sales, because no product avoids the pearl BOM.
-
-> **中文**：库存位置 IP=在库+在途，当 IP≤s 且无在途时按 Q 补货，提前期 L 后到货；BOM 决定每个
-> 产品的原料消耗。满足率 β=(到达−缺货)/到达，服务水平由补货周期内的缺货概率决定；提前期通过
-> 提前期需求 D_L=λ·L 影响缺货概率（实测 L=30 时 100%、60 时 98.0%、120 时 80.4%、240 时 71.6%）。
-> 保质期决定损耗下限：Q/d>τ 时开始出现浪费，本研究的“无浪费保质期阈值”为 240 分钟。替代策略只在
-> “存在可替代产品”时有效：缺冰时 mix→tea 挽回 +14.11 元/小时，缺珍珠时三种策略都无差别。
 
 ---
 
@@ -781,14 +719,6 @@ This is why the layer study records a flag (`mean_gap_widens_while_tail_gap_narr
 and the report describes the cap as tail protection rather than proof of a fairer
 average. The cap is cheap (5.06 /h) and auditable (escalations per hour are recorded).
 
-> **中文**：常弹性定价下 D(m)=D₀m^ε、Revenue=pD₀m^(1+ε)，在 ε>−1 时收入随加价单调上升，
-> 因此利润最优常落在测试区间边界；又因为模型只对“留下来的顾客”计等待成本，利润最优会被高估，
-> 所以真正可用的量是“服务中性乘数” m_sn（ε=−0.5 时为 ×1.2，保留 97.9% 需求）。SLA 只是转移
-> 支付：达成率由运营决定（3/5/8 分钟目标分别 41.9%/61.4%/81.9%），补偿把失约成本显式化，但
-> 不改变排队。公平约束用老化升级（starvation cap）保护尾部：它降低各客群 p95、类间 p95 极差
-> 略降，但**均值型** fairness_gap 会上升（1.45→1.78 分钟）——因此文献/报告必须说明口径，
-> 不能把“尾部改善”直接称为“更公平”。
-
 ---
 
 ## 16. Theory-to-test map for the layers
@@ -821,11 +751,6 @@ the interaction between stock-outs and the queue (a stock-out removes a customer
 they queue); the fairness formula treats classes as fixed rather than as a function of
 observed wait; and the pricing formula assumes a constant elasticity that the shop may not
 have.
-
-> **中文**：四层机制的解析层主要是“记账恒等式”（Little 定律、利用率、库存位置、稀缺性定价），
-> 真正的预测仍由仿真给出：带班次与技能的有限站台网络、时变到达、库存与排队的耦合都没有闭式解。
-> 因此报告把 四层机制的层间差异表述为“带配对置信区间的实测效应”，而不是解析预测；同时明确各公式的
-> 适用边界（库存公式忽略缺货与排队的交互，公平公式把客群视为固定分组，定价公式假设常弹性）。
 
 ---
 
