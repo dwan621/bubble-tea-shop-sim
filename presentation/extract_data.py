@@ -60,9 +60,9 @@ def main() -> None:
 
     data = {
         "meta": {
-            "title": "奶茶店仿真：四层机制下的调度、库存与定价",
+            "title": "Bubble-tea shop simulation: scheduling, inventory and pricing across four layers",
             "title_en": "Bubble-tea shop simulation: four layers, one engine",
-            "course": "SYE5006 服务运营与排队",
+            "course": "SYE5006 Service Operations and Queueing",
             "date": "2026-11",
             "tests": 69,
             "scenarios": len(scenarios["tables"]["scenarios"]),
@@ -185,16 +185,16 @@ def main() -> None:
                 "peak_p95": [round(value, 2) for value in economics["series"]["pricing_curves"]["-0.5"]["peak_los_p95"]],
             },
             "levers": [
-                ["加第 4 名吧台", round(mgmt["lever_ranking_by_profit"][0]["profit_delta_vs_baseline"], 1)],
-                ["高峰定价 ×1.2", round(mgmt["lever_ranking_by_profit"][1]["profit_delta_vs_baseline"], 1)],
-                ["公平 cap 1.5", round(mgmt["lever_ranking_by_profit"][2]["profit_delta_vs_baseline"], 1)],
+                ["4th barista", round(mgmt["lever_ranking_by_profit"][0]["profit_delta_vs_baseline"], 1)],
+                ["Peak pricing ×1.2", round(mgmt["lever_ranking_by_profit"][1]["profit_delta_vs_baseline"], 1)],
+                ["Fairness cap 1.5", round(mgmt["lever_ranking_by_profit"][2]["profit_delta_vs_baseline"], 1)],
                 ["SLA 5 min", round(mgmt["lever_ranking_by_profit"][3]["profit_delta_vs_baseline"], 1)],
             ],
             "contrasts": [
-                ["茶站 · 快品优先", round(strategy["fast_priority_value"][0]["profit_per_hour"]["diff"], 2)],
-                ["茶站 · 拆分交付", round(network["tables"]["strategy_split_value"][0]["profit_per_hour"]["diff"], 2)],
-                ["冰淇淋 · 快品优先", round(strategy["fast_priority_value"][2]["profit_per_hour"]["diff"], 2)],
-                ["冰淇淋 · 拆分交付", round(network["tables"]["strategy_split_value"][2]["profit_per_hour"]["diff"], 2)],
+                ["Tea station · fast priority", round(strategy["fast_priority_value"][0]["profit_per_hour"]["diff"], 2)],
+                ["Tea station · split delivery", round(network["tables"]["strategy_split_value"][0]["profit_per_hour"]["diff"], 2)],
+                ["Ice cream · fast priority", round(strategy["fast_priority_value"][2]["profit_per_hour"]["diff"], 2)],
+                ["Ice cream · split delivery", round(network["tables"]["strategy_split_value"][2]["profit_per_hour"]["diff"], 2)],
             ],
         },
     }

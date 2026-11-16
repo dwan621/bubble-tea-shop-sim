@@ -27,3 +27,6 @@ reports/
 # Presentation build cache (regenerate with python presentation/render_assets.py)
 presentation/assets/
 presentation/slide-png/
+
+presentation/.build/
+

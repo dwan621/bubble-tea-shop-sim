@@ -1,8 +1,8 @@
 {
   "meta": {
-    "title": "奶茶店仿真：四层机制下的调度、库存与定价",
+    "title": "Bubble-tea shop simulation: scheduling, inventory and pricing across four layers",
     "title_en": "Bubble-tea shop simulation: four layers, one engine",
-    "course": "SYE5006 服务运营与排队",
+    "course": "SYE5006 Service Operations and Queueing",
     "date": "2026-11",
     "tests": 69,
     "scenarios": 16,
@@ -701,15 +701,15 @@
     },
     "levers": [
       [
-        "加第 4 名吧台",
+        "4th barista",
         76.6
       ],
       [
-        "高峰定价 ×1.2",
+        "Peak pricing ×1.2",
         76.0
       ],
       [
-        "公平 cap 1.5",
+        "Fairness cap 1.5",
         -6.7
       ],
       [
@@ -719,19 +719,19 @@
     ],
     "contrasts": [
       [
-        "茶站 · 快品优先",
+        "Tea station · fast priority",
         1.33
       ],
       [
-        "茶站 · 拆分交付",
+        "Tea station · split delivery",
         -2.01
       ],
       [
-        "冰淇淋 · 快品优先",
+        "Ice cream · fast priority",
         1.7
       ],
       [
-        "冰淇淋 · 拆分交付",
+        "Ice cream · split delivery",
         15.98
       ]
     ]

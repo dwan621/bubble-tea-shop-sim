@@ -1,111 +1,111 @@
-# 六人讲解分工与讲稿 / Six-person speaker plan
+# Six-person speaker plan
 
-**项目**：奶茶店离散事件仿真——四层机制下的调度、库存与定价  
-**形式**：18 页 PPT，讲解 18 分钟 + Q&A 5 分钟  
-**总控建议**：成员 F 兼任计时与串场；成员 A 负责开场定调；所有数字以 PPT 页面与 `results/*.json` 为准，回答时优先引用“配对 + 置信区间”。
+**Project:** discrete-event simulation of a bubble-tea shop — scheduling, inventory and pricing across four layers
+**Format:** 18-slide deck, 18 minutes of speaking + 5 minutes of Q&A
+**Control notes:** Member F keeps time and hands over between speakers; Member A sets the tone in the opening; every number quoted must match the slides and `results/*.json`, and answers should lead with the paired comparison plus its confidence interval.
 
-> 成员姓名请在下面表格与第 18 页把“成员 A–F”替换成真实姓名。
+> Member A–F are placeholders for the six speakers: substitute the real names in the table below and on slide 18.
 
 ---
 
-## 1. 分工总表（按 PPT 页码与时间）
+## 1. Division of work (by slide and clock time)
 
-| 讲解人 | 页码 | 时长 | 主题 | 核心一句话 | Q&A 负责领域 |
+| Speaker | Slides | Time | Topic | One-line message | Q&A ownership |
 |---|---|---|---|---|---|
-| 成员 A | 1–3 | 3:00 | 开场、三个问题、模型 | 一个共享员工池 + 四类订单，先看问题再看证据 | 模型设定、参数口径、项目背景 |
-| 成员 B | 4–5 | 2:30 | 实验设计、峰值成本 | 16 个场景做配对比较；峰值形状本身就是成本 | 场景库来源、统计方法、置信区间 |
-| 成员 C | 6–7 | 2:30 | 变异与耐心、瓶颈迁移 | 均值和日均利用率都会骗人；加设备前先问瓶颈去哪 | 随机性、排队论、瓶颈判定 |
-| 成员 D | 8–9 | 2:30 | 策略 × 瓶颈、技能与班次 | 快品优先不是万能药；同样工资，通才更值钱 | 调度策略、技能矩阵、排班 |
-| 成员 E | 10–12 | 3:00 | 库存、定价、SLA 与公平 | 满足率便宜、提前期和保质期贵；SLA 是转移支付 | 库存/BOM、定价弹性、SLA 与公平指标 |
-| 成员 F | 13–18 | 4:30 | 管理组合、结论、证据、demo、局限、Q&A | 容量第一、定价第二；把 SLA 显式计价 | 综合、可复现性、现场演示、收尾 |
+| Member A | 1–3 | 3:00 | Opening, three questions, model | One shared clerk pool plus four order classes: questions first, evidence second | Model setup, parameter definitions, project background |
+| Member B | 4–5 | 2:30 | Experiment design, cost of the peak | 16 scenarios compared in pairs; the peak shape is itself a cost | Scenario provenance, statistics, confidence intervals |
+| Member C | 6–7 | 2:30 | Variability and patience, bottleneck migration | Both the mean and the daily average lie; ask where the bottleneck moves before buying equipment | Randomness, queueing theory, bottleneck identification |
+| Member D | 8–9 | 2:30 | Policy × bottleneck, skills and shifts | Fast-item priority is not a universal fix; for the same wage bill, generalists are worth more | Scheduling policy, skill matrix, rosters |
+| Member E | 10–12 | 3:00 | Inventory, pricing, SLA and fairness | Fill rate is cheap, lead time and shelf life are not; an SLA is a transfer | Inventory / BOM, price elasticity, SLA and fairness metrics |
+| Member F | 13–18 | 4:30 | Bundle, rules, evidence, demo, limits, Q&A | Capacity first, pricing second; price the SLA explicitly | Integration, reproducibility, live demo, closing |
 
-**时间轴**：0:00 → 3:00 → 5:30 → 8:00 → 10:30 → 13:30 → 18:00；Q&A 18:00–23:00。
-
----
-
-## 2. 逐人讲稿
-
-### 成员 A（第 1–3 页，3 分钟）
-
-**任务**：把听众拉进问题，交代模型，不急着给结论。
-
-- **第 1 页（30 s）**：问候 + 一句话定位。“我们研究一家同时卖奶茶、面包和冰淇淋的小店：需求有峰、员工要分工、设备有瓶颈、原料会过期、等待能折算成钱。今天用同一台仿真引擎回答四个层面的问题，所有数字都能复现。”
-- **第 2 页（60 s）**：三个问题各一句：混合单拆分 vs 同步（低负载几乎免费，约 80% 利用率反转）；快品优先（更强杠杆，但取决于瓶颈）；等待与公平怎么定价（服务中性加价 ×1.1–1.2，SLA 是转移支付）。
-- **第 3 页（60 s）**：模型与参数。强调“共享员工池是瓶颈”“总工作量不变时调度只改变谁在等”。价格、工资、等待成本都显式写在场景文件里。
-- **衔接**：“模型定下来后，我们用 16 个场景和配对比较来验证它，交给成员 B。”
-
-**Q&A 防守**：为什么是 3 名员工？为什么奶茶 2 分钟？——答：课程假设 + 场景文件显式记录来源与不确定性，后续可用真实数据替换。
-
-### 成员 B（第 4–5 页，2 分 30 秒）
-
-**任务**：说明“结论不是拍脑袋”，然后把峰值成本讲透。
-
-- **第 4 页（75 s）**：场景库 16 个（校园、商圈、商场、极端需求、大小店、三种设备瓶颈、库存、定价、SLA）；每个场景带 source / method / uncertainty，不冒充门店实测。统计口径：公共随机数、配对比较、95% CI、100 次重复（过载区 60 次）；69 条测试、16/16 场景流量守恒、关闭全部新层时与课程模型逐位一致。
-- **第 5 页（75 s）**：同样日均客流，只把需求压成峰型：p95 +3.72 min、流失 15.1% vs 6.9%、利润 296.0 → 239.3/h；日均利用率反而从 60.6% 降到 54.9%（流失把工作带走了）。结论：按峰值排班，不要按日均。
-- **衔接**：“峰值不是唯一的隐藏成本，变异和耐心也会抬高尾部，交给成员 C。”
-
-**Q&A 防守**：为什么过载区只用 60 次？——过载区方差大、单次运行更久，60 次已让 CI 足够窄；所有格子都标注 reps。
-
-### 成员 C（第 6–7 页，2 分 30 秒）
-
-**任务**：解释“均值/日均会骗人”的机制，并引出瓶颈迁移。
-
-- **第 6 页（75 s）**：服务时间变异：固定工时 p95 5.5 min，CV 0.75 → 7.3 min，指数分布（CV=1）→ 10.1 min，但均值变化很小；耐心：balk 3 min → 29.3% 流失，12 min → 3.2%；在“到达即评估等待”规则下 reneging 几乎不触发。
-- **第 7 页（75 s）**：茶站容量 1–4：临界容量 λ=0.6/0.9/1.2 → 3/3/4，利润最优 2/2/3；固定 2 名吧台只加茶站，k≥2 后等待、p95、利润逐位相同，茶站利用率 85% → 43%——约束已迁移到人力池。
-- **衔接**：“既然约束会迁移，策略的价值也会随瓶颈变化，交给成员 D。”
-
-**Q&A 防守**：为什么临界容量随 λ 变化？——因为需求越高，设备与人力池的相对紧张程度变化；我们用配对边际利润定义“临界”。
-
-### 成员 D（第 8–9 页，2 分 30 秒）
-
-**任务**：把“策略”与“人”两件事讲清楚。
-
-- **第 8 页（75 s）**：茶站瓶颈：split −2.01/h、fast +1.33/h；冰淇淋机瓶颈：split +15.98/h、fast +1.70/h；split+fast 在冰淇淋瓶颈 +18.99/h。法则：先找瓶颈，再谈策略；快品通道只在它自己的站台有富余时值钱。
-- **第 9 页（75 s）**：技能：同样 4 人同工资，全员通才 +84.5 ± 5.1/h；单向交叉培训 +0.17/h ≈ 0。班次：错峰 30 min 休息让峰值等待 5.19 → 7.37 min、利润 −49.4/h；中班加吧台不加班茶机，峰值等待 +0.06 min（不显著），利润 −6.2/h。
-- **衔接**：“人之外，原料和价格也在决定利润，交给成员 E。”
-
-**Q&A 防守**：通才为什么会多赚？——不是省工资，而是共享队列降低等待与流失；工资差为 0。
-
-### 成员 E（第 10–12 页，3 分钟）
-
-**任务**：讲清库存、定价、SLA 与公平三块“经济层”。
-
-- **第 10 页（60 s）**：库存：满足率 98.0% → 99.95% 几乎免费（利润差约 0.1/h）；提前期悬崖：120 min → 80%，240 min → 72%；易腐珍珠批量 >100 单位开始损耗；缺冰时“混合单→茶”替代 +14.1/h，珍珠短缺替代无效。
-- **第 11 页（60 s）**：定价：服务中性乘数 ×1.2（ε=−0.5），利润 +20–37%，客流保留 97.9%；利润最优多数在边界，因为模型只对留下顾客计等待成本；建议引用 ×1.1–1.2。
-- **第 12 页（60 s）**：SLA：3/5/8 min 达成率 41.9/61.4/81.9%，成本 38.4/25.5/11.9 元每小时，补偿额不改变服务水平——SLA 是转移支付。公平：cap 用 5.06/h 换 p95 −11%；但均值型 fairness_gap 上升，所以只说“尾部保护”；建议 cap 1.5–3 min。
-- **衔接**：“这些杠杆单独用都不如组合起来，交给成员 F。”
-
-**Q&A 防守**：SLA 为什么不能提升达成率到 100%？——补偿不改变排队；要提升达成率只能加容量或削峰。
-
-### 成员 F（第 13–18 页，4 分 30 秒）
-
-**任务**：组合、结论、证据、demo、局限、收尾；同时兼任计时与串场。
-
-- **第 13 页（75 s）**：管理组合：+118.1 ± 5.1/h，利润 240.1 → 358.2/h，p95 11.8 → 5.7 min，流失 101.7 → 16.2；单杠杆排名：扩容 +76.6、定价 +76.0、公平 −6.7、SLA −25.5。这不是牺牲服务换钱，而是同时改善利润与等待。
-- **第 14 页（45 s）**：四条规则：按峰值配置资源；先找瓶颈再谈策略；保护尾部而不是均值；把 SLA 显式计价。
-- **第 15 页（45 s）**：证据：Python 可复现（69 条测试、16 场景、固定种子、纯标准库）；报告与 demo 离线；场景库来源可审计；AnyLogic 存档不可重跑，不参与任何数字。
-- **第 16 页（45 s）**：现场 demo 60 秒：切换场景与策略、拖动需求曲线滑块、播放排队时间轴；预计算数据，浏览器不跑仿真。
-- **第 17 页（30 s）**：局限：合成场景、单日模型、等待成本只对留下顾客计费、技能同质；下一步：真实订单数据校准、多日库存与排班、顾客行为 A/B。
-- **第 18 页（30 s）**：Q&A 分工与致谢；提醒 A–F 各自的 Q&A 领域。
-
-**Q&A 防守**：数据是真的吗？——不是：场景是合成教学案例，每个文件标了 uncertainty=high；模型是机制比较工具，不是门店预测。
+**Timeline:** 0:00 → 3:00 → 5:30 → 8:00 → 10:30 → 13:30 → 18:00; Q&A runs 18:00–23:00.
 
 ---
 
-## 3. 串场与应急
+## 2. Speaker scripts
 
-- **串场句**（固定）：每位讲完用一句话交棒，例如“模型定下来后，我们用 16 个场景验证它，交给成员 B。”
-- **计时**：F 在 13:30 时必须开始第 13 页；超时则第 17 页合并成一句“局限见报告第 14 节”。
-- **demo 失败**：直接说“演示页面是预计算数据，PPT 第 16 页的截图就是同一份结果”，切回第 18 页进入 Q&A。
-- **数字被追问**：一律回答“配对比较，95% CI 见报告表格”，并指向 `docs/experiments-layers.md`；不在现场重新计算。
-- **分工页（第 18 页）**：把“成员 A–F”替换为真实姓名；如课程要求，可加“主讲/备份”标注。
+### Member A (slides 1–3, 3 minutes)
+
+**Task:** pull the audience into the problem and set up the model; do not rush to conclusions.
+
+- **Slide 1 (30 s):** greeting plus one-sentence positioning. "We study a small shop that sells bubble tea, bread and ice cream at the same time: demand has peaks, staff have to be allocated, equipment has bottlenecks, ingredients spoil, and waiting can be converted into money. Today one simulation engine answers four layers of questions, and every number can be reproduced."
+- **Slide 2 (60 s):** one sentence per question: splitting a mixed order versus synchronising it (almost free at low load, reversing at about 80% utilisation); fast-item priority (a stronger lever, but it depends on the bottleneck); how to price waiting and fairness (service-neutral markup ×1.1–1.2, an SLA is a transfer).
+- **Slide 3 (60 s):** model and parameters. Emphasise "the shared clerk pool is the bottleneck" and "with total workload fixed, scheduling only changes who waits". Prices, wages and waiting costs are all written explicitly into the scenario files.
+- **Handover:** "With the model fixed, we validate it with 16 scenarios and paired comparisons — over to Member B."
+
+**Q&A defence:** why three staff? why 2 minutes for tea? — Answer: course assumptions, recorded with source and uncertainty in the scenario files, and replaceable with real data later.
+
+### Member B (slides 4–5, 2 min 30 s)
+
+**Task:** show that the conclusions are not guesswork, then explain the cost of the peak.
+
+- **Slide 4 (75 s):** a 16-scenario library (campus, downtown, mall, extreme demand, small and large shops, three station bottlenecks, inventory, pricing, SLA); every scenario carries source / method / uncertainty and none of it is passed off as measured shop data. Statistical protocol: common random numbers, paired comparison, 95% CI, 100 replications (60 in the overloaded region); 69 tests, 16/16 scenarios conserving flow, and a bit-for-bit match with the course model when every new layer is off.
+- **Slide 5 (75 s):** same daily arrivals, only the shape squeezed into a peak: p95 +3.72 min, balk 15.1% vs 6.9%, profit 296.0 → 239.3 /h; daily utilisation actually falls from 60.6% to 54.9% (the balking customers take their work away). Conclusion: staff to the peak, not to the daily average.
+- **Handover:** "The peak is not the only hidden cost — variability and patience also lift the tail. Over to Member C."
+
+**Q&A defence:** why only 60 replications in the overloaded region? — variance is high there and each run is longer, so 60 already gives a sufficiently narrow CI; every cell reports its replication count.
+
+### Member C (slides 6–7, 2 min 30 s)
+
+**Task:** explain the mechanism behind "the mean and the daily average both lie", then introduce bottleneck migration.
+
+- **Slide 6 (75 s):** service-time variability: fixed service gives p95 8.6 min, lognormal CV 0.75 gives 10.8 min, the exponential (CV = 1) gives 15.3 min, while the mean barely moves; patience: balk 3 min → 29.3% lost, 12 min → 3.2%; under arrive-and-assess waiting, reneging almost never triggers.
+- **Slide 7 (75 s):** tea-station capacity 1–4: critical capacity at λ = 0.6 / 0.9 / 1.2 is 3 / 3 / 4, profit-optimal is 2 / 2 / 3; hold two baristas fixed and add only tea stations — from k ≥ 2 on, waiting, p95 and profit are identical while tea-station utilisation falls 85% → 43%, so the constraint has migrated to the labour pool.
+- **Handover:** "Since the constraint moves, the value of a policy moves with it — over to Member D."
+
+**Q&A defence:** why does critical capacity change with λ? — because higher demand changes the relative tightness of equipment versus the labour pool; we define "critical" with paired marginal profit.
+
+### Member D (slides 8–9, 2 min 30 s)
+
+**Task:** make both "policy" and "people" clear.
+
+- **Slide 8 (75 s):** tea-station bottleneck: split −2.01/h, fast +1.33/h; ice-cream-machine bottleneck: split +15.98/h, fast +1.70/h; split plus fast is +18.99/h under the ice-cream bottleneck. Rule: find the bottleneck first; a fast lane pays only when its own station has slack.
+- **Slide 9 (75 s):** skills: same four staff on the same wage bill, all-generalist is +84.5 ± 5.1/h; one-way cross-training is +0.17/h ≈ 0. Shifts: a staggered 30-minute break pushes peak waiting 5.19 → 7.37 min and costs −49.4/h of profit; an extra mid-shift barista without an extra tea machine changes peak waiting by +0.06 min (not significant) and profit by −6.2/h.
+- **Handover:** "Beyond people, ingredients and prices also decide profit — over to Member E."
+
+**Q&A defence:** why do generalists earn more? — not because wages fall (the wage bill is identical) but because a shared queue reduces waiting and balking.
+
+### Member E (slides 10–12, 3 minutes)
+
+**Task:** cover the three "economics layer" blocks: inventory, pricing, SLA and fairness.
+
+- **Slide 10 (60 s):** inventory: fill rate 98.0% → 99.95% is almost free (profit difference around 0.1/h); the lead-time cliff: 120 min → 80%, 240 min → 72%; perishable pearls start to waste above roughly 100 units per batch; when ice cream is short, "mixed order → tea" recovers +14.1/h, while a pearl shortage cannot be substituted.
+- **Slide 11 (60 s):** pricing: service-neutral multiplier ×1.2 (ε = −0.5), profit +20–37%, 97.9% of demand retained; the profit optimum usually sits at the boundary because the model only charges waiting cost to customers who stay; recommend quoting ×1.1–1.2.
+- **Slide 12 (60 s):** SLA: 3 / 5 / 8 min promises attain 41.9 / 61.4 / 81.9%, costing 38.4 / 25.5 / 11.9 CNY per hour, and compensation changes no service level — an SLA is a transfer. Fairness: the cap spends 5.06/h to cut p95 by 11%, but the mean-based fairness_gap rises, so we claim tail protection only; recommend a cap of 1.5–3 min.
+- **Handover:** "None of these levers on its own beats the bundle — over to Member F."
+
+**Q&A defence:** why can an SLA not raise attainment to 100%? — compensation does not change queueing; attainment only moves with capacity or a flatter peak.
+
+### Member F (slides 13–18, 4 min 30 s)
+
+**Task:** bundle, rules, evidence, demo, limits, closing; also keeps time and hands over between speakers.
+
+- **Slide 13 (75 s):** the bundle: +118.1 ± 5.1/h, profit 240.1 → 358.2/h, p95 11.8 → 5.7 min, balking 101.7 → 16.2; single-lever ranking: capacity +76.6, pricing +76.0, fairness −6.7, SLA −25.5. This does not trade service for money — profit and waiting improve together.
+- **Slide 14 (45 s):** four rules: staff to the peak; find the bottleneck before choosing a policy; protect the tail rather than the mean; price the SLA explicitly.
+- **Slide 15 (45 s):** evidence: Python is reproducible (69 tests, 16 scenarios, fixed seeds, standard library only); report and demo run offline; the scenario library has auditable provenance; the AnyLogic archive cannot be rerun and feeds no number.
+- **Slide 16 (45 s):** the 60-second live demo: switch scenario and policy, drag the demand-curve slider, play the queue timeline; everything is precomputed and the browser runs no simulation.
+- **Slide 17 (30 s):** limits: synthetic scenarios, single-day model, waiting cost charged only to customers who stay, homogeneous skills; next steps: calibrate on real orders, multi-day inventory and rosters, customer-behaviour A/B.
+- **Slide 18 (30 s):** Q&A ownership and thanks; remind A–F which areas they own.
+
+**Q&A defence:** is the data real? — No: the scenarios are synthetic teaching cases, each flagged with uncertainty; the model is a mechanism-comparison tool, not a shop forecast.
 
 ---
 
-## 4. 排练清单
+## 3. Handovers and contingencies
 
-1. 每人先各自按讲稿过一遍，确保 **不读 PPT 原文**，只讲结论与机制。
-2. 合练两遍：第一遍卡时间（允许 ±20 s），第二遍去掉讲稿只看页面。
-3. 检查第 5、7、8、10、12 页的数字是否能不看稿复述（这些是最容易被追问的页）。
-4. 准备 3 个“可能被问”的问题及一句话回答（见每人 Q&A 防守）。
-5. 演示前 10 分钟：打开 `demo/index.html`（本地）与报告页；留一个备用截图在桌面。
+- **Fixed handover line:** one sentence per speaker, for example "With the model fixed, we validate it with 16 scenarios — over to Member B."
+- **Timing:** F must start slide 13 at 13:30; if running late, merge slide 17 into a single sentence — "limits are in section 14 of the report".
+- **Demo failure:** say plainly "the demo page is precomputed data; the screenshot on slide 16 is the same result set", then cut to slide 18 and start Q&A.
+- **Numbers pressed in Q&A:** always answer "paired comparison, 95% CI in the report table", point to `docs/experiments-layers.md`, and never recompute live.
+- **Division slide (18):** replace Member A–F with the real names; add "speaker / backup" labels if the course requires them.
+
+---
+
+## 4. Rehearsal checklist
+
+1. Each speaker walks through their own script first, making sure they **do not read the slides aloud** — conclusions and mechanisms only.
+2. Two full run-throughs: the first for timing (within ±20 s), the second without the script, slides only.
+3. Check that the numbers on slides 5, 7, 8, 10 and 12 can be quoted without notes — these are the pages most likely to draw questions.
+4. Prepare three likely questions with one-sentence answers each (see each speaker's Q&A defence).
+5. Ten minutes before presenting: open `demo/index.html` (locally) and the report page; leave a backup screenshot on the desktop.

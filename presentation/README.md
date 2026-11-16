@@ -1,50 +1,50 @@
-# 展示材料 / Presentation
+# Presentation material
 
-- **幻灯片**：`bubble-tea-shop-simulation.pptx`（18 页，16:9，中文为主，每页带演讲备注）
-- **PDF 版**：`bubble-tea-shop-simulation.pdf`（便于分发与打印）
-- **六人分工与讲稿**：`speaker-plan.md`
-- **生成脚本**：`build_deck.js`（PptxGenJS）、`extract_data.py`（从 `results/*.json` 取数）、`render_assets.py`（把报告 SVG 与 demo 截图渲染成 PNG）
+- **Slides:** `bubble-tea-shop-simulation.pptx` (18 slides, 16:9, English, speaker notes on every slide)
+- **PDF version:** `bubble-tea-shop-simulation.pdf` (for distribution and printing)
+- **Speaker plan:** `speaker-plan.md` (six-person division of work and scripts)
+- **Build scripts:** `build_deck.js` (PptxGenJS), `extract_data.py` (pulls numbers from `results/*.json`), `render_assets.py` (renders report SVGs and demo screenshots to PNG)
 
-## 页面结构（18 页 / 18 分钟 + 5 分钟 Q&A）
+## Slide structure (18 slides / 18 minutes + 5 minutes Q&A)
 
-| 页 | 内容 | 讲解人 |
+| Slide | Content | Speaker |
 |---|---|---|
-| 1 | 标题与四层机制 | 成员 A |
-| 2 | 三个问题、一个引擎 | 成员 A |
-| 3 | 模型：共享员工池与四类订单 | 成员 A |
-| 4 | 16 个场景 × 100 次重复 × 配对比较 | 成员 B |
-| 5 | 峰值：日均利用率会骗人 | 成员 B |
-| 6 | 变异与耐心 | 成员 C |
-| 7 | 瓶颈会迁移 | 成员 C |
-| 8 | 策略取决于瓶颈 | 成员 D |
-| 9 | 技能与班次 | 成员 D |
-| 10 | 库存：满足率便宜、保质期贵 | 成员 E |
-| 11 | 定价：服务中性乘数 | 成员 E |
-| 12 | SLA 与公平 | 成员 E |
-| 13 | 管理组合 | 成员 F |
-| 14 | 四条管理规则 | 成员 F |
-| 15 | 可复现与证据边界 | 成员 F |
-| 16 | 60 秒现场 demo | 成员 F |
-| 17 | 局限与下一步 | 成员 F |
-| 18 | Q&A 与分工 | 成员 F |
+| 1 | Title and the four layers | Member A |
+| 2 | Three questions, one engine | Member A |
+| 3 | Model: shared clerk pool and four order classes | Member A |
+| 4 | 16 scenarios × 100 replications × paired comparison | Member B |
+| 5 | Peak: the daily utilisation lies | Member B |
+| 6 | Variability and patience | Member C |
+| 7 | The bottleneck migrates | Member C |
+| 8 | Policy depends on the bottleneck | Member D |
+| 9 | Skills and shifts | Member D |
+| 10 | Inventory: cheap fill rate, costly shelf life | Member E |
+| 11 | Pricing: the service-neutral multiplier | Member E |
+| 12 | SLA and fairness | Member E |
+| 13 | The management bundle | Member F |
+| 14 | Four management rules | Member F |
+| 15 | Reproducibility and the limits of the evidence | Member F |
+| 16 | 60-second live demo | Member F |
+| 17 | Limits and next steps | Member F |
+| 18 | Q&A and division of work | Member F |
 
-## 重新生成
+## Rebuilding
 
 ```powershell
-# 1) 数据（读取仓库根目录的 results/*.json）
+# 1) Data (reads results/*.json in the repository root)
 python presentation/extract_data.py
 
-# 2) 图表与截图（需要 Chrome/Edge；生成到 presentation/assets/）
+# 2) Charts and screenshots (needs Chrome/Edge; writes into presentation/assets/)
 python presentation/render_assets.py
 
-# 3) 生成 PPTX（需要 Node + pptxgenjs）
+# 3) Build the PPTX (needs Node + pptxgenjs)
 node presentation/build_deck.js
 ```
 
-`presentation/assets/` 与 `presentation/slide-png/` 是生成缓存，已加入 `.gitignore`；PPTX 与 PDF 已内嵌所需图片，无需这些目录也能打开。
+`presentation/assets/` and `presentation/slide-png/` are generated caches and are listed in `.gitignore`; the PPTX and PDF embed the images they need, so the deck opens without them.
 
-## 注意
+## Notes
 
-- 第 18 页的“成员 A–F”是占位符，请替换为真实姓名（`build_deck.js` 中 `slideTeam()` 与 `speaker-plan.md` 同步修改）。
-- 所有数字来自 `results/*.json`；如果研究数字更新，重跑 `extract_data.py` 再生成即可。
-- 默认语言为中文（术语保留英文），时长 18 分钟 + 5 分钟 Q&A；可在 `speaker-plan.md` 中按课程要求调整。
+- "Member A–F" on slide 18 is a placeholder: substitute the real names in `slideTeam()` in `build_deck.js` and in `speaker-plan.md` together.
+- Every number comes from `results/*.json`; if the study numbers change, rerun `extract_data.py` and then rebuild the deck.
+- The deck is English throughout (technical terms and scenario ids kept as-is), 18 minutes + 5 minutes Q&A; adjust the timing in `speaker-plan.md` to match the course requirements.
