@@ -23,7 +23,7 @@
       "strict_sla_fairness",
       "tiny_two_staff"
     ],
-    "notes": "One block per scenario in data/scenarios/. Provenance is copied from the JSON file; config.describe() and the layer description come from the loaded SimConfig. 100 replicates per scenario, first seed 0, stride 1. Flow conservation and finiteness are asserted for every replicate, so a scenario that fails would abort this script instead of appearing here. The balk decision uses the engine's wait estimate divided by the number of staff units ON SHIFT at the arrival instant (shift windows and breaks are coverage-checked), so scenarios with late shift starts, breaks or a mid-shift joiner are not credited with absent staff; the stationary legacy path keeps the full worker count so the v1 anchors stay bit-identical. Note: sla.fairness_cap_minutes in a scenario file is an alias for the policy starvation cap, so peak_pricing/strict_sla_fairness behave as their provenance describes.",
+    "notes": "One block per scenario in data/scenarios/. Provenance is copied from the JSON file; config.describe() and the layer description come from the loaded SimConfig. 100 replicates per scenario, first seed 0, stride 1. Flow conservation and finiteness are asserted for every replicate, so a scenario that fails would abort this script instead of appearing here. The balk decision uses the engine's wait estimate divided by the number of staff units ON SHIFT at the arrival instant (shift windows and breaks are coverage-checked), so scenarios with late shift starts, breaks or a mid-shift joiner are not credited with absent staff; the stationary baseline path keeps the full worker count so the baseline anchors stay bit-identical. Note: sla.fairness_cap_minutes in a scenario file is an alias for the policy starvation cap, so peak_pricing/strict_sla_fairness behave as their provenance describes.",
     "reps": 100,
     "seed": 0,
     "seed_stride": 1,
@@ -35,14 +35,14 @@
     "scenarios": [
       {
         "name": "baseline_flat",
-        "title": "v1 baseline: flat demand, one clerk pool, fixed service times",
+        "title": "baseline: flat demand, one clerk pool, fixed service times",
         "provenance": {
           "source": "Course 5006 project assumptions (report and experiment ledger)",
-          "method": "Direct copy of the v1 configuration; the loader must reproduce the v1 anchors bit-for-bit",
+          "method": "Direct copy of the baseline configuration; the loader must reproduce the baseline anchors bit-for-bit",
           "uncertainty": "high",
-          "notes": "This file intentionally enables none of the v2 layers; it exists to prove backward compatibility."
+          "notes": "This file intentionally enables none of the mechanism layers; it exists to prove backward compatibility."
         },
-        "legacy_compat": true,
+        "baseline_compat": true,
         "config": {
           "name": "baseline_flat",
           "workers": 3,
@@ -192,7 +192,7 @@
           "uncertainty": "high",
           "notes": "Not field-measured. The bread counter and the tills are staffed by the same cashier role, so adding a second bread slot is an equipment decision, not a hiring one; the network study uses this to separate equipment capacity from labour capacity."
         },
-        "legacy_compat": false,
+        "baseline_compat": false,
         "config": {
           "name": "bread_counter_bottleneck",
           "workers": 4,
@@ -475,7 +475,7 @@
           "uncertainty": "high",
           "notes": "Not field-measured. Peaks are 1.6-1.7x the daily mean; batch arrivals represent student groups. Three tea stations + three baristas make the peaks feasible but tight."
         },
-        "legacy_compat": false,
+        "baseline_compat": false,
         "config": {
           "name": "campus_rush",
           "workers": 5,
@@ -806,7 +806,7 @@
           "uncertainty": "high",
           "notes": "Not field-measured. The morning peak is shorter and sharper than the lunch peak; peak segments run ~1.8x the daily mean. Ten-hour modelled day so both peaks fit. Batches are small (commuters rarely arrive in groups)."
         },
-        "legacy_compat": false,
+        "baseline_compat": false,
         "config": {
           "name": "cbd_commute",
           "workers": 5,
@@ -1122,7 +1122,7 @@
           "uncertainty": "high",
           "notes": "Not field-measured. Peak multiplier 2.4 on a daily mean of ~1.21 multipliers gives a peak-to-mean ratio near 2.0: the peak hour looks like a normal campus rush but the daily average is much lower, so average utilisation looks safe while abandonment spikes. Same five staff and three tea slots as campus_rush (no extra capacity is bought for the two-week window)."
         },
-        "legacy_compat": false,
+        "baseline_compat": false,
         "config": {
           "name": "exam_week",
           "workers": 5,
@@ -1442,7 +1442,7 @@
           "uncertainty": "high",
           "notes": "Not field-measured. Nine-hour day (540 min). The design intent is a shop where labour is the planned constraint and equipment is deliberately over-provisioned, the mirror image of network_tea_bottleneck and bread_counter_bottleneck."
         },
-        "legacy_compat": false,
+        "baseline_compat": false,
         "config": {
           "name": "flagship_five_staff",
           "workers": 5,
@@ -1757,7 +1757,7 @@
           "uncertainty": "high",
           "notes": "Not field-measured. Designed as the counterpart of network_tea_bottleneck: same shop, different binding equipment. Used by the network study to test whether fast-item priority is still worth it when the bottleneck is not the tea station."
         },
-        "legacy_compat": false,
+        "baseline_compat": false,
         "config": {
           "name": "ice_cream_bottleneck",
           "workers": 5,
@@ -2045,7 +2045,7 @@
           "uncertainty": "high",
           "notes": "Not field-measured. Deliberate contrast to inventory_lean: fill rate should sit at (or near) 1.0 while waste is non-zero, which is the trade-off the inventory study is after. The 360-minute pearl shelf life and the large opening lots are the mechanism that makes over-stocking visible: a generous (s, S) policy buys availability with opening stock and perishable waste."
         },
-        "legacy_compat": false,
+        "baseline_compat": false,
         "config": {
           "name": "inventory_generous",
           "workers": 3,
@@ -2287,7 +2287,7 @@
           "uncertainty": "high",
           "notes": "Designed so that stock-outs and pearl waste actually occur at the modelled demand; not calibrated to a real supplier."
         },
-        "legacy_compat": false,
+        "baseline_compat": false,
         "config": {
           "name": "inventory_lean",
           "workers": 3,
@@ -2529,7 +2529,7 @@
           "uncertainty": "high",
           "notes": "Not field-measured. The point of the scenario is the opposite of the campus rush: utilisation stays low, waiting is near the process floor, and the binding constraint is staffing (a single barista) rather than demand. Long run (720 min) makes the low-rate Poisson noise relatively less dominant."
         },
-        "legacy_compat": false,
+        "baseline_compat": false,
         "config": {
           "name": "late_night_study",
           "workers": 2,
@@ -2818,7 +2818,7 @@
           "uncertainty": "high",
           "notes": "Not field-measured. Twelve-hour modelled day (720 min). Group orders (20% of arrivals, mean 2.5 people) are the main reason the peak rate exceeds the daily mean on a per-person basis. Two ice slots represent a larger mall counter."
         },
-        "legacy_compat": false,
+        "baseline_compat": false,
         "config": {
           "name": "mall_weekend",
           "workers": 6,
@@ -3158,7 +3158,7 @@
           "uncertainty": "high",
           "notes": "Designed to test whether fast-item triage still helps when the tea station is the binding constraint."
         },
-        "legacy_compat": false,
+        "baseline_compat": false,
         "config": {
           "name": "network_tea_bottleneck",
           "workers": 3,
@@ -3423,7 +3423,7 @@
           "uncertainty": "high",
           "notes": "Not field-measured. The elasticity is an assumption, not an estimate; the point is the mechanism (peak demand deflation) and the trade-off between peak waiting relief and revenue. Because the price layer changes the realised daily mean, compare it against campus_rush on served/profit/p95, not on the quoted arrival rate."
         },
-        "legacy_compat": false,
+        "baseline_compat": false,
         "config": {
           "name": "peak_pricing",
           "workers": 5,
@@ -3767,7 +3767,7 @@
           "uncertainty": "high",
           "notes": "Not field-measured. Rain is modelled only as a channel mix shift, not as a change in total demand. The delivery class carries a heavier mixed/iced order mix, which raises make work per customer relative to a dry walk-in day. Delivery orders never balk and never renege by construction of the engine."
         },
-        "legacy_compat": false,
+        "baseline_compat": false,
         "config": {
           "name": "rainy_delivery",
           "workers": 5,
@@ -4058,7 +4058,7 @@
           "uncertainty": "high",
           "notes": "Not field-measured. The SLA promise is deliberately stricter than the process can hold at the peak, so the interesting output is the compensation bill and the gap between classes, not a 100% attainment rate. The ageing cap is the fairness mechanism: it trades some fast-item speed for bounded worst-case waiting."
         },
-        "legacy_compat": false,
+        "baseline_compat": false,
         "config": {
           "name": "strict_sla_fairness",
           "workers": 5,
@@ -4393,7 +4393,7 @@
           "uncertainty": "high",
           "notes": "Not field-measured. With two generalists the *station* capacities bind before the labour does: the single tea slot is the equipment bottleneck at the lunch bump even though total staff utilisation stays near 60-70%. Good contrast case for the network study."
         },
-        "legacy_compat": false,
+        "baseline_compat": false,
         "config": {
           "name": "tiny_two_staff",
           "workers": 2,
@@ -4668,8 +4668,8 @@
     "comparison": [
       {
         "name": "baseline_flat",
-        "title": "v1 baseline: flat demand, one clerk pool, fixed service times",
-        "legacy_compat": true,
+        "title": "baseline: flat demand, one clerk pool, fixed service times",
+        "baseline_compat": true,
         "workers": 3,
         "quoted_arrival_rate": 1.25,
         "sim_minutes": 480.0,
@@ -4687,7 +4687,7 @@
       {
         "name": "bread_counter_bottleneck",
         "title": "Bread counter bottleneck: one toaster slot, bread-heavy order mix",
-        "legacy_compat": false,
+        "baseline_compat": false,
         "workers": 4,
         "quoted_arrival_rate": 0.85,
         "sim_minutes": 480.0,
@@ -4705,7 +4705,7 @@
       {
         "name": "campus_rush",
         "title": "Campus shop: lunch and after-class peaks, group orders",
-        "legacy_compat": false,
+        "baseline_compat": false,
         "workers": 5,
         "quoted_arrival_rate": 1.010989010989011,
         "sim_minutes": 480.0,
@@ -4723,7 +4723,7 @@
       {
         "name": "cbd_commute",
         "title": "CBD commuter shop: short morning grab-and-go peak plus a lunch peak",
-        "legacy_compat": false,
+        "baseline_compat": false,
         "workers": 5,
         "quoted_arrival_rate": 1.0101010101010102,
         "sim_minutes": 600.0,
@@ -4741,7 +4741,7 @@
       {
         "name": "exam_week",
         "title": "Exam week: a much sharper student peak, extra rented tea slots",
-        "legacy_compat": false,
+        "baseline_compat": false,
         "workers": 5,
         "quoted_arrival_rate": 0.6620689655172415,
         "sim_minutes": 480.0,
@@ -4759,7 +4759,7 @@
       {
         "name": "flagship_five_staff",
         "title": "Flagship branch: five staff, two ice slots, two bread counters, steady traffic",
-        "legacy_compat": false,
+        "baseline_compat": false,
         "workers": 5,
         "quoted_arrival_rate": 1.3928571428571428,
         "sim_minutes": 540.0,
@@ -4777,7 +4777,7 @@
       {
         "name": "ice_cream_bottleneck",
         "title": "Ice-cream machine bottleneck: one slow soft-serve slot, iced and mixed orders dominate",
-        "legacy_compat": false,
+        "baseline_compat": false,
         "workers": 5,
         "quoted_arrival_rate": 0.9,
         "sim_minutes": 480.0,
@@ -4795,7 +4795,7 @@
       {
         "name": "inventory_generous",
         "title": "Generous inventory: high stock cover, short lead times, visible perishable waste",
-        "legacy_compat": false,
+        "baseline_compat": false,
         "workers": 3,
         "quoted_arrival_rate": 1.15,
         "sim_minutes": 480.0,
@@ -4813,7 +4813,7 @@
       {
         "name": "inventory_lean",
         "title": "Lean inventory: pearls perish, deliveries take two hours",
-        "legacy_compat": false,
+        "baseline_compat": false,
         "workers": 3,
         "quoted_arrival_rate": 1.15,
         "sim_minutes": 480.0,
@@ -4831,7 +4831,7 @@
       {
         "name": "late_night_study",
         "title": "Late-night study cafe: low, long traffic with a midnight bump",
-        "legacy_compat": false,
+        "baseline_compat": false,
         "workers": 2,
         "quoted_arrival_rate": 0.38888888888888884,
         "sim_minutes": 720.0,
@@ -4849,7 +4849,7 @@
       {
         "name": "mall_weekend",
         "title": "Weekend mall shop: afternoon and evening family peaks, group orders",
-        "legacy_compat": false,
+        "baseline_compat": false,
         "workers": 6,
         "quoted_arrival_rate": 0.9344262295081968,
         "sim_minutes": 720.0,
@@ -4867,7 +4867,7 @@
       {
         "name": "network_tea_bottleneck",
         "title": "Single tea station as the bottleneck (staff-rich, equipment-poor)",
-        "legacy_compat": false,
+        "baseline_compat": false,
         "workers": 3,
         "quoted_arrival_rate": 0.6,
         "sim_minutes": 480.0,
@@ -4885,7 +4885,7 @@
       {
         "name": "peak_pricing",
         "title": "Peak pricing: +30% inside the two demand peaks, elastic demand response",
-        "legacy_compat": false,
+        "baseline_compat": false,
         "workers": 5,
         "quoted_arrival_rate": 1.010989010989011,
         "sim_minutes": 480.0,
@@ -4903,7 +4903,7 @@
       {
         "name": "rainy_delivery",
         "title": "Rainy weekday, delivery-dominant: walk-in demand falls, rider orders take over",
-        "legacy_compat": false,
+        "baseline_compat": false,
         "workers": 5,
         "quoted_arrival_rate": 1.2,
         "sim_minutes": 480.0,
@@ -4921,7 +4921,7 @@
       {
         "name": "strict_sla_fairness",
         "title": "Strict SLA with a fairness cap: 4-minute promise, 3-unit compensation, 2-minute ageing cap",
-        "legacy_compat": false,
+        "baseline_compat": false,
         "workers": 5,
         "quoted_arrival_rate": 1.010989010989011,
         "sim_minutes": 480.0,
@@ -4939,7 +4939,7 @@
       {
         "name": "tiny_two_staff",
         "title": "Two-person corner shop: every station has one slot, both staff are generalists",
-        "legacy_compat": false,
+        "baseline_compat": false,
         "workers": 2,
         "quoted_arrival_rate": 0.4645161290322581,
         "sim_minutes": 480.0,

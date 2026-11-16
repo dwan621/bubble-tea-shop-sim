@@ -2,7 +2,7 @@
 
 Two groups exist:
 
-* ``legacy_*`` scenarios reproduce the original scripts in ``legacy/`` exactly
+* ``*_baseline`` scenarios reproduce the original scripts in ``original/`` exactly
   (same arrival stream, same seeds, same scheduling) and are pinned by tests to
   the numbers recorded in ``docs/experiment_log.md``.
 * ``study_*`` scenarios are the cleaner, unified configurations used for the new
@@ -24,18 +24,18 @@ from .params import (
     SimConfig,
 )
 
-# Seed strides used by the legacy scripts: seed = stride * replicate_index.
-LEGACY_MIXED_ORDER_SEED_STRIDE = 9001  # 9000 * rep + rep
-LEGACY_BREAD_PRIORITY_SEED_STRIDE = 7001  # 7000 * rep + rep
+# Seed strides used by the original course scripts: seed = stride * replicate_index.
+BASELINE_MIXED_ORDER_SEED_STRIDE = 9001  # 9000 * rep + rep
+BASELINE_BREAD_PRIORITY_SEED_STRIDE = 7001  # 7000 * rep + rep
 
-# Legacy parameter sets -----------------------------------------------------
-LEGACY_MIXED_ORDER_MIX = OrderMix(tea=0.55, bread=0.20, ice=0.05, mix=0.20)
-LEGACY_BREAD_PRIORITY_MIX = OrderMix(tea=0.65, bread=0.20, ice=0.15, mix=0.00)
-# The legacy bread/ice-cream script used 0.33 min (20 s) for the ice cream.
-LEGACY_BREAD_PRIORITY_TIMES = ServiceTimes(order=0.5, tea=2.0, bread=0.167, ice=0.33)
+# Baseline parameter sets -----------------------------------------------------
+BASELINE_MIXED_ORDER_MIX = OrderMix(tea=0.55, bread=0.20, ice=0.05, mix=0.20)
+BASELINE_BREAD_PRIORITY_MIX = OrderMix(tea=0.65, bread=0.20, ice=0.15, mix=0.00)
+# The original bread/ice-cream script used 0.33 min (20 s) for the ice cream.
+BASELINE_BREAD_PRIORITY_TIMES = ServiceTimes(order=0.5, tea=2.0, bread=0.167, ice=0.33)
 
 
-def legacy_mixed_order(
+def mixed_order_baseline(
     arrival_rate: float,
     *,
     split_mix: bool,
@@ -43,18 +43,18 @@ def legacy_mixed_order(
 ) -> SimConfig:
     """The M2 mixed-order study (``mixed_order_sim.py``)."""
     return SimConfig(
-        name=f"legacy-mixed-order-lam{arrival_rate:g}-{'split' if split_mix else 'synchro'}",
+        name=f"original-mixed-order-lam{arrival_rate:g}-{'split' if split_mix else 'synchro'}",
         workers=workers,
         arrival_rate=arrival_rate,
         sim_minutes=480.0,
         warmup_minutes=60.0,
-        mix=LEGACY_MIXED_ORDER_MIX,
+        mix=BASELINE_MIXED_ORDER_MIX,
         times=ServiceTimes(order=0.5, tea=2.0, bread=0.167, ice=0.333),
         policy=Policy(split_mix=split_mix, fast_priority=False),
     )
 
 
-def legacy_bread_priority(
+def bread_priority_baseline(
     arrival_rate: float,
     *,
     fast_priority: bool,
@@ -62,13 +62,13 @@ def legacy_bread_priority(
 ) -> SimConfig:
     """The P-series fast-item-priority study (``bread_priority_sim.py``)."""
     return SimConfig(
-        name=f"legacy-bread-priority-lam{arrival_rate:g}-{'fast' if fast_priority else 'fcfs'}",
+        name=f"original-bread-priority-lam{arrival_rate:g}-{'fast' if fast_priority else 'fcfs'}",
         workers=workers,
         arrival_rate=arrival_rate,
         sim_minutes=480.0,
         warmup_minutes=60.0,
-        mix=LEGACY_BREAD_PRIORITY_MIX,
-        times=LEGACY_BREAD_PRIORITY_TIMES,
+        mix=BASELINE_BREAD_PRIORITY_MIX,
+        times=BASELINE_BREAD_PRIORITY_TIMES,
         policy=Policy(split_mix=False, fast_priority=fast_priority),
     )
 
@@ -144,15 +144,15 @@ def default_times() -> ServiceTimes:
 
 
 __all__ = [
-    "LEGACY_BREAD_PRIORITY_MIX",
-    "LEGACY_BREAD_PRIORITY_SEED_STRIDE",
-    "LEGACY_BREAD_PRIORITY_TIMES",
-    "LEGACY_MIXED_ORDER_MIX",
-    "LEGACY_MIXED_ORDER_SEED_STRIDE",
+    "BASELINE_BREAD_PRIORITY_MIX",
+    "BASELINE_BREAD_PRIORITY_SEED_STRIDE",
+    "BASELINE_BREAD_PRIORITY_TIMES",
+    "BASELINE_MIXED_ORDER_MIX",
+    "BASELINE_MIXED_ORDER_SEED_STRIDE",
     "default_mix",
     "default_times",
     "four_policies",
-    "legacy_bread_priority",
-    "legacy_mixed_order",
+    "bread_priority_baseline",
+    "mixed_order_baseline",
     "study",
 ]

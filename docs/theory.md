@@ -49,7 +49,7 @@ The shared clerk pool is the only resource and therefore the bottleneck. A mixed
 is one 2.833-min job under Synchro, or two jobs (0.833 min ice component + 2.0 min tea
 component) under Split; the total work is identical by construction.
 
-The legacy fast-priority series (P-series) uses a different mix — tea 65% / bread 20% /
+The original fast-priority series (P-series) uses a different mix — tea 65% / bread 20% /
 ice cream 15%, no mixed orders, ice-cream make time 0.33 min — and is documented
 separately in [experiment_log.md](experiment_log.md).
 
@@ -82,7 +82,7 @@ seed stride 9001) for the mixed-order configuration:
 | 1.25 | Synchro | 4.930 | 6.16 |
 | 1.25 | Split | 5.050 | 6.31 |
 
-The λ = 1.0 rows come from `scenarios.legacy_mixed_order(1.0)` with
+The λ = 1.0 rows come from `scenarios.mixed_order_baseline(1.0)` with
 `stats.replicate(reps=200, seed=0, seed_stride=9001)`; the CLI's `reproduce` command
 covers λ = 0.5, 0.8, 1.1 and 1.25. Both use the same configuration and estimator, so
 the numbers are directly comparable with the tables in this document.
@@ -417,7 +417,7 @@ than `λ × 60`, so the default 480-min study profits (for example 272.9 at λ =
 profit figures, which used 1000-minute runs with no warm-up. The analysis script
 `analysis/reproduce_anylogic_ledger.py` re-runs the engine at the archived settings and
 reports the like-for-like deviation: archived profit is reproduced within +3.4% / −8.6%
-across E1–E6 (see [experiment_log.md §4](experiment_log.md#4-v2-engine-re-check-of-the-archive)).
+across E1–E6 (see [experiment_log.md §4](experiment_log.md#4-engine-re-check-of-the-archive)).
 The sign and break-even location are unaffected.
 
 > **中文**：经济层只通过等待成本区分策略：ΔProfit/h = 30 × λ × (T_sync − T_split)。
@@ -436,9 +436,9 @@ The analytical claims are executable: `python -m pytest -q` pins them.
 | `p̄ = 2.11665`, capacity `1.4173`/min | `tests/test_params.py::test_default_mean_service_time_and_capacity` |
 | `ρ(λ=1.0) = 0.7056`, `ρ(1.25) = 0.8818` | `tests/test_params.py::test_lecture2_utilization` |
 | weighted price `7.70`, waiting cost `0.5` | `tests/test_params.py::test_economic_parameters` |
-| Simulated M2 anchors (LOS, ice hand-off, utilisation) | `tests/test_legacy_anchors.py` (8 parameterised cases) |
-| P-series pooled anchors | `tests/test_legacy_anchors.py` (6 parameterised cases) |
-| Directional conclusions (Split better at λ=0.5, worse at λ=1.25) | `tests/test_legacy_anchors.py::test_mixed_order_conclusions_hold` |
+| Simulated M2 anchors (LOS, ice hand-off, utilisation) | `tests/test_anchors.py` (8 parameterised cases) |
+| P-series pooled anchors | `tests/test_anchors.py` (6 parameterised cases) |
+| Directional conclusions (Split better at λ=0.5, worse at λ=1.25) | `tests/test_anchors.py::test_mixed_order_conclusions_hold` |
 | Flow conservation, determinism, scheduling invariants | `tests/test_engine_invariants.py`, `tests/test_policies.py`, `tests/test_behaviour.py` |
 
 The analytical tables in Sections 3–8 are regenerated with the commands in
@@ -465,11 +465,11 @@ hand from the parameter table in Section 2.
 
 ---
 
-## 11. v2 layer 1 — non-stationary demand
+## 11. mechanism layer 1 — non-stationary demand
 
 ### 11.1 The piecewise-constant profile
 
-v1 assumes one stationary Poisson rate λ. v2 replaces it with a piecewise-constant
+The course model assumes one stationary Poisson rate λ. The model replaces it with a piecewise-constant
 multiplier m(t) ≥ 0 and a base rate λ₀:
 
 ```text
@@ -495,7 +495,7 @@ factor:
 
 Queueing delay is convex in load, so moving the same daily demand into a peak must raise
 the tail. The engine demonstrates it at constant daily demand (campus_rush,
-`results/v2/demand_study.json`):
+`results/demand_study.json`):
 
 | | Flat, same daily mean | Peak shape | Difference |
 |---|---:|---:|---:|
@@ -513,7 +513,7 @@ load the shop experiences during the peak. Raising the shape further (multiplier
 minutes of p95, +11.5 points of walk-away and −72.3 /h of profit: the cost of peakiness
 is J-shaped.
 
-> **中文**：v2 用分段常数乘数把“日均需求”和“峰值形状”分开：λ(t)=λ₀·m(t)，当归一化日均时
+> **中文**：四层机制用分段常数乘数把“日均需求”和“峰值形状”分开：λ(t)=λ₀·m(t)，当归一化日均时
 > λ₀=λ_quoted/m̄。于是日均利用率 ρ̄=λ·p̄/m，峰值小时利用率 ρ_peak=P·ρ̄（P 为峰均比）。
 > 由于排队延迟对负载是凸函数，同样的日均需求一旦集中到峰值，尾部必然变差。仿真实证：
 > 日均利用率 60.6%→54.9%（因为流失减少工作量）、峰值繁忙度 66.0%→77.7%、p95 8.05→11.77 分钟、
@@ -527,12 +527,12 @@ it is the empirical counterpart of `ρ_peak = P·ρ̄` with P growing while `ρ�
 
 ---
 
-## 12. v2 layer 1 — service-time variability, patience and batching
+## 12. mechanism layer 1 — service-time variability, patience and batching
 
 ### 12.1 Variability
 
 Service times are drawn from a distribution with mean p and coefficient of variation
-`CV_p = σ_p / p`. The engine supports `fixed` (v1), `exponential` (forced to CV = 1),
+`CV_p = σ_p / p`. The engine supports `fixed` (baseline), `exponential` (forced to CV = 1),
 `lognormal` and `gamma` with explicit CVs per component. The standard two-moment
 approximation (Section 5) already shows the mechanism:
 
@@ -542,7 +542,7 @@ Tq ≈ (p/m) · U^[√(2(m+1)) − 1] · (CV_a² + CV_p²) / 2 / (1 − U)
 
 Variability scales the whole queue term; its derivative with respect to `CV_p` grows as
 `U → 1`, so the same CV change hurts much more at high load and shows up in the tail far
-more than in the mean. v2 measures it directly: across fixed/exponential/lognormal
+more than in the mean. The model measures it directly: across fixed/exponential/lognormal
 variants the p95 range is 4.62 min at λ = 1.0 and 6.71 min at λ = 1.2, while the mean LOS
 range at λ = 1.2 is only 2.21 min; the p95 ratio at lognormal CV = 0.75 versus
 deterministic is 1.25× at λ = 1.2.
@@ -558,7 +558,7 @@ expected wait
 ```
 
 and the customer leaves immediately if `Ŵ > b`; otherwise, if service has not started
-within `r`, the customer leaves at `r` (reneging). v2 uses **staff on duty** in the
+within `r`, the customer leaves at `r` (reneging). The model uses **staff on duty** in the
 denominator (not nominal headcount), which is the correct denominator once shifts exist.
 
 Two consequences are visible in the data. First, with arrival-time balking active,
@@ -586,13 +586,13 @@ but second-order next to the peak shape.
 > **中文**：服务时间变异通过 `(CV_a²+CV_p²)` 放大整个排队项，且在 U→1 时放大倍数更大，所以
 > 它主要抬高尾部而非均值；引擎对 `exponential` 强制 CV=1。耐心机制方面，到达即评估等待的
 > balking 会“吞掉”reneging（3 分钟阈值下流失 29.3%，12 分钟阈值下 3.2%），因为会 renege 的
-> 顾客通常已经先 balk 了；v2 的等待估计分母改为**在班人力**。批量到达必须区分口径：固定到达
+> 顾客通常已经先 balk 了；四层机制的等待估计分母改为**在班人力**。批量到达必须区分口径：固定到达
 > 事件率时批量化主要是需求增加，固定日均顾客数后只剩突发性效应（流失 7.5%→9.3%，利润
 > 235.4→219.8），量级明显小于峰型效应。
 
 ---
 
-## 13. v2 layer 2 — the station network and bottleneck migration
+## 13. mechanism layer 2 — the station network and bottleneck migration
 
 ### 13.1 Station and pool utilisation
 
@@ -604,7 +604,7 @@ With a network of stations `s` and staff roles `r`:
 ```
 
 The two denominators are different on purpose: a station is limited by equipment slots,
-a role by paid shift minutes. v1's single number `U = λ p̄ / m` is the special case where
+a role by paid shift minutes. baseline's single number `U = λ p̄ / m` is the special case where
 all work goes through one pool.
 
 ### 13.2 The bottleneck and its migration
@@ -612,7 +612,7 @@ all work goes through one pool.
 The binding station is `argmax_s ρ_s`, and the capacity of a staged process is set by the
 busiest station in the chain. Adding one unit of capacity at station `s` pays only while
 the *system* is constrained by `s`; once `ρ_s` falls below the next resource, the marginal
-station is idle. v2 makes this operational with a paired marginal profit:
+station is idle. The model makes this operational with a paired marginal profit:
 
 ```text
 Δ(k) = Profit(k stations) − Profit(k − 1 stations)     (common random numbers)
@@ -631,7 +631,7 @@ value* does — which is why the marginal-profit definition is the right one.
 With two dedicated pools (cashier, barista) the waiting is the sum of two independent
 queues; with one cross-trained pool it is a single queue with the same total work, which
 is smaller by the pooling effect (the classic result that `M/M/1` with two half-loaded
-servers beats two `M/M/1`s with one loaded server). The v2 skill experiment confirms it
+servers beats two `M/M/1`s with one loaded server). The model skill experiment confirms it
 at equal headcount and equal wage: generalists beat dedicated staff by +84.5 ± 5.1 /h,
 while one-way cross-training into the under-loaded pool is worth +0.17 ± 0.22 /h — the
 flexibility must be able to move in the direction the queue needs.
@@ -642,7 +642,7 @@ A mid-shift barista adds headcount but not station capacity; when the tea statio
 binding resource, the extra headcount cannot shorten the peak queue (measured
 peak-hour Δ = +0.06 ± 0.08 min versus no shift).
 
-> **中文**：站台利用率按设备容量计，人力池利用率按排班分钟计；v1 的单一 U 只是特例。瓶颈迁移
+> **中文**：站台利用率按设备容量计，人力池利用率按排班分钟计；baseline 的单一 U 只是特例。瓶颈迁移
 > 用“配对边际利润”定义：Δ(k)=Profit(k)−Profit(k−1)，临界容量为第一个 Δ≤0 的 k。茶站实验显示
 > 茶站始终是最忙站台（1 站时 84–99%，4 站时 22–43%），但临界容量为 3/3/4（λ=0.6/0.9/1.2），
 > 超过后真正决定排队的是共享吧台池与下单台。技能方面，同样人数与工资下“全员通才”比“专职分工”
@@ -651,7 +651,7 @@ peak-hour Δ = +0.06 ± 0.08 min versus no shift).
 
 ---
 
-## 14. v2 layer 3 — inventory (s, S), fill rate and service level
+## 14. mechanism layer 3 — inventory (s, S), fill rate and service level
 
 ### 14.1 Replenishment
 
@@ -712,7 +712,7 @@ policies collapse onto the same lost sales, because no product avoids the pearl 
 
 ---
 
-## 15. v2 layer 4 — pricing elasticity, SLA and fairness
+## 15. mechanism layer 4 — pricing elasticity, SLA and fairness
 
 ### 15.1 Constant-elasticity pricing
 
@@ -777,7 +777,7 @@ The cap lowers every class's p95 and slightly narrows the tail spread, but it ma
 | Mean fairness gap | 1.45 min | 1.78 min |
 | Profit / hour | 268.7 | 263.6 |
 
-This is why the v2 study records a flag (`mean_gap_widens_while_tail_gap_narrows = true`)
+This is why the layer study records a flag (`mean_gap_widens_while_tail_gap_narrows = true`)
 and the report describes the cap as tail protection rather than proof of a fairer
 average. The cap is cheap (5.06 /h) and auditable (escalations per hour are recorded).
 
@@ -791,9 +791,9 @@ average. The cap is cheap (5.06 /h) and auditable (escalations per hour are reco
 
 ---
 
-## 16. v2 theory-to-test map
+## 16. Theory-to-test map for the layers
 
-The v2 analytical claims are executable as well; the simulation is the referee where no
+The model analytical claims are executable as well; the simulation is the referee where no
 closed form exists (network of queues, time-varying arrivals, inventory + queueing).
 
 | Claim | Analytical form | Evidence |
@@ -809,9 +809,9 @@ closed form exists (network of queues, time-varying arrivals, inventory + queuei
 | Service-neutral pricing | `m^(1+ε)`, `m_sn` | `economics_study.pricing_optima`: ×1.2 at ε = −0.5 |
 | SLA is a transfer, not a lever | `A = P(T ≤ T_sla)` | `economics_study.sla_summary.service_is_unchanged_by_sla = true` |
 | Tail protection can widen the mean gap | `fairness_gap` vs `class_p95_spread` | `economics_study.fairness_summary`: 1.45 → 1.78 mean, 2.27 → 2.22 tail |
-| Layer-off equivalence | v1 as the special case | `tests/test_v2_layers.py::test_baseline_flat_scenario_is_bit_exact_v1` and the report builder |
+| Layer-off equivalence | baseline as the special case | `tests/test_layers.py::test_baseline_flat_scenario_is_bit_exact` and the report builder |
 
-**Limitations of the v2 analytical layer.** There is no closed form for a time-varying
+**Limitations of the layer analysis.** There is no closed form for a time-varying
 arrival process feeding a network of finite stations with skills and shifts; the layer
 formulas above are bookkeeping identities (Little's law, utilisation, inventory
 position), not predictive queueing approximations. For those mechanisms the simulation is
@@ -822,9 +822,9 @@ they queue); the fairness formula treats classes as fixed rather than as a funct
 observed wait; and the pricing formula assumes a constant elasticity that the shop may not
 have.
 
-> **中文**：v2 的解析层主要是“记账恒等式”（Little 定律、利用率、库存位置、稀缺性定价），
+> **中文**：四层机制的解析层主要是“记账恒等式”（Little 定律、利用率、库存位置、稀缺性定价），
 > 真正的预测仍由仿真给出：带班次与技能的有限站台网络、时变到达、库存与排队的耦合都没有闭式解。
-> 因此报告把 v2 的层间差异表述为“带配对置信区间的实测效应”，而不是解析预测；同时明确各公式的
+> 因此报告把 四层机制的层间差异表述为“带配对置信区间的实测效应”，而不是解析预测；同时明确各公式的
 > 适用边界（库存公式忽略缺货与排队的交互，公平公式把客群视为固定分组，定价公式假设常弹性）。
 
 ---

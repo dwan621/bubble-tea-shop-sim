@@ -8,7 +8,7 @@ from bubble_tea_sim import OrderMix, scenarios, simulate
 def test_overload_utilisation_is_a_window_ratio_above_one() -> None:
     """A backed-up queue can do more work than the window's nominal capacity.
 
-    ``util = busy / (workers * sim_minutes)`` mirrors the legacy scripts, so an
+    ``util = busy / (workers * sim_minutes)`` mirrors the original course scripts, so an
     overloaded configuration can exceed 1. This test documents the convention so
     a future contributor does not "fix" it.
     """

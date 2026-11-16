@@ -112,7 +112,7 @@ def replicate(
 ) -> ReplicateSummary:
     """Run ``reps`` replicates and aggregate the metrics.
 
-    Seeds are ``seed + i * seed_stride``. The legacy scripts used
+    Seeds are ``seed + i * seed_stride``. The original course scripts used
     ``stride=9001`` (mixed order) and ``stride=7001`` (bread priority).
     """
     if reps < 1:
@@ -185,7 +185,7 @@ def pooled_los(
 ) -> Dict[str, float]:
     """Pool every served customer across replicates and average by order class.
 
-    The legacy ``bread_priority_sim.py`` averaged a pooled customer list, while
+    The original ``bread_priority_sim.py`` averaged a pooled customer list, while
     ``mixed_order_sim.py`` averaged per-replicate means. Both estimators are
     legitimate; this helper exists so the regression tests can pin either one.
     """

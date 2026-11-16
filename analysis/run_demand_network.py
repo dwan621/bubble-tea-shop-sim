@@ -1,6 +1,6 @@
-"""v2 Layer 1 (demand) and Layer 2 (supply network) experiments.
+"""Layer 1 (demand) and Layer 2 (supply network) experiments.
 
-This script produces three files in ``results/v2/``:
+This script produces three files in ``results/``:
 
 * ``scenario_library.json`` - every scenario in ``data/scenarios/`` with its
   provenance, the configuration the loader built, and 100-replicate means and
@@ -18,9 +18,9 @@ random numbers are valid wherever the arrival stream is unchanged.
 
 Usage
 -----
-    python analysis/v2_demand_network.py                # all three stages
-    python analysis/v2_demand_network.py --stage demand  # one stage
-    python analysis/v2_demand_network.py --reps 20       # quick smoke test
+    python analysis/run_demand_network.py                # all three stages
+    python analysis/run_demand_network.py --stage demand  # one stage
+    python analysis/run_demand_network.py --reps 20       # quick smoke test
 
 Flow conservation (``served + balked + reneged + stockout + stranded ==
 arrivals``) and finiteness are asserted for every single replicate, so a broken
@@ -42,7 +42,7 @@ for _candidate in (ROOT / "src", ROOT / "analysis"):
     if str(_candidate) not in sys.path:
         sys.path.insert(0, str(_candidate))
 
-import v2_common  # noqa: E402  (path bootstrap above)
+import study_common  # noqa: E402  (path bootstrap above)
 from bubble_tea_sim import data_spec as ds, library, stats  # noqa: E402
 from bubble_tea_sim.engine import Simulation  # noqa: E402
 from bubble_tea_sim.params import SimConfig  # noqa: E402
@@ -78,9 +78,9 @@ CORE_METRICS = (
     "fairness_gap",
 )
 
-#: Demand profile used to force the v2 event-driven dispatch path while keeping
-#: a perfectly flat arrival intensity. The legacy path is only taken when every
-#: v2 layer is off, so a two-segment unit profile is the smallest honest trick
+#: Demand profile used to force the event-driven dispatch path while keeping
+#: a perfectly flat arrival intensity. The baseline path is only taken when every
+#: mechanism layer is off, so a two-segment unit profile is the smallest honest trick
 #: that makes fixed / exponential / lognormal service-time cells comparable on
 #: exactly the same arrival stream.
 FLAT_PROFILE = ds.DemandProfile(
@@ -539,7 +539,7 @@ def build_scenario_library() -> Dict[str, object]:
             "name": name,
             "title": raw.get("title", name),
             "provenance": raw.get("provenance", {}),
-            "legacy_compat": config.legacy_compat,
+            "baseline_compat": config.baseline_compat,
             "config": cell["config"],
             "layers": describe_layers(config),
             "reps": REPS,
@@ -556,7 +556,7 @@ def build_scenario_library() -> Dict[str, object]:
             {
                 "name": name,
                 "title": entry["title"],
-                "legacy_compat": config.legacy_compat,
+                "baseline_compat": config.baseline_compat,
                 "workers": config.workers,
                 "quoted_arrival_rate": config.arrival_rate,
                 "sim_minutes": config.sim_minutes,
@@ -592,7 +592,7 @@ def build_scenario_library() -> Dict[str, object]:
         % (len(entries), total_runs, elapsed)
     )
     return {
-        "meta": v2_common.meta(
+        "meta": study_common.meta(
             "scenario_library",
             notes=(
                 "One block per scenario in data/scenarios/. Provenance is copied from the "
@@ -603,8 +603,8 @@ def build_scenario_library() -> Dict[str, object]:
                 "decision uses the engine's wait estimate divided by the number of staff "
                 "units ON SHIFT at the arrival instant (shift windows and breaks are "
                 "coverage-checked), so scenarios with late shift starts, breaks or a "
-                "mid-shift joiner are not credited with absent staff; the stationary legacy "
-                "path keeps the full worker count so the v1 anchors stay bit-identical. "
+                "mid-shift joiner are not credited with absent staff; the stationary original "
+                "path keeps the full worker count so the baseline anchors stay bit-identical. "
                 "Note: sla.fairness_cap_minutes in a scenario file is an alias for the "
                 "policy starvation cap, so peak_pricing/strict_sla_fairness behave as their "
                 "provenance describes."
@@ -800,7 +800,7 @@ def build_variability_scan() -> Dict[str, object]:
     base = library.load_scenario("baseline_flat")
     variants = (
         ("fixed", ds.ServiceVariability(kind="fixed"),
-         "deterministic make times (v1 assumption)"),
+         "deterministic make times (original assumptions)"),
         ("exponential", ds.ServiceVariability(
             kind="exponential", order_cv=1.0, tea_cv=1.0, bread_cv=1.0, ice_cv=1.0),
          "exponential make times; the cell declares CV 1.0, which is the exponential "
@@ -1142,7 +1142,7 @@ def build_demand_study() -> Dict[str, object]:
     }
     print("[demand] finished in %.1fs" % elapsed)
     return {
-        "meta": v2_common.meta(
+        "meta": study_common.meta(
             "demand_study",
             notes=(
                 "Layer 1 experiments. Scenarios come from data/scenarios/; every other cell "
@@ -1150,8 +1150,8 @@ def build_demand_study() -> Dict[str, object]:
                 "estimated peak load exceeds 0.95 use 60 replicates, the rest use 100 "
                 "(first seed 0, stride 1). Paired differences use common random numbers on "
                 "identical seeds. Variability and patience cells use a two-segment unit "
-                "demand profile so the fixed-service cell also runs on the v2 event-driven "
-                "dispatch path (a single flat segment would silently use the legacy path and "
+                "demand profile so the fixed-service cell also runs on the event-driven "
+                "dispatch path (a single flat segment would silently use the baseline path and "
                 "confound the comparison). The balk decision compares the customer's "
                 "threshold with the engine's wait estimate divided by the number of staff "
                 "units ON SHIFT at the arrival instant; these cells have no shift windows, "
@@ -1848,7 +1848,7 @@ def build_network_study() -> Dict[str, object]:
     }
     print("[network] finished in %.1fs" % elapsed)
     return {
-        "meta": v2_common.meta(
+        "meta": study_common.meta(
             "network_study",
             notes=(
                 "Layer 2 experiments on the network scenarios. Station utilisation comes "
@@ -1860,7 +1860,7 @@ def build_network_study() -> Dict[str, object]:
                 "decision uses the engine's Little's-Law-style wait estimate divided by the "
                 "number of staff units that are ON SHIFT at the arrival instant (shift "
                 "windows and breaks are coverage-checked), so a late-joining barista does "
-                "not make the shop look bigger than it is; the legacy v1 path keeps the "
+                "not make the shop look bigger than it is; the original baseline path keeps the "
                 "full worker count so the golden anchors stay bit-identical."
             ),
             reps_default=REPS,
@@ -1922,13 +1922,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     started = time.perf_counter()
     if args.stage in ("all", "library"):
         payload = build_scenario_library()
-        v2_common.save("scenario_library", payload)
+        study_common.save("scenario_library", payload)
     if args.stage in ("all", "demand"):
         payload = build_demand_study()
-        v2_common.save("demand_study", payload)
+        study_common.save("demand_study", payload)
     if args.stage in ("all", "network"):
         payload = build_network_study()
-        v2_common.save("network_study", payload)
+        study_common.save("network_study", payload)
     print("[done] total wall clock %.1fs" % (time.perf_counter() - started))
     return 0
 

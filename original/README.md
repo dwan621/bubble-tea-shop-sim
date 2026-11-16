@@ -1,4 +1,4 @@
-# Legacy scripts (provenance only)
+# Original course scripts (provenance only)
 
 These three files are **verbatim copies** of the original course scripts used
 for the 2026-11 AnyLogic homework. They are kept in the repository for two
@@ -8,10 +8,10 @@ engine's regression tests were validated against them.
 They are **superseded** by the `bubble_tea_sim` package. New work should use the
 package; these scripts are not maintained.
 
-| Legacy script | What it does | Unified replacement | Regression test |
+| Original script | What it does | Unified replacement | Regression test |
 |---|---|---|---|
-| `mixed_order_sim.py` | Mixed-order study: Synchro vs Split delivery, 200 reps × 4 loads | `scenarios.legacy_mixed_order()` | `tests/test_legacy_anchors.py::test_mixed_order_anchor` |
-| `bread_priority_sim.py` | Fast-item priority (bread/ice) vs FCFS, 6 reps × 3 loads | `scenarios.legacy_bread_priority()` | `tests/test_legacy_anchors.py::test_bread_priority_anchor` |
+| `mixed_order_sim.py` | Mixed-order study: Synchro vs Split delivery, 200 reps × 4 loads | `scenarios.mixed_order_baseline()` | `tests/test_anchors.py::test_mixed_order_anchor` |
+| `bread_priority_sim.py` | Fast-item priority (bread/ice) vs FCFS, 6 reps × 3 loads | `scenarios.bread_priority_baseline()` | `tests/test_anchors.py::test_bread_priority_anchor` |
 | `icecream_strategy_sim.py` | Early melt-risk demo with a melt window | `scenarios.study(..., split_mix=...)` + `mix_ice_priority` | direction-only tests in `tests/test_behaviour.py` |
 
 Known caveats, documented instead of silently fixed:
@@ -29,4 +29,4 @@ Known caveats, documented instead of silently fixed:
   `bubble_tea_sim.stats.replicate()` uses per-replicate means and
   `bubble_tea_sim.stats.pooled_los()` reproduces the pooled one.
 
-Run them with `python legacy/<script>.py` (standard library only).
+Run them with `python original/<script>.py` (standard library only).

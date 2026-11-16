@@ -138,7 +138,7 @@ def solve(
             "lower_difference": result.get("lower_difference"),
             "upper_difference": result.get("upper_difference"),
             "note": result.get("note"),
-            "extended": index > 0,
+            "wider_bracket": index > 0,
         }
         attempts.append(attempt)
         if not math.isnan(float(attempt["lambda"])):
@@ -173,7 +173,7 @@ def solve(
             "solved": True,
             "utilization_star": util,
             "bracket": solved["bracket"],
-            "extended_bracket": bool(solved["extended"]),
+            "bracket_extension": bool(solved["wider_bracket"]),
             "difference_at_star": 0.0,
         }
     )

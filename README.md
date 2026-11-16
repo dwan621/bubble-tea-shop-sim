@@ -1,43 +1,43 @@
-# Bubble-Tea Shop Simulation v2
+# Bubble-Tea Shop Simulation: four layers, one engine
 
 **Does fast-item triage pay off — and what changes when the shop has peaks, stations, stock, a price list and an SLA?**
 
 [![CI](https://github.com/dwan621/bubble-tea-shop-sim/actions/workflows/ci.yml/badge.svg)](https://github.com/dwan621/bubble-tea-shop-sim/actions/workflows/ci.yml)
 
-**v2 report:** [docs/index.html](docs/index.html) · **Offline demo:** [demo/index.html](demo/index.html) · **All v2 tables:** [docs/experiments-v2.md](docs/experiments-v2.md) · **v1 report (archived):** [archive/report-v1.html](archive/report-v1.html)
+**main report:** [docs/index.html](docs/index.html) · **Offline demo:** [demo/index.html](demo/index.html) · **All layer tables:** [docs/experiments-layers.md](docs/experiments-layers.md) · **earlier report (archived):** [archive/report-2026-11.html](archive/report-2026-11.html)
 
 This repository contains a dependency-free Python discrete-event simulation (DES) of a
 small bubble-tea shop, the experiment ledger behind the study, and a cleaned-up
 reproduction of the original course project.
 
-**v1** asked two operational questions with one cross-trained clerk pool, flat Poisson
+**baseline** asked two operational questions with one cross-trained clerk pool, flat Poisson
 demand and fixed service times: should a mixed tea + ice-cream order be delivered
 *split* (ice cream first) or *synchronised* (everything together), and should fast
-items jump the queue? **v2 keeps that model as the exact special case it always was**
+items jump the queue? **the four-layer model keeps that model as the exact special case it always was**
 and adds four optional layers around it: an intra-day demand profile, a station network
 with skills and shifts, an inventory bill of materials with shelf life, and an economics
 layer with pricing, SLA compensation and a fairness cap. It then re-asks the questions
 across a library of **16 shop contexts**.
 
-The v1 answers survive where its assumptions still hold — fast-item priority remains the
-stronger lever at the v1 operating point, and split delivery still stops paying as load
+The baseline answers survive where its assumptions still hold — fast-item priority remains the
+stronger lever at the baseline operating point, and split delivery still stops paying as load
 rises. What moves is the *boundary condition*: the peak shape rather than the daily mean
 decides abandonment, triage is worth far less when the tea station is the bottleneck, and
 stock, price, SLA and fairness are first-order levers the one-pool model could not see.
 
 All Python numbers below are reproduced by the commands shown in
-[Quick start](#quick-start) and stored in machine-generated JSON under `results/v2/`
-(v1 baseline: `results/`). The AnyLogic material is archival and explicitly marked
+[Quick start](#quick-start) and stored in machine-generated JSON under `results/`
+(baseline: `results/`). The AnyLogic material is archival and explicitly marked
 [archive, not re-runnable](#reproducibility-python-vs-anylogic-archive).
 
 ---
 
 ## 中文摘要 / Chinese summary
 
-本项目是一个奶茶店离散事件仿真研究。**v1** 用“单一员工池 + 平稳泊松到达 + 固定服务时间”
+本项目是一个奶茶店离散事件仿真研究。**baseline** 用“单一员工池 + 平稳泊松到达 + 固定服务时间”
 回答两个调度问题：混合单的 **同步交付（Synchro）vs 拆分交付（Split）**，以及
-**快品优先（fast-item priority）**。**v2** 把这套模型保留为“关闭全部新层”的退化特例
-（`baseline_flat` 与 v1 配置逐位一致，由测试与构建脚本双重验证），再叠加四层：
+**快品优先（fast-item priority）**。**四层机制** 把这套模型保留为“关闭全部新层”的退化特例
+（`baseline_flat` 与 baseline 配置逐位一致，由测试与构建脚本双重验证），再叠加四层：
 
 - **需求侧**：日内峰型、批量到达、客群与耐心分布。日均客流相同时，峰值形状把峰值时段繁忙度
   从 66.0% 推到 77.7%、p95 乘以 1.46、流失率从 6.9% 升到 15.1%、利润从 296.0 降到 239.3 元/小时；
@@ -55,11 +55,11 @@ All Python numbers below are reproduced by the commands shown in
   类间 p95 极差略降，但类间均值极差（class mean spread）从 1.45 升到 1.78 分钟、引擎
   fairness_gap 从 1.48 升到 1.78 分钟，因此它只是尾部保护，
   不是“更公平”的唯一证据。
-- **v1 基线**：拆分交付盈亏平衡点 λ* = 1.1469（ρ* = 80.9%，3 员工）；λ=1.25 时快品优先
+- **baseline 基线**：拆分交付盈亏平衡点 λ* = 1.1469（ρ* = 80.9%，3 员工）；λ=1.25 时快品优先
   +12.66±1.19 元/小时。这些数字保留为基线章节，AnyLogic 台账仍是**存档、不可重跑**。
 
-复现：`pip install -e ".[dev]"`、`python analysis/v2_demand_network.py`、
-`python analysis/v2_inventory_econ.py`、`python analysis/build_report_v2.py`、
+复现：`pip install -e ".[dev]"`、`python analysis/run_demand_network.py`、
+`python analysis/run_inventory_econ.py`、`python analysis/build_report.py`、
 `python analysis/build_demo_data.py`、`python -m pytest -q`（68 个测试）。
 交互演示 demo/index.html 为**预计算数据**，浏览器不运行 DES。
 
@@ -69,7 +69,7 @@ All Python numbers below are reproduced by the commands shown in
 
 ## Research questions
 
-The v1 questions (still answered, still the baseline):
+The baseline questions (still answered, still the baseline):
 
 1. **Delivery strategy.** For a mixed order (tea + ice cream made by the same clerk),
    is *Synchro* (one atomic 2.833-min job, everything handed over together) or *Split*
@@ -80,13 +80,13 @@ The v1 questions (still answered, still the baseline):
 3. **Economics.** When waiting is priced at 0.5 per customer-minute, which policy earns
    more profit per hour, and at what load does the ranking flip?
 
-The v2 questions, one per layer:
+The layer questions, one per layer:
 
 4. **Demand shape.** With the *same daily mean*, what does an intra-day peak do to
    utilisation, tail waiting, abandonment and profit? What do service-time variability,
    finite patience and group arrivals add?
 5. **Supply network.** When the shop is a set of stations with skills and shifts, where
-   does the bottleneck sit, when does it migrate, and do the v1 policy answers survive?
+   does the bottleneck sit, when does it migrate, and do the baseline policy answers survive?
 6. **Inventory.** How do (s, S) reorder points, lead time and shelf life trade fill rate
    against waste and profit, and what is a stock-out substitution worth?
 7. **Economics and fairness.** What do peak pricing, SLA compensation and a starvation
@@ -94,7 +94,7 @@ The v2 questions, one per layer:
 
 A further question ties the study to the course material: **why is Split non-trivial at
 all?** Both policies have the same capacity, so the answer must come from queueing
-dynamics, not from workload. v2 generalises that question to every layer: each mechanism
+dynamics, not from workload. the model generalises that question to every layer: each mechanism
 must move a *queue*, not just the total work.
 
 ---
@@ -105,7 +105,7 @@ must move a *queue*, not just the total work.
 
 `python -m bubble_tea_sim reproduce --reps 200` (3 clerks, 200 paired replicates,
 common arrival streams, seed stride 9001; estimator = mean of per-replicate means; the
-`--out` flag writes the table to `results/legacy_anchors.json`):
+`--out` flag writes the table to `results/anchors.json`):
 
 | λ (cust/min) | Delivery | All-order LOS (min) | Mixed-order LOS (min) | Ice-cream hand-off (min) | Bread LOS (min) | Observed utilisation |
 |---:|---|---:|---:|---:|---:|---:|
@@ -131,7 +131,7 @@ Reading the table:
 
 `python -m bubble_tea_sim reproduce --reps 200` (3 clerks, P-series parameterisation:
 tea 65% / bread 20% / ice cream 15%, no mixed orders; pooled-customer estimator over
-6 replicates, seed stride 7001; same `results/legacy_anchors.json` output):
+6 replicates, seed stride 7001; same `results/anchors.json` output):
 
 | λ | Policy | Tea LOS | Bread LOS | Ice-cream LOS | All LOS | Utilisation |
 |---:|---|---:|---:|---:|---:|---:|
@@ -186,19 +186,19 @@ closed form, and it depends on the assumed prices and waiting-cost weight.
 
 ---
 
-## v2 results: four layers, one engine
+## layer results: four layers, one engine
 
-The v2 study re-uses the same engine and adds the four optional layers documented in
+The layer study re-uses the same engine and adds the four optional layers documented in
 [`src/bubble_tea_sim/data_spec.py`](src/bubble_tea_sim/data_spec.py). Results live in
-`results/v2/*.json` and are rendered in the v2 report
+`results/*.json` and are rendered in the main report
 ([docs/index.html](docs/index.html)) and the complete table dump
-([docs/experiments-v2.md](docs/experiments-v2.md)). The layer studies use 100
+([docs/experiments-layers.md](docs/experiments-layers.md)). The layer studies use 100
 replicates per cell (60 at estimated peak loads above 95%), seed 0, stride 1, with
 paired differences on common random numbers.
 
 ### 4. Demand shape: peaks are expensive even when the daily mean is fixed
 
-`results/v2/demand_study.json` (campus_rush peak profile versus a flat profile with the
+`results/demand_study.json` (campus_rush peak profile versus a flat profile with the
 same daily mean; peak cells 60 replicates, flat 100):
 
 | Profile | Peak-to-mean | Daily util | Peak-hour busy | p95 LOS | Walk-away | Profit / h |
@@ -224,13 +224,13 @@ from 7.5% to 9.3% and lowers profit from 235.4 to 219.8 /h.
 
 ### 5. Supply network: the bottleneck migrates
 
-`results/v2/network_study.json` sweeps tea-station capacity 1–4 with baristas synced to
+`results/network_study.json` sweeps tea-station capacity 1–4 with baristas synced to
 stations, at λ = 0.6/0.9/1.2. The tea station remains the busiest station at every
 capacity, but each extra station pays for itself only up to the study's **critical
 capacity**: 3 at λ = 0.6 and 0.9, 4 at λ = 1.2 (paired marginal profit ≤ 0). Beyond it
 the shared barista pool and the order counter decide the queue.
 
-The v1 policy matrix behaves differently against different bottlenecks. Fast-item
+The baseline policy matrix behaves differently against different bottlenecks. Fast-item
 priority is worth +1.33 ± 0.99 /h in the tea-bottleneck scenario (synchro) and
 +1.70 ± 0.76 /h in the ice-cream-bottleneck scenario; with split delivery the values are
 +2.31 ± 0.60 and +3.01 ± 0.71 /h. Split delivery itself is *negative* in the tea
@@ -244,7 +244,7 @@ the tea station — not headcount — is the binding resource then.
 
 ### 6. Inventory: fill rate is cheap, shelf life is not
 
-`results/v2/inventory_study.json` (lean scenario: 3 clerks, quoted 1.15/min, four
+`results/inventory_study.json` (lean scenario: 3 clerks, quoted 1.15/min, four
 ingredients, 60–90 min lead times, four-hour pearl shelf life):
 
 | Metric | Lean baseline |
@@ -265,7 +265,7 @@ collapse onto the same lost sales.
 
 ### 7. Economics and fairness: the management bundle
 
-`results/v2/economics_study.json` (campus_rush: served 528.8, balk 101.7, mean LOS
+`results/economics_study.json` (campus_rush: served 528.8, balk 101.7, mean LOS
 4.68 min, p95 11.81 min, profit 240.07 /h). Peak pricing with elasticity moves both
 revenue and profit, but the profit optimum sits at the boundary of the tested range
 because the model charges waiting cost only to served customers; the decision-useful
@@ -305,23 +305,23 @@ python -m bubble_tea_sim run --lam 1.25 --workers 3 --split --fast --seed 0
 python -m bubble_tea_sim sweep --workers-list 3 `
     --lambdas 0.4,0.6,0.8,1.0,1.2,1.25 --reps 200
 python -m bubble_tea_sim breakeven --workers 3 --lower 0.5 --upper 1.3 --reps 60
-python -m bubble_tea_sim reproduce --reps 200 --out results/legacy_anchors.json
+python -m bubble_tea_sim reproduce --reps 200 --out results/anchors.json
 
-# regenerate the committed v1 results and the v1 report
+# regenerate the committed baseline results and the earlier report
 python analysis/run_policy_sweep.py        # full grid: 1-5 workers x lambda 0.30-1.30
 python analysis/run_breakeven.py           # 2-4 workers, profit + mean-LOS roots
 python analysis/reproduce_anylogic_ledger.py
-python analysis/build_report.py            # archive/report-v1.html + docs/experiments.md + docs/figures/
+python analysis/build_report.py            # archive/report-2026-11.html + docs/experiments.md + docs/figures/
 
-# regenerate the v2 results (four layers) and the v2 report + demo
-python analysis/v2_demand_network.py       # scenario library + layer 1 + layer 2
-python analysis/v2_inventory_econ.py       # layer 3 + layer 4
-python analysis/build_report_v2.py         # docs/index.html, docs/experiments-v2.md, docs/figures-v2/
+# regenerate the layer results (four layers) and the main report + demo
+python analysis/run_demand_network.py       # scenario library + layer 1 + layer 2
+python analysis/run_inventory_econ.py       # layer 3 + layer 4
+python analysis/build_report.py         # docs/index.html, docs/experiments-layers.md, docs/figures-layers/
 python analysis/build_demo_data.py         # demo/data/*.json (offline demo)
 ```
 
-The v1 report is preserved at [archive/report-v1.html](archive/report-v1.html); the
-current report is the v2 one at [docs/index.html](docs/index.html). The offline demo at
+The earlier report is preserved at [archive/report-2026-11.html](archive/report-2026-11.html); the
+current report is the current one at [docs/index.html](docs/index.html). The offline demo at
 [demo/index.html](demo/index.html) replays precomputed data from
 [demo/data/](demo/data/) — it opens directly from `file://`, makes no network calls and
 does not run the simulation in the browser (browsers also block `fetch()` on `file://`,
@@ -353,46 +353,46 @@ bubble-tea-shop-sim/
 │   ├── ci.yml                     # pytest + reproduce smoke test, 2 OS x 3 Python
 │   └── pages.yml                  # GitHub Pages deployment for the static report
 ├── analysis/                      # reproducible experiment runners
-│   ├── common.py                  # shared JSON/statistics plumbing (v1 studies)
-│   ├── v2_common.py               # v2 harness: schema, seeds, replicate/paired helpers
+│   ├── common.py                  # shared JSON/statistics plumbing (baseline studies)
+│   ├── study_common.py               # shared harness: schema, seeds, replicate/paired helpers
 │   ├── svgchart.py                # dependency-free SVG charts for both reports
 │   ├── run_policy_sweep.py        # -> results/policy_sweep.json
 │   ├── run_breakeven.py           # -> results/breakeven.json
 │   ├── run_behaviour.py           # -> results/behaviour.json
 │   ├── run_sensitivity.py         # -> results/sensitivity.json
 │   ├── reproduce_anylogic_ledger.py  # -> results/anylogic_ledger.json
-│   ├── build_report.py            # -> archive/report-v1.html + docs/experiments.md (v1 tables) + docs/figures/
-│   ├── v2_demand_network.py       # -> results/v2/scenario_library.json, demand_study.json, network_study.json
-│   ├── v2_inventory_econ.py       # -> results/v2/inventory_study.json, economics_study.json
-│   ├── build_report_v2.py         # -> docs/index.html + docs/experiments-v2.md + docs/figures-v2/
+│   ├── build_report.py            # -> archive/report-2026-11.html + docs/experiments.md (baseline tables) + docs/figures/
+│   ├── run_demand_network.py       # -> results/scenario_library.json, demand_study.json, network_study.json
+│   ├── run_inventory_econ.py       # -> results/inventory_study.json, economics_study.json
+│   ├── build_report.py         # -> docs/index.html + docs/experiments-layers.md + docs/figures-layers/
 │   └── build_demo_data.py         # -> demo/data/*.json + demo/data/bundle.js
 ├── archive/
 │   ├── anylogic/                  # frozen AnyLogic model snapshot (not re-runnable)
 │   │   ├── MIXUE_Model.alp
 │   │   ├── 3d/person.dae
 │   │   └── README.md
-│   └── report-v1.html             # v1 report (regenerated byte-for-byte by analysis/build_report.py)
+│   └── report-2026-11.html             # earlier report (regenerated byte-for-byte by analysis/build_report.py)
 ├── data/
 │   ├── README.md                  # scenario schema + provenance rules
 │   └── scenarios/*.json           # 16 shop contexts, each with a provenance block
 ├── demo/
 │   ├── index.html                 # offline interactive demo (vanilla JS, no CDN, no build step)
 │   └── data/                      # precomputed demo data (JSON + bundle.js mirror)
-├── legacy/                        # verbatim original course scripts (provenance only)
+├── original/                        # verbatim original course scripts (provenance only)
 │   ├── mixed_order_sim.py
 │   ├── bread_priority_sim.py
 │   ├── icecream_strategy_sim.py
 │   └── README.md
 ├── docs/
-│   ├── theory.md                  # Lecture 1-4 formulas + the v2 layer formulas
-│   ├── experiment_log.md          # archival AnyLogic ledger + v1 anchors + v2 result index
+│   ├── theory.md                  # Lecture 1-4 formulas + the mechanism layer formulas
+│   ├── experiment_log.md          # archival AnyLogic ledger + baseline anchors + layer result index
 │   ├── design.md                  # engine design, determinism contract, extensions
 │   ├── reproducing.md             # environment, commands, runtimes, seed rules
-│   ├── experiments.md             # generated v1 result tables
-│   ├── experiments-v2.md          # generated v2 result tables (all five studies)
-│   ├── index.html                 # generated v2 static report
-│   ├── figures/                   # generated v1 SVG figures
-│   ├── figures-v2/                # generated v2 SVG figures
+│   ├── experiments.md             # generated baseline result tables
+│   ├── experiments-layers.md          # generated layer result tables (all five studies)
+│   ├── index.html                 # generated static report
+│   ├── figures/                   # generated baseline SVG figures
+│   ├── figures-layers/                # generated SVG figures
 │   └── assets/slides/             # archived AnyLogic screenshots (A/B/C/M3/E)
 ├── results/                       # committed JSON outputs of the analysis scripts
 │   ├── policy_sweep.json
@@ -400,22 +400,25 @@ bubble-tea-shop-sim/
 │   ├── behaviour.json
 │   ├── sensitivity.json
 │   ├── anylogic_ledger.json
-│   ├── legacy_anchors.json
-│   └── v2/                        # scenario_library, demand_study, network_study,
-│                                  # inventory_study, economics_study
+│   ├── anchors.json
+│   ├── scenario_library.json
+│   ├── demand_study.json
+│   ├── network_study.json
+│   ├── inventory_study.json
+│   └── economics_study.json
 ├── src/bubble_tea_sim/
 │   ├── params.py                  # order mix, service times, policy, economics, SimConfig
-│   ├── data_spec.py               # v2 layer specifications (demand, network, inventory, pricing, SLA)
+│   ├── data_spec.py               # mechanism layer specifications (demand, network, inventory, pricing, SLA)
 │   ├── library.py                 # scenario loader: data/scenarios/*.json -> SimConfig
 │   ├── engine.py                  # event loop, scheduling, stations/staff, per-run metrics
-│   ├── scenarios.py               # legacy and study configurations
+│   ├── scenarios.py               # original and study configurations
 │   ├── stats.py                   # replicates, paired differences, break-even
 │   ├── cli.py                     # run / sweep / breakeven / reproduce
 │   ├── __main__.py                # python -m bubble_tea_sim
 │   └── __init__.py
 ├── tests/
-│   ├── test_legacy_anchors.py     # pins the archived M2/P-series numbers
-│   ├── test_v2_layers.py          # degenerate equivalence + v2 mechanism invariants
+│   ├── test_anchors.py     # pins the archived M2/P-series numbers
+│   ├── test_layers.py          # degenerate equivalence + layer mechanism invariants
 │   ├── test_params.py             # analytical layer (capacity, prices, validation)
 │   ├── test_engine_invariants.py  # flow conservation, determinism, edge cases
 │   ├── test_edge_cases.py         # overload/utilization conventions, boundary cases
@@ -432,8 +435,8 @@ bubble-tea-shop-sim/
 
 The Python package is intentionally small: one event loop, explicit configuration
 objects, no third-party runtime dependencies. [`docs/design.md`](docs/design.md)
-documents the event loop, the determinism contract and the extension points; the v2
-layers are specified in [`src/bubble_tea_sim/data_spec.py`](src/bubble_tea_sim/data_spec.py)
+documents the event loop, the determinism contract and the extension points; the layer
+configurations are specified in [`src/bubble_tea_sim/data_spec.py`](src/bubble_tea_sim/data_spec.py)
 and the scenario file format in [`data/README.md`](data/README.md).
 
 ---
@@ -474,13 +477,13 @@ clean test bed for the queueing theory but understates real-world waiting.
 | Wage | 25 per clerk-hour | 75 per hour with 3 clerks |
 | Waiting cost | 0.5 per customer-minute | 30 per customer-hour |
 
-The P-series legacy configuration (used for the fast-priority table) differs: no mixed
+The P-series original configuration (used for the fast-priority table) differs: no mixed
 orders, order mix tea 65% / bread 20% / ice cream 15%, and ice-cream make time 0.33 min.
 Both configurations are defined in [`src/bubble_tea_sim/scenarios.py`](src/bubble_tea_sim/scenarios.py).
 
-### v2 layer assumptions
+### mechanism layer assumptions
 
-The v2 layers are opt-in; a scenario JSON enables the ones it needs. Each scenario file
+The mechanism layers are opt-in; a scenario JSON enables the ones it needs. Each scenario file
 carries a provenance block (`source`, `method`, `uncertainty`, `notes`) and every entry
 in the current library is marked `uncertainty: high` — they are **synthetic teaching
 cases anchored on the course assumptions, not field data**.
@@ -493,7 +496,7 @@ cases anchored on the course assumptions, not field data**.
 | Pricing / SLA / fairness | Peak windows with a price multiplier and constant elasticity, SLA target + fixed compensation, starvation cap (aging escalation) | `data_spec.PricingSpec`, `SlaSpec`, `Policy.starvation_cap` |
 
 The 16 scenario files live in [`data/scenarios/`](data/scenarios/); the schema and
-provenance rules are documented in [`data/README.md`](data/README.md). The v2 report's
+provenance rules are documented in [`data/README.md`](data/README.md). The main report's
 scenario table is the authoritative list.
 
 ---
@@ -508,19 +511,19 @@ seeds and a different horizon. The screenshots under
 re-runnable artifacts**. Archived numbers are labelled `archival, not re-runnable`
 wherever they appear and are kept for historical context and direction-of-effect
 comparisons. The original Python scripts are kept verbatim under
-[`legacy/`](legacy/) for the same reason; they are superseded by the package.
+[`original/`](original/) for the same reason; they are superseded by the package.
 
 | Artifact | Reproducible? | How |
 |---|---|---|
 | Python engine and CLI | **Yes** | fixed seeds, deterministic event loop, standard library only |
 | `reproduce` M2/P-series anchor tables | **Yes** | `python -m bubble_tea_sim reproduce --reps 200` |
-| Policy sweep, break-even, behavior studies (v1) | **Yes** | `sweep` / `breakeven` / `run` subcommands |
+| Policy sweep, break-even, behavior studies (baseline) | **Yes** | `sweep` / `breakeven` / `run` subcommands |
 | AnyLogic E-series re-check (archived 1000-min settings) | **Yes** | `python analysis/reproduce_anylogic_ledger.py` → `results/anylogic_ledger.json` |
-| v2 scenario library + four layer studies | **Yes** | `analysis/v2_demand_network.py`, `analysis/v2_inventory_econ.py` → `results/v2/*.json` |
-| v2 report, v2 table dump and v2 figures | **Yes** | `python analysis/build_report_v2.py` → `docs/index.html`, `docs/experiments-v2.md`, `docs/figures-v2/` |
+| scenario library + four layer studies | **Yes** | `analysis/run_demand_network.py`, `analysis/run_inventory_econ.py` → `results/*.json` |
+| main report, table dump and figures | **Yes** | `python analysis/build_report.py` → `docs/index.html`, `docs/experiments-layers.md`, `docs/figures-layers/` |
 | Offline demo data | **Yes** | `python analysis/build_demo_data.py` → `demo/data/*.json` + `demo/data/bundle.js` |
-| [`docs/experiments.md`](docs/experiments.md) (v1 tables), [`docs/figures/`](docs/figures/) | **Yes** | regenerated by `analysis/build_report.py` from `results/*.json` |
-| [`archive/report-v1.html`](archive/report-v1.html) (v1 report) | **Yes** | regenerated byte-for-byte by `analysis/build_report.py` (it writes the archive copy, never the v2 report) |
+| [`docs/experiments.md`](docs/experiments.md) (baseline tables), [`docs/figures/`](docs/figures/) | **Yes** | regenerated by `analysis/build_report.py` from `results/*.json` |
+| [`archive/report-2026-11.html`](archive/report-2026-11.html) (earlier report) | **Yes** | regenerated byte-for-byte by `analysis/build_report.py` (it writes the archive copy, never the main report) |
 | AnyLogic model (`archive/anylogic/MIXUE_Model.alp`), screenshot evidence and E-series ledger | **No** | archived evidence; see [docs/experiment_log.md](docs/experiment_log.md) |
 
 The engine can go one step further than "the archive is not re-runnable": the archived
@@ -528,25 +531,25 @@ E-series configurations are re-implemented at their own settings (3 clerks, 1000
 horizon, no warm-up, seed 1, 200 replicates) and compared like-for-like. The archived
 profit per hour is reproduced within +3.4% / −8.6% across all six runs, with the
 E5–E6 ordering swapping places; the check and its caveats are in
-[experiment_log.md §4](docs/experiment_log.md#4-v2-engine-re-check-of-the-archive).
+[experiment_log.md §4](docs/experiment_log.md#4-baseline-engine-re-check-of-the-archive).
 
 **Statistical conventions.** Policy and layer comparisons use common random numbers:
 the same seed is reused for every configuration being compared, so differences are
 paired. The default studies use seeds `0, 1, 2, …` (stride 1) with 100 replicates per
-cell (60 at estimated peak loads above 95%); legacy anchors keep the original strides
-(9001 for the mixed-order study, 7001 for the bread-priority study). The v2 report also
-re-runs three cheap contract checks at build time (layer-off equivalence against the v1
+cell (60 at estimated peak loads above 95%); original anchors keep the original strides
+(9001 for the mixed-order study, 7001 for the bread-priority study). The main report also
+re-runs three cheap contract checks at build time (layer-off equivalence against the baseline
 configuration, determinism, flow conservation across all scenarios) and prints their
-result instead of asking the reader to trust them. `python -m pytest -q` pins the v1
-anchors and the v2 layer invariants (69 tests).
+result instead of asking the reader to trust them. `python -m pytest -q` pins the baseline
+anchors and the mechanism layer invariants (69 tests).
 
-**What changed in this cleaned-up version.** The legacy Python scripts were merged into
-one configuration-driven engine (the originals are kept verbatim under `legacy/`); the
-regression suite pins the legacy anchors; the AnyLogic model is preserved as an archive
+**What changed in this cleaned-up version.** The original Python scripts were merged into
+one configuration-driven engine (the originals are kept verbatim under `original/`); the
+regression suite pins the original anchors; the AnyLogic model is preserved as an archive
 under `archive/anylogic/` rather than as executable code; local course-directory
-references were replaced by relative links and lecture numbers. In v2, the same engine
+references were replaced by relative links and lecture numbers. Here, the same engine
 gained four optional layers (`data_spec.py`), a provenance-carrying scenario library
-(`data/scenarios/`), a machine-readable experiment harness (`analysis/v2_common.py`) and
+(`data/scenarios/`), a machine-readable experiment harness (`analysis/study_common.py`) and
 a static, script-free report plus an offline demo.
 
 ---
@@ -563,14 +566,14 @@ numerical comparison live in [docs/theory.md](docs/theory.md).
 | 2 | `Capacity = m / p̄`, `Utilisation = Flow Rate / Capacity` | Split and Synchro have identical total workload, so utilisation must not change. | Confirms equal utilisation and identifies the clerk pool as the bottleneck. |
 | 3 | Multi-server `Tq` approximation with `CV_a`, `CV_p` | Queue delay rises sharply as `U → 1`, so priority effects get stronger at high load. | Compares analytical `Tflow` with the simulation (≈0.2% at λ=1.0, ≈1.6% at λ=1.25). |
 | 4 | MPS / BOM / MRP / CRP | Ingredient gross requirements and required clerk-minutes follow the order mix. | Checks capacity feasibility: 158.75 required vs 180 available clerk-min/hour at λ=1.25. |
-| 3 (v2) | Non-stationary demand: peak ratio, peak-hour utilisation, tail amplification | The daily mean is not the planning number: the same mean with a peak raises p95 and abandonment. | Tests it: +11.7 points peak-hour busy, p95 ×1.46 and +8.1 points walk-away at constant daily demand. |
-| 3 (v2) | Variability queues: `CV_p`, `CV_a` and the tail | Variability moves the upper tail much more than the mean. | Service-time scan: p95 range 4.62 / 6.71 min at λ = 1.0 / 1.2 while mean LOS moves only 2.21 min. |
-| 2 (v2) | Bottleneck in a staged network: minimal station capacity, marginal profit | Adding equipment pays only until another resource binds. | Tea-capacity sweep: critical capacity 3 (λ = 0.6, 0.9) and 4 (λ = 1.2). |
-| 4 (v2) | `(s, S)` inventory, fill rate, lead time and shelf life | Safety stock trades fill rate against waste; a perishable sets a floor on waste. | Inventory grid: 98.0% baseline fill, 99.95% best fill at almost no profit change; 240-min waste-free shelf-life threshold. |
-| 4 (v2) | Constant-elasticity pricing, `m^ε`, and the service-neutral multiplier | Price moves both demand and the tail; the useful number is the largest move that keeps service intact. | Pricing grid: ×1.2 service-neutral multiplier at ε = −0.5 keeps 97.9% of demand. |
+| 3 (layer) | Non-stationary demand: peak ratio, peak-hour utilisation, tail amplification | The daily mean is not the planning number: the same mean with a peak raises p95 and abandonment. | Tests it: +11.7 points peak-hour busy, p95 ×1.46 and +8.1 points walk-away at constant daily demand. |
+| 3 (layer) | Variability queues: `CV_p`, `CV_a` and the tail | Variability moves the upper tail much more than the mean. | Service-time scan: p95 range 4.62 / 6.71 min at λ = 1.0 / 1.2 while mean LOS moves only 2.21 min. |
+| 2 (layer) | Bottleneck in a staged network: minimal station capacity, marginal profit | Adding equipment pays only until another resource binds. | Tea-capacity sweep: critical capacity 3 (λ = 0.6, 0.9) and 4 (λ = 1.2). |
+| 4 (layer) | `(s, S)` inventory, fill rate, lead time and shelf life | Safety stock trades fill rate against waste; a perishable sets a floor on waste. | Inventory grid: 98.0% baseline fill, 99.95% best fill at almost no profit change; 240-min waste-free shelf-life threshold. |
+| 4 (layer) | Constant-elasticity pricing, `m^ε`, and the service-neutral multiplier | Price moves both demand and the tail; the useful number is the largest move that keeps service intact. | Pricing grid: ×1.2 service-neutral multiplier at ε = −0.5 keeps 97.9% of demand. |
 
 Full derivations and the numerical checks live in
-[docs/theory.md](docs/theory.md); the v2 layer formulas are in its sections 11–16.
+[docs/theory.md](docs/theory.md); the mechanism layer formulas are in its sections 11–16.
 
 The theory also explains why Split is not a trivial "hand it over earlier" change:
 capacity is invariant, waiting is redistributed between job classes, and the queueing
@@ -583,22 +586,22 @@ response is non-linear in utilisation. See
 
 * **Assumed parameters.** Prices, wages, waiting cost, order mix and service times are
   course assumptions, not measured field data. The economic ranking inherits that.
-* **Synthetic scenarios (v2).** All 16 shop contexts are synthetic teaching cases with
+* **Synthetic scenarios (layer scenarios).** All 16 shop contexts are synthetic teaching cases with
   `uncertainty: high`. They are a disciplined way to compare mechanisms, not calibrated
   forecasts; absolute profit and LOS levels should not be quoted as predictions.
-* **Deterministic service times in v1.** No make-time variability in the v1 studies, so
-  real queues are likely worse than the v1 model at the same utilisation. The v2 demand
+* **Deterministic service times in baseline.** No make-time variability in the baseline studies, so
+  real queues are likely worse than the original model at the same utilisation. The model demand
   layer adds variability as an optional layer and shows it moves the tail, not the mean.
-* **Poisson arrivals, one queue (v1).** No batch arrivals, no delivery orders, no
+* **Poisson arrivals, one queue (baseline).** No batch arrivals, no delivery orders, no
   ingredient stock-outs, no staff breaks or shift changes, no balking/reneging in the
-  default v1 experiments (they exist in the engine but are off). The v2 layers add all
+  default baseline experiments (they exist in the engine but are off). The mechanism layers add all
   of these, but only where a scenario enables them.
 * **Balking heuristic.** The balk rule estimates waiting from the customers in the shop
-  and the staff on duty (the v2 engine counts only staff who are on shift); it is a
+  and the staff on duty (the engine counts only staff who are on shift); it is a
   modelling device, not a calibrated customer model.
 * **Split motivation is not priced.** The study does not model melting or the value of
   an earlier ice-cream hand-off; that benefit must be argued qualitatively.
-* **Single-day model (v2).** 480 simulated minutes, 60-minute warm-up; there is no
+* **Single-day model.** 480 simulated minutes, 60-minute warm-up; there is no
   day-to-day stock carry-over, fatigue or learning. A run is one representative day.
 * **Pricing optimum is a boundary artefact.** The model charges waiting cost only to
   customers who stay, so raising price looks profitable partly because abandoning

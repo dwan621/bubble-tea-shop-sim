@@ -1,4 +1,4 @@
-"""Precompute the datasets used by the offline v2 demo (``demo/``).
+"""Precompute the datasets used by the offline demo (``demo/``).
 
 The demo must open from ``file://`` with no build step and no network, so the
 browser never runs the discrete-event simulation: everything is precomputed
@@ -126,7 +126,7 @@ def _config_card(config: SimConfig) -> Dict[str, object]:
         "warmup_minutes": config.warmup_minutes,
         "util_theory": _round(config.utilization()),
         "mean_service_time": _round(config.mean_service_time()),
-        "legacy_compat": config.legacy_compat,
+        "baseline_compat": config.baseline_compat,
         "policy": config.policy.describe(),
         "demand": demand_curve,
         "demand_peak": _round(config.demand.peak_multiplier()),
@@ -302,7 +302,7 @@ def demand_slider_payload() -> Dict[str, object]:
 # --------------------------------------------------------------------------
 def _lane_specs(config: SimConfig, jobs: Sequence[Job]) -> List[Dict[str, object]]:
     """Swim-lanes: the real stations when the network layer is on, else the
-    components (the v1 engine has one cross-trained clerk pool)."""
+    components (the original engine has one cross-trained clerk pool)."""
     network = config.network
     lanes: List[Dict[str, object]] = []
     if network is not None and network.stations:

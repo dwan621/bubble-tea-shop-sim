@@ -1,4 +1,4 @@
-"""Regression anchors: the unified engine must reproduce the legacy scripts.
+"""Regression anchors: the unified engine must reproduce the original course scripts.
 
 The expected values are copied from ``docs/experiment_log.md`` (the table the
 course report cites) and from the original scripts' own output. The mixed-order
@@ -37,7 +37,7 @@ BREAD_PRIORITY_GOLDEN = {
 
 @pytest.mark.parametrize("lam,split", sorted(MIXED_ORDER_GOLDEN))
 def test_mixed_order_anchor(lam: float, split: bool) -> None:
-    config = scenarios.legacy_mixed_order(lam, split_mix=split)
+    config = scenarios.mixed_order_baseline(lam, split_mix=split)
     summary = stats.replicate(config, reps=200, seed=0, seed_stride=9001)
     expected_all, expected_mix, expected_ice, expected_bread, expected_util = (
         MIXED_ORDER_GOLDEN[(lam, split)]
@@ -52,7 +52,7 @@ def test_mixed_order_anchor(lam: float, split: bool) -> None:
 
 @pytest.mark.parametrize("lam,fast", sorted(BREAD_PRIORITY_GOLDEN))
 def test_bread_priority_anchor(lam: float, fast: bool) -> None:
-    config = scenarios.legacy_bread_priority(lam, fast_priority=fast)
+    config = scenarios.bread_priority_baseline(lam, fast_priority=fast)
     summary = stats.pooled_summary(config, reps=6, seed=0, seed_stride=7001)
     expected_bread, expected_ice, expected_tea, expected_all, expected_util = (
         BREAD_PRIORITY_GOLDEN[(lam, fast)]
@@ -68,16 +68,16 @@ def test_bread_priority_anchor(lam: float, fast: bool) -> None:
 def test_mixed_order_conclusions_hold() -> None:
     """The two headline statements of the report, as executable assertions."""
     low_sync = stats.replicate(
-        scenarios.legacy_mixed_order(0.5, split_mix=False), reps=100, seed_stride=9001
+        scenarios.mixed_order_baseline(0.5, split_mix=False), reps=100, seed_stride=9001
     )
     low_split = stats.replicate(
-        scenarios.legacy_mixed_order(0.5, split_mix=True), reps=100, seed_stride=9001
+        scenarios.mixed_order_baseline(0.5, split_mix=True), reps=100, seed_stride=9001
     )
     high_sync = stats.replicate(
-        scenarios.legacy_mixed_order(1.25, split_mix=False), reps=100, seed_stride=9001
+        scenarios.mixed_order_baseline(1.25, split_mix=False), reps=100, seed_stride=9001
     )
     high_split = stats.replicate(
-        scenarios.legacy_mixed_order(1.25, split_mix=True), reps=100, seed_stride=9001
+        scenarios.mixed_order_baseline(1.25, split_mix=True), reps=100, seed_stride=9001
     )
     assert low_split.means["mean_los"] < low_sync.means["mean_los"]
     assert high_split.means["mean_los"] > high_sync.means["mean_los"]

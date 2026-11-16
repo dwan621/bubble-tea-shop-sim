@@ -6,9 +6,9 @@ Run one configuration and print its metrics::
 
     python -m bubble_tea_sim run --lam 1.25 --split
 
-Reproduce the legacy anchors used in the report::
+Reproduce the original anchors used in the report::
 
-    python -m bubble_tea_sim reproduce --out results/legacy_anchors.json
+    python -m bubble_tea_sim reproduce --out results/anchors.json
 
 Inspect the policy sweep used by the README/figures (the committed
 ``results/policy_sweep.json`` is produced by ``analysis/run_policy_sweep.py``,
@@ -48,7 +48,7 @@ def _add_common(parser: argparse.ArgumentParser) -> None:
         "--seed-stride",
         type=int,
         default=1,
-        help="increment between replicate seeds (legacy: 9001 / 7001)",
+        help="increment between replicate seeds (original: 9001 / 7001)",
     )
     parser.add_argument("--out", type=Path, default=None, help="optional JSON output")
 
@@ -99,14 +99,14 @@ def cmd_run(args: argparse.Namespace) -> int:
 
 
 def cmd_reproduce(args: argparse.Namespace) -> int:
-    """Recompute the legacy anchor tables recorded in the report/experiment log."""
+    """Recompute the original anchor tables recorded in the report/experiment log."""
     payload: Dict[str, object] = {"mixed_order": {}, "bread_priority": {}}
     print(
         f"Mixed-order M2 anchors (per-replicate means, {args.reps} reps, stride 9001)"
     )
     for lam in (0.5, 0.8, 1.1, 1.25):
         for split in (False, True):
-            config = scenarios.legacy_mixed_order(lam, split_mix=split)
+            config = scenarios.mixed_order_baseline(lam, split_mix=split)
             summary = stats.replicate(
                 config, reps=args.reps, seed=0, seed_stride=9001
             )
@@ -120,7 +120,7 @@ def cmd_reproduce(args: argparse.Namespace) -> int:
     print("Bread-priority P-series anchors (pooled means, 6 reps, stride 7001)")
     for lam in (1.0, 1.3, 1.5):
         for fast in (False, True):
-            config = scenarios.legacy_bread_priority(lam, fast_priority=fast)
+            config = scenarios.bread_priority_baseline(lam, fast_priority=fast)
             summary = stats.pooled_summary(
                 config, reps=6, seed=0, seed_stride=7001
             )
@@ -199,14 +199,14 @@ def cmd_scenarios(args: argparse.Namespace) -> int:
             {
                 "name": name,
                 "title": raw.get("title", name),
-                "legacy_compat": config.legacy_compat,
+                "baseline_compat": config.baseline_compat,
                 "uncertainty": provenance.get("uncertainty"),
                 "source": provenance.get("source"),
                 "utilisation": round(config.utilization(), 4),
             }
         )
         print(
-            f"{name:26s} legacy={config.legacy_compat!s:5s} "
+            f"{name:26s} original={config.baseline_compat!s:5s} "
             f"uncertainty={str(provenance.get('uncertainty')):6s} "
             f"util={config.utilization():6.1%}  {raw.get('title', '')}"
         )
@@ -258,7 +258,7 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--out", type=Path, default=None)
     run_parser.set_defaults(func=cmd_run)
 
-    reproduce_parser = sub.add_parser("reproduce", help="recompute legacy anchor tables")
+    reproduce_parser = sub.add_parser("reproduce", help="recompute original anchor tables")
     reproduce_parser.add_argument("--reps", type=int, default=200)
     reproduce_parser.add_argument("--out", type=Path, default=None)
     reproduce_parser.set_defaults(func=cmd_reproduce)
@@ -279,13 +279,13 @@ def build_parser() -> argparse.ArgumentParser:
     breakeven_parser.set_defaults(func=cmd_breakeven)
 
     scenarios_parser = sub.add_parser(
-        "scenarios", help="list the v2 scenario library"
+        "scenarios", help="list the scenario library"
     )
     scenarios_parser.add_argument("--out", type=Path, default=None)
     scenarios_parser.set_defaults(func=cmd_scenarios)
 
     scenario_parser = sub.add_parser(
-        "scenario", help="run one v2 scenario from the library"
+        "scenario", help="run one scenario from the library"
     )
     scenario_parser.add_argument("--name", required=True)
     scenario_parser.add_argument("--reps", type=int, default=100)

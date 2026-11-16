@@ -30,7 +30,7 @@ jobs:
           cp -r docs site/docs
           cp -r demo site/demo
           mkdir -p site/archive
-          cp archive/report-v1.html site/archive/report-v1.html
+          cp archive/report-2026-11.html site/archive/report-2026-11.html
           cp README.md site/README.md
           cat > site/index.html <<'HTML'
           <!doctype html>
@@ -38,8 +38,8 @@ jobs:
           <meta name="viewport" content="width=device-width, initial-scale=1">
           <meta http-equiv="refresh" content="0; url=docs/index.html">
           <link rel="canonical" href="docs/index.html">
-          <title>Bubble-tea shop simulation v2</title></head>
-          <body><p>Redirecting to the <a href="docs/index.html">v2 report</a>.</p></body></html>
+          <title>Bubble-tea shop simulation</title></head>
+          <body><p>Redirecting to the <a href="docs/index.html">main report</a>.</p></body></html>
           HTML
 
       - uses: actions/upload-pages-artifact@v3

@@ -1,6 +1,6 @@
 # Scenario library
 
-`data/scenarios/*.json` holds the **input data** of the v2 study: one file per
+`data/scenarios/*.json` holds the **input data** of the layer study: one file per
 shop context. The loader is `bubble_tea_sim.library.load_scenario(name)`.
 
 ## Provenance discipline
@@ -21,7 +21,7 @@ Rules:
 1. **Never claim field data you do not have.** If a number is an assumption, say
    so. "Synthetic, anchored on the course assumptions" is a fine answer.
 2. **Separate the layers.** A scenario may use only the layers it needs; missing
-   keys mean "v1 behaviour for that layer".
+   keys mean "baseline behaviour for that layer".
 3. **Keep the daily mean honest.** When `demand.normalize_daily_mean` is set, the
    loader rescales `arrival_rate` so that the *daily average* equals the quoted
    rate. Peak-vs-average comparisons then differ only in shape, not in total
@@ -35,7 +35,7 @@ Rules:
 |---|---|
 | `name`, `title`, `provenance` | identity + trust metadata |
 | `base` | `workers`, `arrival_rate` (customers/min), `sim_minutes`, `warmup_minutes` |
-| `mix`, `times`, `economics`, `policy` | v1 core parameters (optional overrides) |
+| `mix`, `times`, `economics`, `policy` | baseline core parameters (optional overrides) |
 | `demand.segments` | `[[start_minute, multiplier], ...]`, piecewise constant |
 | `demand.normalize_daily_mean` | `1.0` = rescale rate so the daily mean stays as quoted |
 | `batches` | `probability` and `sizes` (`[[size, weight], ...]`) |
@@ -46,5 +46,5 @@ Rules:
 | `pricing` | `peak_segments`, `peak_price_multiplier`, `elasticity` |
 | `sla` | `target_minutes`, `compensation`, `fairness_cap_minutes` |
 
-A file with none of the v2 layers reproduces the v1 model exactly; that is
+A file with none of the mechanism layers reproduces the original model exactly; that is
 intentional (see `baseline_flat.json`).

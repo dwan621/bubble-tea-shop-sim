@@ -9,7 +9,7 @@ Quick start::
 
 The package is dependency-free (Python standard library only) so the whole study
 can be reproduced with ``python -m bubble_tea_sim reproduce --reps 200 --out
-results/legacy_anchors.json`` and the ``analysis/`` scripts.
+results/anchors.json`` and the ``analysis/`` scripts.
 """
 
 from .engine import (

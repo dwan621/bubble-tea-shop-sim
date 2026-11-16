@@ -1,11 +1,11 @@
-"""Discrete-event simulation engine (v1 + v2).
+"""Discrete-event simulation engine (baseline and layer configurations).
 
 The shop is one queueing system. A *job* is one uninterruptible block of clerk
-or station time. The v1 model has a single cross-trained clerk pool, fixed
+or station time. The original model has a single cross-trained clerk pool, fixed
 service times, a stationary Poisson arrival stream and one atomic job per
 component; that model is kept bit-for-bit identical for its configurations.
 
-v2 adds four optional layers on the same event loop:
+the four-layer model adds four optional layers on the same event loop:
 
 * demand: intra-day arrival profile, batch arrivals, customer classes with their
   own order mix and patience distribution, make-time variability;
@@ -16,9 +16,9 @@ v2 adds four optional layers on the same event loop:
 * economics/fairness: time-of-day pricing with demand elasticity, SLA
   compensation and a starvation cap that ages the low-priority queue.
 
-Configurations that use none of the v2 layers take the ``legacy_compat`` path
+Configurations that use none of the mechanism layers take the ``baseline_compat`` path
 (including its future-reservation dispatch rule) and therefore reproduce the
-original course scripts exactly. v2 configurations use an event-driven dispatch
+original course scripts exactly. layer configurations use an event-driven dispatch
 rule: a job starts as soon as all of its required resources are free.
 
 Conventions
@@ -75,7 +75,7 @@ class Job:
     seq: int
     station: Optional[str] = None
     skill: Optional[str] = None
-    stage: str = "make"  # "make" (atomic v1 job) or "order" (v2 staged job)
+    stage: str = "make"  # "make" (atomic baseline job) or "order" (staged job)
     started: Optional[float] = None
     finished: Optional[float] = None
     cancelled: bool = False
@@ -195,7 +195,7 @@ class Metrics:
     balked: int = 0
     reneged: int = 0
     stranded: int = 0  # still in the shop when the modelled day ends
-    # -- v2 metrics ---------------------------------------------------------
+    # -- layer metrics ---------------------------------------------------------
     los_p50: float = 0.0
     los_p90: float = 0.0
     los_p95: float = 0.0
@@ -213,7 +213,7 @@ class Metrics:
     fairness_gap: Optional[float] = None
     mean_price_factor: float = 1.0
     staff_minutes_available: float = 0.0
-    runs_legacy: bool = True
+    runs_baseline: bool = True
 
     def as_dict(self) -> Dict[str, object]:
         return {
@@ -256,7 +256,7 @@ class Metrics:
             "fairness_gap": self.fairness_gap,
             "mean_price_factor": self.mean_price_factor,
             "staff_minutes_available": self.staff_minutes_available,
-            "runs_legacy": self.runs_legacy,
+            "runs_baseline": self.runs_baseline,
         }
 
 
@@ -269,13 +269,13 @@ class SimulationResult:
 
 
 class Simulation:
-    """One replicate of the bubble-tea shop model (v1 or v2)."""
+    """One replicate of the bubble-tea shop model (baseline or layer configuration)."""
 
     def __init__(self, config: SimConfig, seed: int = 0, trace: bool = False):
         self.config = config
         self.seed = seed
         self.rnd = random.Random(seed)
-        self.legacy = config.legacy_compat
+        self.original = config.baseline_compat
         self.trace: Optional[List[Dict[str, object]]] = [] if trace else None
         self.now = 0.0
         self.ready: List[Job] = []
@@ -294,7 +294,7 @@ class Simulation:
         self._job_seq = 0
         self._demand_hours = config.sim_minutes / 60.0
 
-        if self.legacy:
+        if self.original:
             self.worker_free: List[float] = [0.0] * config.workers
             self.staff_units: List[StaffUnit] = []
             self.stations: Dict[str, StationState] = {}
@@ -402,7 +402,7 @@ class Simulation:
             self._push_event(boundary, _EV_SHIFT, None)
 
     def _staff_minutes_available(self) -> float:
-        if self.legacy:
+        if self.original:
             return self.config.workers * self.config.sim_minutes
         total = 0.0
         for unit in self.staff_units:
@@ -550,11 +550,11 @@ class Simulation:
         return thresholds
 
     def _generate_arrivals(self) -> List[Tuple[float, Tuple[CustomerPlan, ...]]]:
-        if self.legacy:
-            return self._generate_arrivals_legacy()
-        return self._generate_arrivals_v2()
+        if self.original:
+            return self._generate_arrivals_stationary()
+        return self._generate_arrivals_by_profile()
 
-    def _generate_arrivals_legacy(self) -> List[Tuple[float, Tuple[CustomerPlan, ...]]]:
+    def _generate_arrivals_stationary(self) -> List[Tuple[float, Tuple[CustomerPlan, ...]]]:
         arrivals: List[Tuple[float, Tuple[CustomerPlan, ...]]] = []
         thresholds = self._kind_thresholds(self.config.mix)
         t = 0.0
@@ -586,7 +586,7 @@ class Simulation:
         candidates.append(self.config.sim_minutes - 1e-9)
         return max(self._rate_multiplier(minute) for minute in candidates)
 
-    def _generate_arrivals_v2(self) -> List[Tuple[float, Tuple[CustomerPlan, ...]]]:
+    def _generate_arrivals_by_profile(self) -> List[Tuple[float, Tuple[CustomerPlan, ...]]]:
         arrivals: List[Tuple[float, Tuple[CustomerPlan, ...]]] = []
         mix_thresholds = self._kind_thresholds(self.config.mix)
         class_weights = self.config.classes.normalised()
@@ -676,7 +676,7 @@ class Simulation:
         """
         in_system = self.in_system + 1
         mean_service = self.config.mean_service_time()
-        if self.legacy:
+        if self.original:
             staff = self.config.workers
         else:
             on_shift = sum(
@@ -759,7 +759,7 @@ class Simulation:
         return job
 
     def _create_jobs(self, customer: Customer, plan: CustomerPlan) -> None:
-        # v2 network: the order is taken first, production jobs are created when
+        # layer network: the order is taken first, production jobs are created when
         # the order step finishes (so the station bottleneck and the order queue
         # are modelled separately).
         if self.config.network is not None and self.config.network.stations:
@@ -977,12 +977,12 @@ class Simulation:
     # Scheduling
     # ------------------------------------------------------------------
     def _dispatch(self) -> None:
-        if self.legacy:
-            self._dispatch_legacy()
+        if self.original:
+            self._dispatch_stationary()
         else:
             self._dispatch_network()
 
-    def _dispatch_legacy(self) -> None:
+    def _dispatch_stationary(self) -> None:
         while True:
             free = [i for i, t in enumerate(self.worker_free) if t <= self.now]
             if not free:
@@ -1117,7 +1117,7 @@ class Simulation:
             sim_minutes=config.sim_minutes,
             warmup_minutes=config.warmup_minutes,
             policy=config.policy.describe(),
-            runs_legacy=self.legacy,
+            runs_baseline=self.original,
         )
         metrics.balked = self.balked
         metrics.reneged = self.reneged
@@ -1223,7 +1223,7 @@ class Simulation:
         ) / hours
         metrics.util = (
             self.busy / self.staff_minutes_available
-            if self.staff_minutes_available > 0 and not self.legacy
+            if self.staff_minutes_available > 0 and not self.original
             else self.busy / (config.workers * config.sim_minutes)
         )
         metrics.starvation_events = self.starvation_events

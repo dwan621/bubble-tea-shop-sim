@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "name": "baseline_flat",
-  "title": "v1 baseline: flat demand, one clerk pool, fixed service times",
+  "title": "baseline: flat demand, one clerk pool, fixed service times",
   "provenance": {
     "source": "Course 5006 project assumptions (report and experiment ledger)",
-    "method": "Direct copy of the v1 configuration; the loader must reproduce the v1 anchors bit-for-bit",
+    "method": "Direct copy of the baseline configuration; the loader must reproduce the baseline anchors bit-for-bit",
     "uncertainty": "high",
-    "notes": "This file intentionally enables none of the v2 layers; it exists to prove backward compatibility."
+    "notes": "This file intentionally enables none of the mechanism layers; it exists to prove backward compatibility."
   },
   "base": {
     "workers": 3,

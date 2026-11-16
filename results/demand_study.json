@@ -23,7 +23,7 @@
       "strict_sla_fairness",
       "tiny_two_staff"
     ],
-    "notes": "Layer 1 experiments. Scenarios come from data/scenarios/; every other cell is a dataclass override of campus_rush or baseline_flat. Cells whose estimated peak load exceeds 0.95 use 60 replicates, the rest use 100 (first seed 0, stride 1). Paired differences use common random numbers on identical seeds. Variability and patience cells use a two-segment unit demand profile so the fixed-service cell also runs on the v2 event-driven dispatch path (a single flat segment would silently use the legacy path and confound the comparison). The balk decision compares the customer's threshold with the engine's wait estimate divided by the number of staff units ON SHIFT at the arrival instant; these cells have no shift windows, so it equals the worker count, but the library scenarios with late shift starts and breaks are not credited with absent staff.",
+    "notes": "Layer 1 experiments. Scenarios come from data/scenarios/; every other cell is a dataclass override of campus_rush or baseline_flat. Cells whose estimated peak load exceeds 0.95 use 60 replicates, the rest use 100 (first seed 0, stride 1). Paired differences use common random numbers on identical seeds. Variability and patience cells use a two-segment unit demand profile so the fixed-service cell also runs on the event-driven dispatch path (a single flat segment would silently use the baseline path and confound the comparison). The balk decision compares the customer's threshold with the engine's wait estimate divided by the number of staff units ON SHIFT at the arrival instant; these cells have no shift windows, so it equals the worker count, but the library scenarios with late shift starts and breaks are not credited with absent staff.",
     "reps_default": 100,
     "reps_overload": 60,
     "seed": 0,
@@ -730,7 +730,7 @@
         "lambda": 1.0,
         "theoretical_rho": 0.70555,
         "variant": "fixed",
-        "note": "deterministic make times (v1 assumption)",
+        "note": "deterministic make times (original assumptions)",
         "reps": 100,
         "metrics": {
           "util": 0.710494,
@@ -850,7 +850,7 @@
         "lambda": 1.2,
         "theoretical_rho": 0.84666,
         "variant": "fixed",
-        "note": "deterministic make times (v1 assumption)",
+        "note": "deterministic make times (original assumptions)",
         "reps": 100,
         "metrics": {
           "util": 0.852325,

@@ -23,7 +23,7 @@
       "strict_sla_fairness",
       "tiny_two_staff"
     ],
-    "notes": "Layer 2 experiments on the network scenarios. Station utilisation comes straight from the engine; labour-pool utilisation is derived by grouping the stations that share a skill and dividing their busy minutes by the pre-break shift minutes of the staff that can operate them. Cells with an estimated peak load above 0.95 use 60 replicates (the saturated tea capacities), everything else uses 100; first seed 0, stride 1. The balk decision uses the engine's Little's-Law-style wait estimate divided by the number of staff units that are ON SHIFT at the arrival instant (shift windows and breaks are coverage-checked), so a late-joining barista does not make the shop look bigger than it is; the legacy v1 path keeps the full worker count so the golden anchors stay bit-identical.",
+    "notes": "Layer 2 experiments on the network scenarios. Station utilisation comes straight from the engine; labour-pool utilisation is derived by grouping the stations that share a skill and dividing their busy minutes by the pre-break shift minutes of the staff that can operate them. Cells with an estimated peak load above 0.95 use 60 replicates (the saturated tea capacities), everything else uses 100; first seed 0, stride 1. The balk decision uses the engine's Little's-Law-style wait estimate divided by the number of staff units that are ON SHIFT at the arrival instant (shift windows and breaks are coverage-checked), so a late-joining barista does not make the shop look bigger than it is; the original baseline path keeps the full worker count so the golden anchors stay bit-identical.",
     "reps_default": 100,
     "reps_overload": 60,
     "seed": 0,

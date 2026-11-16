@@ -1,7 +1,7 @@
-"""v2 specification objects: demand, service variability, network, inventory, pricing.
+"""Specification objects: demand, service variability, network, inventory, pricing.
 
-v1 modelled one clerk pool with fixed service times and a stationary Poisson
-arrival stream. v2 keeps that model as the special case ``legacy_compat`` and
+baseline modelled one clerk pool with fixed service times and a stationary Poisson
+arrival stream. the four-layer model keeps that model as the special case ``baseline_compat`` and
 adds four optional layers on top:
 
 1. **Demand** - intra-day arrival profile, batch arrivals, heterogeneous
@@ -16,7 +16,7 @@ adds four optional layers on top:
 
 Every object is frozen and hashable so configurations stay reproducible and can
 be serialised to JSON. Defaults are chosen so that leaving a layer `None` keeps
-the v1 behaviour bit-for-bit.
+the baseline behaviour bit-for-bit.
 """
 
 from __future__ import annotations
@@ -181,7 +181,7 @@ class MixSpec:
 # ---------------------------------------------------------------------------
 @dataclass(frozen=True)
 class ServiceVariability:
-    """Make-time variability. ``fixed`` reproduces v1 exactly."""
+    """Make-time variability. ``fixed`` reproduces baseline exactly."""
 
     kind: str = "fixed"  # fixed | exponential | lognormal | gamma
     order_cv: float = 0.0
@@ -270,7 +270,7 @@ class StaffSpec:
     """Staff roles, skills, shift windows and breaks.
 
     ``windows`` may be empty, in which case every staff unit is available for the
-    whole run (the v1 behaviour). ``breaks`` split a role's window into two.
+    whole run (the baseline behaviour). ``breaks`` split a role's window into two.
     """
 
     roles: Tuple[str, ...] = ("clerk",)
@@ -300,7 +300,7 @@ class NetworkSpec:
     ``mix_tea``, ``mix_all``) to a station name. Components without a route fall
     back to their base component name.
 
-    When ``stations`` is empty and ``staff`` is None the engine uses the v1
+    When ``stations`` is empty and ``staff`` is None the engine uses the baseline
     single clerk pool and one atomic job per component.
     """
 

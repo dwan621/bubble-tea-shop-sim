@@ -1,7 +1,7 @@
 """Scenario library: JSON scenarios with provenance, loaded into ``SimConfig``.
 
 A scenario file describes one shop/context (campus rush, CBD lunch, mall
-weekend, ...). It contains the v2 layers it needs plus a ``provenance`` block
+weekend, ...). It contains the mechanism layers it needs plus a ``provenance`` block
 that records where every assumption came from and how uncertain it is. The
 loader turns the file into a :class:`~bubble_tea_sim.params.SimConfig`.
 
@@ -11,7 +11,7 @@ Example
 -------
 >>> from bubble_tea_sim.library import load_scenario
 >>> config = load_scenario("campus_rush")
->>> config.legacy_compat
+>>> config.baseline_compat
 False
 """
 

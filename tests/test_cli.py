@@ -30,7 +30,7 @@ def test_run_command_outputs_metrics(tmp_path, capsys) -> None:
     assert payload["mean_los"] > 0
 
 
-def test_reproduce_command_matches_legacy_anchors(tmp_path, capsys) -> None:
+def test_reproduce_command_matches_anchors(tmp_path, capsys) -> None:
     output = tmp_path / "anchors.json"
     code = main(["reproduce", "--reps", "20", "--out", str(output)])
     assert code == 0

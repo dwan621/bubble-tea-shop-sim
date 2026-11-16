@@ -83,8 +83,8 @@ def test_breakeven_reports_no_crossover_when_sign_does_not_change() -> None:
     assert math.isnan(result["lambda"]) or 0.6 <= result["lambda"] <= 1.25
 
 
-def test_pooled_estimator_matches_legacy_table() -> None:
-    config = scenarios.legacy_bread_priority(1.5, fast_priority=False)
+def test_pooled_estimator_matches_baseline_table() -> None:
+    config = scenarios.bread_priority_baseline(1.5, fast_priority=False)
     pooled = stats.pooled_los(config, reps=6, seed=0, seed_stride=7001)
     assert pooled["bread"] == pytest.approx(4.34, abs=0.01)
     assert pooled["all"] == pytest.approx(5.57, abs=0.01)

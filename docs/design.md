@@ -46,7 +46,7 @@ course scripts, which is why the unified engine reproduces them bit-for-bit.
 ## Utilisation is a window ratio
 
 `Metrics.util` is `busy clerk-minutes / (workers x sim_minutes)`, exactly as in
-the legacy scripts. In a stable shop (demand below capacity) that is the usual
+the original course scripts. In a stable shop (demand below capacity) that is the usual
 utilisation and stays below 1. In an over-loaded configuration the backlog is
 served after the 480-minute window, so the ratio can exceed 1: it is "work
 accomplished per clerk-minute available in the window", not a capacity bound.
@@ -62,7 +62,7 @@ counted as served, balked or reneged). Normal studies stay far below the limit.
 
 ## Determinism contract
 * Arrivals are generated before the event loop starts: `expovariate(rate)` then
-  one uniform draw for the order class. This mirrors the legacy scripts and keeps
+  one uniform draw for the order class. This mirrors the original course scripts and keeps
   the random stream independent of behaviour mechanisms.
 * Service times are fixed by configuration (no random draws), so dispatch order
   cannot influence randomness.
@@ -72,7 +72,7 @@ counted as served, balked or reneged). Normal studies stay far below the limit.
 
 ## Validation strategy
 
-1. **Golden anchors** — `tests/test_legacy_anchors.py` pins the engine to the
+1. **Golden anchors** — `tests/test_anchors.py` pins the engine to the
    numbers in `docs/experiment_log.md` (M2 mixed-order table, P-series
    fast-priority table) with tight tolerances. If the engine semantics drift, the
    tests fail loudly.
@@ -85,27 +85,27 @@ counted as served, balked or reneged). Normal studies stay far below the limit.
    the AnyLogic E-series and reports deviations against the archived figures
    (see `docs/experiments.md` for the honest caveats).
 
-## v2 layers
+## mechanism layers
 
-v2 keeps the v1 event loop and adds four opt-in layers. A configuration that uses
-none of them takes the `legacy_compat` path and reproduces v1 bit-for-bit; the
-regression test pins `data/scenarios/baseline_flat.json` to the legacy anchors.
+the four-layer model keeps the baseline event loop and adds four opt-in layers. A configuration that uses
+none of them takes the `baseline_compat` path and reproduces baseline bit-for-bit; the
+regression test pins `data/scenarios/baseline_flat.json` to the original anchors.
 
 | Layer | What it adds | Code | Tests |
 |---|---|---|---|
-| 1. Demand | intra-day demand curve (piecewise constant), batch arrivals, customer classes with own mix and patience distributions, service-time variability | `data_spec.DemandProfile/BatchSpec/PatienceSpec/CustomerClass/MixSpec/ServiceVariability` | `tests/test_v2_layers.py` |
+| 1. Demand | intra-day demand curve (piecewise constant), batch arrivals, customer classes with own mix and patience distributions, service-time variability | `data_spec.DemandProfile/BatchSpec/PatienceSpec/CustomerClass/MixSpec/ServiceVariability` | `tests/test_layers.py` |
 | 2. Supply network | stations with finite capacity, staff roles/skills, shift windows, breaks, staged order -> make -> hand-over, routing | `data_spec.StationSpec/StaffSpec/ShiftWindow/NetworkSpec` | same |
 | 3. Inventory / BOM | recipes, FIFO lots, (s, S) replenishment with lead time, shelf life, waste, lost-sale or substitution | `data_spec.Ingredient/Recipe/InventorySpec` | same |
 | 4. Economics / fairness | time-of-day pricing with demand elasticity, SLA compensation, starvation cap (aging) | `data_spec.PricingSpec/SlaSpec`, `params.Policy.starvation_cap` | same |
 
 Scenarios are data, not code: `data/scenarios/*.json` with a `provenance` block
 (source / method / uncertainty), loaded by `bubble_tea_sim.library` and validated
-in `tests/test_v2_layers.py`.
+in `tests/test_layers.py`.
 
-## Resource model (v2)
+## Resource model (layer configurations)
 
-A v2 configuration with a `network` uses an event-driven scheduler instead of
-the v1 future-reservation rule:
+A configuration with a `network` uses an event-driven scheduler instead of
+the baseline future-reservation rule:
 
 * **Staff units** carry a role, a skill set (`"all"` means any), and availability
   windows (empty = all day). A break splits one unit's window into two spans; a
@@ -142,7 +142,7 @@ sale (`"lose"`) or serves a substitute product (`"substitute"`).
   `Policy.starvation_cap` to the top priority class. `Metrics.fairness_gap` is
   the spread of mean LOS across customer classes.
 
-## Determinism contract (v2)
+## Determinism contract (layer configurations)
 
 * The arrival stream is generated up front. With a demand curve the engine uses
   thinning: candidates arrive at `lambda_max`, and each candidate is accepted
@@ -159,9 +159,9 @@ sale (`"lose"`) or serves a substitute product (`"substitute"`).
 * Runs that leave customers in the shop at closing time mark them `closed`
   (`Metrics.stranded`) instead of dropping them; flow conservation holds.
 
-## Validation strategy (v2)
+## Validation strategy (layer configurations)
 
-1. **Degenerate equivalence** — `baseline_flat` must equal the v1 anchors
+1. **Degenerate equivalence** — `baseline_flat` must equal the baseline anchors
    exactly; tests compare full metric dictionaries.
 2. **Invariants** — flow conservation on every scenario file, non-negative
    timings, utilisation invariance across delivery policies, staged jobs always
@@ -180,9 +180,9 @@ sale (`"lose"`) or serves a substitute product (`"substitute"`).
 * **New metric**: add it in `Metrics` and `_build_metrics()`, then to
   `stats.flatten_metrics()` so sweeps pick it up automatically.
 * **New scenario**: add a JSON file under `data/scenarios/` with a provenance
-  block; `tests/test_v2_layers.py` automatically runs it.
+  block; `tests/test_layers.py` automatically runs it.
 * **New station/route**: add a `StationSpec` and a route in the scenario file;
   no engine code is needed.
 * **New layer**: prefer a new `data_spec` dataclass plus a `SimConfig` field, so
-  the v1 path stays untouched and `legacy_compat` keeps its guarantee.
+  the baseline path stays untouched and `baseline_compat` keeps its guarantee.
 

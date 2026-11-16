@@ -1,6 +1,6 @@
 """Behaviour mechanisms: balking, reneging and melt-risk dynamic priority.
 
-The numbers here are *study* values (unified engine), not legacy anchors. They
+The numbers here are *study* values (unified engine), not original anchors. They
 test that each mechanism exists, moves in the expected direction and keeps the
 customer accounting consistent.
 """

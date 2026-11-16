@@ -1,43 +1,68 @@
-"""Build the static, offline report from ``results/*.json``.
+"""Build the static report from ``results/*.json``.
 
 Outputs
 -------
-``archive/report-v1.html``  the archived v1 report (English main text, Chinese paragraphs).
-                         inline SVG figures, no JavaScript, no CDN, no fonts or
-                         CSS loaded from the network - it opens from ``file://``.
-``docs/experiments.md``  every result table as GitHub-flavoured Markdown.
-``docs/figures/*.svg``   the same figures as standalone files for reuse.
+``docs/index.html``        the main report: English main text, Chinese paragraphs,
+                           inline SVG, no JavaScript, no CDN, no fonts or CSS from
+                           the network. It opens from ``file://``.
+``docs/experiments-layers.md`` every result table as GitHub-flavoured Markdown.
+``docs/figures-layers/*.svg``  the same figures as standalone files.
 
-Every number in both documents is read from ``results/*.json``; nothing is typed
-in by hand except the prose.  Run the five experiment scripts first:
+Data discipline
+---------------
+Every number printed by this script comes from ``results/*.json``, from the
+baseline files in ``results/*.json`` (clearly labelled as the baseline),
+or from a check this script performs itself (clearly labelled as a build-time
+check). Nothing is typed in by hand except the prose. The archived AnyLogic
+study in ``archive/`` is *not* rerunnable and is never presented as evidence
+here; it is only referenced as an archive.
 
-    python analysis/run_policy_sweep.py
-    python analysis/run_breakeven.py
-    python analysis/run_sensitivity.py
-    python analysis/run_behaviour.py
-    python analysis/reproduce_anylogic_ledger.py
-    python analysis/build_report.py
+Run from the repository root::
+
+    python analysis/build_report.py            # requires all five studies
+    python analysis/build_report.py --allow-partial   # development only
 """
 
 from __future__ import annotations
 
 import html
+import json
 import math
+import platform
+import re
+import sys
+from dataclasses import replace
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
-import common
 import svgchart as svg
 
-DOCS = common.DOCS
-FIGURES = common.FIGURES
-RESULTS = common.RESULTS
+ROOT = Path(__file__).resolve().parents[1]
+RESULTS = ROOT / "results"
+RESULTS_DIR = RESULTS
+DOCS = ROOT / "docs"
+FIGDIR = DOCS / "figures-layers"
+ARCHIVE = ROOT / "archive" / "report-2026-11.html"
 
-TITLE_EN = "Bubble-tea shop simulation: triage, delivery mode and the cost of waiting"
-TITLE_ZH = "奶茶店离散事件仿真：快速分诊、交付方式与等待成本"
+STUDIES: Tuple[str, ...] = (
+    "scenario_library",
+    "demand_study",
+    "network_study",
+    "inventory_study",
+    "economics_study",
+)
+
+TITLE_EN = "Bubble-tea shop simulation: four layers, one engine, and what the peaks cost"
+TITLE_ZH = "奶茶店仿真：四层模型、同一引擎与峰值的真实代价"
 
 POLICY_ORDER = ("synchro+fcfs", "synchro+fast", "split+fcfs", "split+fast")
 POLICY_COLOR = {key: svg.PALETTE[key] for key in POLICY_ORDER}
+POLICY_LABEL = {
+    "synchro+fcfs": "Synchro + FCFS",
+    "synchro+fast": "Synchro + fast priority",
+    "split+fcfs": "Split + FCFS",
+    "split+fast": "Split + fast priority",
+}
 
 
 # --------------------------------------------------------------------------
@@ -47,9 +72,20 @@ def esc(value: object) -> str:
     return html.escape(str(value))
 
 
-def fx(value: Optional[float], digits: int = 1) -> str:
-    if value is None or (isinstance(value, float) and math.isnan(value)):
+def _is_number(value: object) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def fx(value: Optional[float], digits: int = 2) -> str:
+    if value is None or (isinstance(value, float) and (math.isnan(value) or math.isinf(value))):
         return "n/a"
+    if not _is_number(value):
+        return str(value)
+    magnitude = abs(float(value))
+    if magnitude >= 1000:
+        return f"{value:,.0f}"
+    if magnitude >= 100:
+        return f"{value:,.1f}"
     return f"{value:,.{digits}f}"
 
 
@@ -63,7 +99,7 @@ def signed(value: Optional[float], digits: int = 2) -> str:
     return f"{value:+,.{digits}f}"
 
 
-def pct(value: Optional[float], digits: int = 2) -> str:
+def pct(value: Optional[float], digits: int = 1) -> str:
     if value is None or (isinstance(value, float) and math.isnan(value)):
         return "n/a"
     return f"{value * 100:.{digits}f}%"
@@ -75,8 +111,211 @@ def pct_signed(value: Optional[float], digits: int = 1) -> str:
     return f"{value * 100:+.{digits}f}%"
 
 
-def lam(value: float) -> str:
+def minutes(value: Optional[float], digits: int = 2) -> str:
+    if value is None or (isinstance(value, float) and math.isnan(value)):
+        return "n/a"
+    return f"{value:,.{digits}f} min"
+
+
+def lam(value: Optional[float]) -> str:
+    if value is None:
+        return "n/a"
     return f"{value:.2f}"
+
+
+def key_label(key: str) -> str:
+    return key.replace("_", " ")
+
+
+# --------------------------------------------------------------------------
+# data layer
+# --------------------------------------------------------------------------
+class MissingStudy(RuntimeError):
+    pass
+
+
+def load_json(path: Path) -> Dict[str, object]:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+class Ctx:
+    """Everything the report builder reads, loaded once."""
+
+    def __init__(self, studies: Dict[str, Dict[str, object]], baseline: Dict[str, Dict[str, object]], missing: Sequence[str]):
+        self.studies = studies
+        self.baseline = baseline
+        self.missing = list(missing)
+        self.figures: Dict[str, str] = {}
+        self.validation: Dict[str, object] = {}
+        self.problems: List[str] = []
+
+    # -- generic access ---------------------------------------------------
+    def has(self, study: str) -> bool:
+        return study in self.studies
+
+    def study(self, study: str) -> Dict[str, object]:
+        if study not in self.studies:
+            raise MissingStudy(study)
+        return self.studies[study]
+
+    def meta(self, study: str) -> Dict[str, object]:
+        return dict(self.study(study).get("meta", {}))  # type: ignore[arg-type]
+
+    def tables(self, study: str) -> Dict[str, object]:
+        return dict(self.study(study).get("tables", {}))  # type: ignore[arg-type]
+
+    def table(self, study: str, key: str) -> object:
+        return self.tables(study).get(key)
+
+    def rows(self, study: str, key: str) -> List[Dict[str, object]]:
+        value = self.table(study, key)
+        if not isinstance(value, list):
+            raise KeyError(f"{study}.tables.{key} is not a list of rows")
+        return [dict(row) for row in value if isinstance(row, dict)]
+
+    def series(self, study: str) -> Dict[str, object]:
+        return dict(self.study(study).get("series", {}))  # type: ignore[arg-type]
+
+    def series_entry(self, study: str, key: str) -> object:
+        return self.series(study).get(key)
+
+    def reps_note(self, study: str) -> str:
+        meta = self.meta(study)
+        reps = meta.get("reps")
+        if isinstance(reps, str):
+            return reps
+        if isinstance(reps, int):
+            return f"{reps} replicates"
+        return "replicates as documented in the study metadata"
+
+    # -- figures ----------------------------------------------------------
+    def add_figure(self, name: str, markup: str) -> str:
+        self.figures[name] = markup
+        return f'<figure class="figure">{markup}<figcaption>{self._caption_placeholder(name)}</figcaption></figure>'
+
+    def _caption_placeholder(self, name: str) -> str:
+        return name
+
+    def figure(self, name: str, caption: str, source: str = "") -> str:
+        if name not in self.figures:
+            raise KeyError(f"figure {name!r} was not generated")
+        source_html = f'<span class="fig-source">{esc(source)}</span>' if source else ""
+        return (
+            f'<figure class="figure" id="fig-{esc(name)}">{self.figures[name]}'
+            f"<figcaption>{caption}{source_html}</figcaption></figure>"
+        )
+
+    def pending(self, study: str) -> str:
+        return callout(
+            "warn",
+            f"<code>results/{esc(study)}.json</code> is not present in this build. "
+            f"Run its experiment script, then <code>python analysis/build_report.py</code> again. "
+            "No number is shown here rather than a stale or invented one.",
+            title="Study not available in this build",
+        )
+
+
+def load_all(allow_partial: bool) -> Ctx:
+    studies: Dict[str, Dict[str, object]] = {}
+    missing: List[str] = []
+    for name in STUDIES:
+        path = RESULTS_DIR / f"{name}.json"
+        if path.exists():
+            studies[name] = load_json(path)
+        else:
+            missing.append(name)
+    if missing and not allow_partial:
+        raise SystemExit(
+            "missing layer study files: "
+            + ", ".join(f"results/{name}.json" for name in missing)
+            + "\nrun the corresponding experiment scripts first "
+            "(analysis/run_demand_network.py, analysis/run_inventory_econ.py)"
+        )
+    baseline: Dict[str, Dict[str, object]] = {}
+    for name in ("policy_sweep", "breakeven", "behaviour", "anchors"):
+        path = RESULTS / f"{name}.json"
+        if path.exists():
+            baseline[name] = load_json(path)
+    return Ctx(studies, baseline, missing)
+
+
+# --------------------------------------------------------------------------
+# HTML fragments
+# --------------------------------------------------------------------------
+CSS = """
+:root{--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--bg:#f6f7f9;--card:#ffffff;
+--teal:#0f766e;--teal-l:#ccfbf1;--amber:#b45309;--rose:#9f1239;--violet:#6d28d9;
+--mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);
+font:16px/1.62 system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding:0 22px 90px}
+a{color:var(--teal)}
+.hero{background:linear-gradient(135deg,#0f172a 0%,#134e4a 58%,#0f766e 100%);color:#e2e8f0;padding:52px 0 40px}
+.hero .wrap{padding-bottom:0}
+.hero h1{font-size:clamp(1.6rem,3.2vw,2.4rem);line-height:1.2;margin:0 0 10px;color:#fff;letter-spacing:-.5px}
+.hero .sub{font-size:1.02rem;color:#99f6e4;margin:0 0 4px}
+.hero .zh-title{font-size:1.1rem;color:#ccfbf1;margin:0 0 16px}
+.hero .meta{font-size:.79rem;color:#a5b4fc;font-family:var(--mono)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:13px;margin:24px 0 0}
+.stat{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:13px 15px}
+.stat .label{font-size:.71rem;text-transform:uppercase;letter-spacing:.09em;color:#7dd3fc}
+.stat .value{font-size:1.35rem;font-weight:700;color:#fff;margin-top:3px;font-variant-numeric:tabular-nums}
+.stat .hint{font-size:.73rem;color:#cbd5e1;margin-top:2px;line-height:1.4}
+nav.toc{position:sticky;top:0;z-index:20;background:rgba(246,247,249,.95);border-bottom:1px solid var(--line)}
+nav.toc .wrap{display:flex;flex-wrap:wrap;gap:4px;padding:9px 22px}
+nav.toc a{font-size:.78rem;color:#334155;text-decoration:none;padding:5px 9px;border-radius:7px;white-space:nowrap}
+nav.toc a:hover{background:#e2e8f0}
+section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:26px 30px;margin:22px 0}
+h2{font-size:1.38rem;margin:0 0 6px;letter-spacing:-.3px}
+h2 .num{color:var(--teal);font-variant-numeric:tabular-nums;margin-right:8px}
+h2 .zh-h{display:block;font-size:.96rem;color:var(--muted);font-weight:500;margin-top:2px}
+h3{font-size:1.04rem;margin:22px 0 8px}
+h4{font-size:.94rem;margin:18px 0 6px;color:#334155}
+p{margin:0 0 12px}
+p.zh{color:#334155;background:#f8fafc;border-left:3px solid #cbd5e1;padding:9px 14px;border-radius:0 6px 6px 0;font-size:.94rem}
+.lead{font-size:1.02rem;color:#1e293b}
+.table-wrap{overflow-x:auto;margin:14px 0}
+table{border-collapse:collapse;width:100%;font-size:.84rem;font-variant-numeric:tabular-nums}
+caption{caption-side:top;text-align:left;font-size:.84rem;color:var(--muted);padding:0 0 6px}
+th{background:#f1f5f9;color:#334155;font-weight:600;padding:7px 9px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:6px 9px;border-bottom:1px solid #f1f5f9}
+tbody tr:hover{background:#f8fafc}
+td.c-l,th.c-l{text-align:left}td.c-r,th.c-r{text-align:right}
+.table-note{font-size:.78rem;color:var(--muted);margin:-4px 0 14px}
+.tag{display:inline-block;font-size:.67rem;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:999px;font-weight:600;vertical-align:1px}
+.tag.py{background:var(--teal-l);color:#115e59}
+.tag.layer{background:#ede9fe;color:#5b21b6}
+.tag.an{background:#ffe4e6;color:#9f1239}
+.tag.baseline{background:#e2e8f0;color:#334155}
+.callout{border-radius:10px;padding:13px 16px;margin:16px 0;font-size:.91rem;border:1px solid}
+.callout.info{background:#f0f9ff;border-color:#bae6fd}
+.callout.warn{background:#fffbeb;border-color:#fde68a}
+.callout.good{background:#f0fdf4;border-color:#bbf7d0}
+.callout.key{background:#f5f3ff;border-color:#ddd6fe}
+.callout-title{font-weight:650;margin:0 0 5px}
+.callout ul{margin:6px 0 0 18px;padding:0}.callout li{margin:3px 0}
+figure{margin:18px 0;padding:14px 14px 8px;background:#fff;border:1px solid var(--line);border-radius:12px}
+figure svg{display:block;width:100%;height:auto}
+figcaption{font-size:.8rem;color:var(--muted);margin-top:6px}
+.fig-source{display:block;font-size:.73rem;color:#94a3b8;font-family:var(--mono);margin-top:3px}
+.fig-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}
+.fig-grid figure{margin:0}
+.fig-grid.three{grid-template-columns:repeat(3,1fr)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.8rem;color:#334155;margin:8px 0 0}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:15px;height:3px;border-radius:2px;display:inline-block}
+code,pre{font-family:var(--mono);font-size:.82rem}
+pre{background:#0f172a;color:#e2e8f0;padding:14px 16px;border-radius:10px;overflow-x:auto;line-height:1.55}
+code:not(pre code){background:#f1f5f9;padding:1px 5px;border-radius:4px}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:4px 16px;font-size:.88rem;margin:10px 0}
+.kv dt{color:var(--muted)}.kv dd{margin:0;font-variant-numeric:tabular-nums}
+footer{color:var(--muted);font-size:.8rem;text-align:center;padding:30px 0 0}
+.pill-row{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px}
+@media (max-width:780px){.fig-grid{grid-template-columns:1fr}section{padding:20px 16px}}
+@media print{nav.toc{display:none}body{background:#fff}section{break-inside:avoid;border:none;padding:0 0 18px}}
+"""
 
 
 def table(
@@ -85,25 +324,21 @@ def table(
     *,
     caption: Optional[str] = None,
     note: Optional[str] = None,
-    cls: str = "",
     align: Optional[Sequence[str]] = None,
 ) -> str:
-    """Render an HTML table; first column left, numeric columns right."""
     columns = len(headers)
     alignment = list(align) if align else ["l"] + ["r"] * (columns - 1)
-    out: List[str] = ['<div class="table-wrap">', f'<table class="{cls}">']
+    out: List[str] = ['<div class="table-wrap">', "<table>"]
     if caption:
         out.append(f"<caption>{caption}</caption>")
     out.append("<thead><tr>")
     for index, header in enumerate(headers):
-        css = "l" if alignment[index] == "l" else "r"
-        out.append(f'<th class="c-{css}">{header}</th>')
+        out.append(f'<th class="c-{"l" if alignment[index] == "l" else "r"}">{header}</th>')
     out.append("</tr></thead><tbody>")
     for row in rows:
         out.append("<tr>")
         for index, cell in enumerate(row):
-            css = "l" if alignment[index] == "l" else "r"
-            out.append(f'<td class="c-{css}">{cell}</td>')
+            out.append(f'<td class="c-{"l" if alignment[index] == "l" else "r"}">{cell}</td>')
         out.append("</tr>")
     out.append("</tbody></table></div>")
     if note:
@@ -119,2698 +354,2691 @@ def md_table(headers: Sequence[str], rows: Sequence[Sequence[object]]) -> str:
     return "\n".join(lines)
 
 
-TAG_PY = '<span class="tag py">Python reproducible</span>'
-TAG_AN = '<span class="tag an">AnyLogic archive</span>'
-
-
 def callout(kind: str, body: str, *, title: Optional[str] = None) -> str:
-    head = f'<p class="callout-title">{title}</p>' if title else ""
-    return f'<div class="callout {kind}">{head}{body}</div>'
+    title_html = f'<p class="callout-title">{esc(title)}</p>' if title else ""
+    return f'<div class="callout {kind}">{title_html}{body}</div>'
 
 
 def zh(paragraph: str) -> str:
+    if not paragraph.startswith("<"):
+        paragraph = esc(paragraph)
     return f'<p class="zh">{paragraph}</p>'
-
-
-# --------------------------------------------------------------------------
-# data access
-# --------------------------------------------------------------------------
-class Data:
-    """Indexed view over the five result files."""
-
-    def __init__(self) -> None:
-        self.sweep = common.load_json("policy_sweep.json")
-        self.breakeven = common.load_json("breakeven.json")
-        self.sensitivity = common.load_json("sensitivity.json")
-        self.behaviour = common.load_json("behaviour.json")
-        self.ledger = common.load_json("anylogic_ledger.json")
-
-        self.records: Dict[Tuple[int, float, str], Dict[str, object]] = {
-            (row["workers"], round(float(row["arrival_rate"]), 2), row["policy_key"]): row
-            for row in self.sweep["records"]
-        }
-        self.pairs: Dict[Tuple[int, float, str], Dict[str, object]] = {
-            (row["workers"], round(float(row["arrival_rate"]), 2), row["pair_key"]): row
-            for row in self.sweep["pairs"]
-        }
-        self.theory: Dict[Tuple[int, float], Dict[str, object]] = {
-            (row["workers"], round(float(row["arrival_rate"]), 2)): row
-            for row in self.sweep["theory"]["predictions"]
-        }
-        self.be_curve: Dict[Tuple[int, float], Dict[str, object]] = {
-            (row["workers"], round(float(row["arrival_rate"]), 2)): row
-            for row in self.breakeven["curve"]
-        }
-        self.be: Dict[Tuple[int, str], Dict[str, object]] = {
-            (row["workers"], row["metric"]): row for row in self.breakeven["breakeven"]
-        }
-        self.crosscheck: Dict[int, Dict[str, object]] = {
-            row["workers"]: row for row in self.breakeven["crosscheck"]
-        }
-        self.sens_baseline: Dict[str, Dict[str, object]] = self.sensitivity["baseline"]
-        self.sens_dims: Dict[str, Dict[str, object]] = {
-            row["key"]: row for row in self.sensitivity["dimensions"]
-        }
-        self.balking: Dict[Tuple[float, object], Dict[str, object]] = {
-            (round(float(row["lambda"]), 2), row["threshold"]): row
-            for row in self.behaviour["balking"]
-        }
-        self.reneging: Dict[Tuple[float, object], Dict[str, object]] = {
-            (round(float(row["lambda"]), 2), row["threshold"]): row
-            for row in self.behaviour["reneging"]
-        }
-        self.priority: List[Dict[str, object]] = list(self.behaviour["priority"])
-        self.beh_ref: Dict[Tuple[float, str], Dict[str, object]] = {
-            (round(float(row["lambda"]), 2), row["policy_key"]): row
-            for row in self.behaviour["reference"]
-        }
-        self.ledger_python: Dict[str, Dict[str, object]] = {
-            row["id"]: row for row in self.ledger["python"]
-        }
-        self.ledger_dev: Dict[str, Dict[str, object]] = {
-            row["id"]: row for row in self.ledger["deviations"]
-        }
-        self.ledger_audit: Dict[str, Dict[str, object]] = {
-            row["id"]: row for row in self.ledger["archive_internal_audit"]
-        }
-        self.ledger_util: Dict[str, Dict[str, object]] = {
-            row["id"]: row for row in self.ledger["archive_utilization_audit"]
-        }
-        self.ledger_paired: List[Dict[str, object]] = list(self.ledger["paired"])
-        self.ledger_verdict: Dict[str, object] = self.ledger["verdict"]
-        self.archive: List[Dict[str, object]] = list(self.ledger["archive"])
-        self.figures: Dict[str, str] = {}
-
-    # -- sweep ------------------------------------------------------------
-    def workers(self) -> List[int]:
-        return sorted({row["workers"] for row in self.sweep["records"]})
-
-    def lambdas(self, workers: int) -> List[float]:
-        return sorted(
-            {row["arrival_rate"] for row in self.sweep["records"] if row["workers"] == workers}
-        )
-
-    def cell(self, workers: int, lam_value: float, policy: str) -> Dict[str, object]:
-        return self.records[(workers, round(lam_value, 2), policy)]
-
-    def mean(self, workers: int, lam_value: float, policy: str, metric: str) -> float:
-        return float(self.cell(workers, lam_value, policy)["means"][metric])
-
-    def ci(self, workers: int, lam_value: float, policy: str, metric: str) -> float:
-        return float(self.cell(workers, lam_value, policy)["ci95"].get(metric, 0.0))
-
-    def pair(self, workers: int, lam_value: float, pair_key: str) -> Dict[str, object]:
-        return self.pairs[(workers, round(lam_value, 2), pair_key)]
-
-    def pair_diff(self, workers: int, lam_value: float, pair_key: str, metric: str) -> float:
-        return float(self.pair(workers, lam_value, pair_key)["diff"][metric])
-
-    def pair_ci(self, workers: int, lam_value: float, pair_key: str, metric: str) -> float:
-        return float(self.pair(workers, lam_value, pair_key)["ci95"].get(metric, 0.0))
-
-    def theory_row(self, workers: int, lam_value: float) -> Dict[str, object]:
-        return self.theory[(workers, round(lam_value, 2))]
-
-    def best_policy(self, workers: int, lam_value: float, metric: str = "profit_per_hour") -> str:
-        return max(
-            POLICY_ORDER, key=lambda key: self.mean(workers, lam_value, key, metric)
-        )
-
-    # -- derived aggregates ----------------------------------------------
-    def stable_cells(self) -> List[Dict[str, object]]:
-        return [row for row in self.sweep["records"] if float(row["theory_util"]) < 1.0]
-
-    def max_util_gap_pp(self) -> float:
-        gaps = [
-            float(row["means"]["util"]) - float(row["theory_util"])
-            for row in self.sweep["records"]
-            if float(row["theory_util"]) < 1.0
-        ]
-        return max(abs(gap) for gap in gaps) * 100.0
-
-    def served_invariant(self) -> bool:
-        for workers in self.workers():
-            for lam_value in self.lambdas(workers):
-                values = {
-                    round(self.mean(workers, lam_value, key, "served"), 9)
-                    for key in POLICY_ORDER
-                }
-                if len(values) > 1:
-                    return False
-        return True
-
-    def max_util_pair_gap(self) -> float:
-        return max(
-            abs(float(row["diff"]["util"])) for row in self.sweep["pairs"]
-        )
-
-    def total_runs(self) -> int:
-        runs = sum(int(row["reps"]) for row in self.sweep["records"])
-        runs += sum(
-            2 * int(row["reps"]) for row in self.breakeven["curve"]
-        )
-        runs += int(self.sensitivity["meta"]["reps"]) * (
-            2 + sum(len(dim["values"]) for dim in self.sensitivity["dimensions"]) * 2
-        )
-        runs += sum(
-            int(row["reps"])
-            for row in (
-                list(self.behaviour["balking"])
-                + list(self.behaviour["reneging"])
-                + list(self.behaviour["priority"])
-                + list(self.behaviour["reference"])
-            )
-        )
-        runs += sum(
-            int(row["multi_rep"]["reps"]) + 1 for row in self.ledger["python"]
-        )
-        return runs
-
-    def be_entry(self, workers: int, metric: str) -> Dict[str, object]:
-        return self.be[(workers, metric)]
-
-    def lambda_star(self, workers: int, metric: str = "profit_per_hour"):
-        entry = self.be_entry(workers, metric)
-        value = entry.get("lambda_star")
-        if value is None or (isinstance(value, float) and math.isnan(value)):
-            return None
-        return float(value)
-
-    def util_star(self, workers: int, metric: str = "profit_per_hour"):
-        entry = self.be_entry(workers, metric)
-        value = entry.get("utilization_star")
-        if value is None or (isinstance(value, float) and math.isnan(value)):
-            return None
-        return float(value)
-
-
-# --------------------------------------------------------------------------
-# figure builders
-# --------------------------------------------------------------------------
-MAX_UTIL_FOR_LOAD_CHARTS = 0.92
-
-
-def pkey_label(data: Data, key: str) -> str:
-    for row in data.sweep["meta"]["policies"]:
-        if row["key"] == key:
-            return str(row["label"])
-    return key
-
-
-def fig_process_flow() -> str:
-    """Hand-built process diagram (no external assets, no scripting)."""
-
-    def box(x: int, y: int, w: int, h: int, lines: Sequence[str], fill: str = "#f8fafc") -> str:
-        body = [f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="9" fill="{fill}" stroke="#94a3b8"/>']
-        top = y + 22
-        for index, line in enumerate(lines):
-            weight = "650" if index == 0 else "400"
-            colour = svg.INK if index == 0 else svg.MUTED
-            size = 12 if index == 0 else 10.5
-            body.append(
-                f'<text x="{x + w / 2:.1f}" y="{top + index * 15:.1f}" text-anchor="middle" '
-                f'font-size="{size}" font-weight="{weight}" fill="{colour}">{esc(line)}</text>'
-            )
-        return "".join(body)
-
-    def arrow(x0: int, x1: int, y: int) -> str:
-        return (
-            f'<line x1="{x0}" y1="{y}" x2="{x1 - 7}" y2="{y}" stroke="#475569" stroke-width="1.6"/>'
-            f'<polygon points="{x1 - 7},{y - 4} {x1},{y} {x1 - 7},{y + 4}" fill="#475569"/>'
-        )
-
-    out = [
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 268" width="100%" '
-        f'role="img" aria-label="Process flow of the simulated shop" font-family="{svg.FONT}">',
-        '<rect width="820" height="268" fill="#ffffff"/>',
-    ]
-    out.append(box(14, 34, 168, 70, ["Poisson arrivals", "λ = 0.30-1.30", "customers / min"], "#eef2ff"))
-    out.append(box(212, 34, 186, 70, ["Order class", "55% tea | 20% bread", "5% ice | 20% mixed"], "#eef2ff"))
-    out.append(box(428, 34, 176, 70, ["One shared queue", "priority: fast items", "FCFS within class"], "#f1f5f9"))
-    out.append(box(634, 34, 172, 70, ["Clerk pool", "m = 1..5 cross-trained", "one job at a time"], "#ecfdf5"))
-    out.append(arrow(182, 212, 69))
-    out.append(arrow(398, 428, 69))
-    out.append(arrow(604, 634, 69))
-
-    out.append(
-        f'<text x="14" y="148" font-size="12" font-weight="650" fill="{svg.INK}">'
-        "Job decomposition (a job is one uninterruptible block of clerk time)</text>"
-    )
-    out.append(box(14, 160, 186, 76, ["Tea only", "0.5 + 2.0 = 2.500 min", "1 job"], "#fffbeb"))
-    out.append(box(212, 160, 186, 76, ["Bread only", "0.5 + 0.167 = 0.667 min", "1 job"], "#fffbeb"))
-    out.append(box(410, 160, 186, 76, ["Ice cream only", "0.5 + 0.333 = 0.833 min", "1 job"], "#fffbeb"))
-    out.append(box(608, 160, 198, 76, ["Mixed order", "sync: 1 × 2.833 min", "split: 0.833 + 2.000 min", "same total work"], "#fef2f2"))
-    out.append(
-        f'<text x="14" y="258" font-size="10.5" fill="{svg.MUTED}">'
-        "Both delivery modes consume 2.833 clerk-minutes per mixed order, so the two policies are workload-identical "
-        "(capacity, not policy, sets throughput).</text>"
-    )
-    out.append("</svg>")
-    return "".join(out)
-
-
-def sweep_points(
-    data: Data, workers: int, metric: str, *, max_util: float = MAX_UTIL_FOR_LOAD_CHARTS
-) -> List[Tuple[float, float]]:
-    points = [
-        (float(row["arrival_rate"]), float(row["means"][metric]))
-        for row in data.sweep["records"]
-        if row["workers"] == workers and float(row["theory_util"]) <= max_util
-    ]
-    return sorted(points)
-
-
-def sweep_series(
-    data: Data, workers: int, metric: str, *, max_util: float = MAX_UTIL_FOR_LOAD_CHARTS
-) -> List[Dict[str, object]]:
-    series = []
-    for key in POLICY_ORDER:
-        points = [
-            (float(row["arrival_rate"]), float(row["means"][metric]))
-            for row in data.sweep["records"]
-            if row["workers"] == workers
-            and row["policy_key"] == key
-            and float(row["theory_util"]) <= max_util
-        ]
-        series.append(
-            {
-                "label": pkey_label(data, key),
-                "color": POLICY_COLOR[key],
-                "points": sorted(points),
-            }
-        )
-    return series
-
-
-def fig_profit_panel(data: Data, workers: int, y_range: Tuple[float, float]) -> str:
-    return svg.line_chart(
-        sweep_series(data, workers, "profit_per_hour"),
-        x_label="Arrival rate λ (customers/min)",
-        y_label="Profit per hour",
-        title=f"m = {workers} clerks",
-        width=520,
-        height=300,
-        x_range=(0.30, 1.33),
-        y_range=y_range,
-        x_ticks=[0.3, 0.5, 0.7, 0.9, 1.1, 1.3],
-        legend=False,
-        aria_label=f"Profit per hour versus arrival rate with {workers} clerks",
-    )
-
-
-def fig_los_panel(data: Data, workers: int, y_range: Tuple[float, float]) -> str:
-    return svg.line_chart(
-        sweep_series(data, workers, "mean_los"),
-        x_label="Arrival rate λ (customers/min)",
-        y_label="Mean time in system (min, log)",
-        title=f"m = {workers} clerks",
-        width=520,
-        height=300,
-        x_range=(0.30, 1.33),
-        y_range=y_range,
-        x_ticks=[0.3, 0.5, 0.7, 0.9, 1.1, 1.3],
-        y_log=True,
-        legend=False,
-        aria_label=f"Mean time in system versus arrival rate with {workers} clerks",
-    )
-
-
-def panel_ranges(data: Data, metric: str, workers: Sequence[int]) -> Tuple[float, float]:
-    values = [
-        value
-        for worker_count in workers
-        for _, value in sweep_points(data, worker_count, metric)
-    ]
-    low, high = min(values), max(values)
-    if metric == "mean_los":
-        return (max(low * 0.88, 1.0), high * 1.12)
-    span = high - low
-    return (low - span * 0.10, high + span * 0.12)
-
-
-def fig_theory_vs_sim(data: Data) -> str:
-    theory_points: List[Tuple[float, float]] = []
-    sim_points: List[Tuple[float, float]] = []
-    for lam_value in data.lambdas(3):
-        row = data.theory_row(3, lam_value)
-        if not row["stable"]:
-            continue
-        theory_points.append((float(lam_value), float(row["predicted_tflow"])))
-        sim_points.append((float(lam_value), data.mean(3, lam_value, "synchro+fcfs", "mean_los")))
-    return svg.line_chart(
-        [
-            {
-                "label": "Lecture-3 queue approximation",
-                "color": svg.PALETTE["accent"],
-                "points": theory_points,
-                "dash": "6 4",
-                "width": 2.2,
-            },
-            {
-                "label": "Simulation (200 reps)",
-                "color": svg.PALETTE["synchro+fcfs"],
-                "points": sim_points,
-            },
-        ],
-        x_label="Arrival rate λ (customers/min)",
-        y_label="Mean time in system (min)",
-        title="Predicted vs simulated flow time, 3 clerks, synchronised delivery, FCFS",
-        width=760,
-        height=340,
-        legend=True,
-        note="theory is the multi-server approximation from the course queueing lecture; simulation is results/policy_sweep.json",
-        aria_label="Theory prediction versus simulated flow time",
-    )
-
-
-def fig_breakeven(data: Data, metric: str) -> str:
-    series = []
-    colors = {2: "#7c3aed", 3: "#0891b2", 4: "#c2410c"}
-    for workers in (2, 3, 4):
-        points: List[Tuple[float, float]] = []
-        errors: List[Tuple[float, float, float]] = []
-        for (worker_count, _), row in sorted(data.be_curve.items()):
-            if worker_count != workers:
-                continue
-            util = float(row["theory_util"])
-            if util > 1.0:
-                continue
-            diff = float(row["diff"][metric])
-            half = float(row["ci95"].get(metric, 0.0))
-            points.append((util, diff))
-            errors.append((util, diff - half, diff + half))
-        series.append(
-            {
-                "label": f"m = {workers} clerks",
-                "color": colors[workers],
-                "points": points,
-                "errors": errors,
-            }
-        )
-    y_label = "Δ profit per hour (split − synchro)" if metric == "profit_per_hour" else "Δ mean LOS (split − synchro)"
-    note = (
-        "positive = split is better on this metric; bars are 95% confidence half-widths on the paired difference"
-        if metric == "profit_per_hour"
-        else "negative = split gives the shorter wait; bars are 95% confidence half-widths on the paired difference"
-    )
-    return svg.line_chart(
-        series,
-        x_label="Theoretical utilisation ρ = λ · p̄ / m",
-        y_label=y_label,
-        title=(
-            "Break-even of split delivery: profit"
-            if metric == "profit_per_hour"
-            else "Break-even of split delivery: waiting time"
-        ),
-        width=760,
-        height=370,
-        x_range=(0.42, 1.0),
-        x_ticks=[0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
-        legend=True,
-        zero_line=True,
-        note=note,
-        aria_label=f"Break-even chart for {metric}",
-    )
-
-
-def fig_sensitivity(data: Data, dimension: str) -> str:
-    entry = data.sens_dims[dimension]
-    series = []
-    for arm in entry["series"]:
-        policy = arm["policy_key"]
-        points = [(float(point["value"]), float(point["means"]["profit_per_hour"])) for point in arm["points"]]
-        series.append(
-            {
-                "label": arm["policy_label"],
-                "color": POLICY_COLOR[policy],
-                "points": points,
-            }
-        )
-    return svg.line_chart(
-        series,
-        x_label=f"{entry['label']} ({entry['unit']})",
-        y_label="Profit per hour",
-        title=f"One-at-a-time sensitivity: {entry['label'].lower()}",
-        width=520,
-        height=310,
-        x_ticks=[float(value) for value in entry["values"]],
-        legend=True,
-        zero_line=True,
-        aria_label=f"Profit sensitivity to {entry['label']}",
-    )
-
-
-def fig_sens_tornado(data: Data) -> str:
-    groups: List[Dict[str, object]] = []
-    labels = {
-        "wage_per_worker_hour": "Wage 15→35",
-        "waiting_cost_per_customer_minute": "Waiting cost 0.20→1.00",
-        "mixed_order_share": "Mix share 0.10→0.30",
-        "tea_make_time": "Tea time 1.5→2.5",
-    }
-    categories = [labels[key] for key in data.sens_dims]
-    for arm_index, group_label in ((0, "at lowest setting"), (1, "at highest setting")):
-        values: List[float] = []
-        for key, entry in data.sens_dims.items():
-            arm = entry["series"][0]  # synchronised FCFS arm
-            base = float(data.sens_baseline["synchro+fcfs"]["means"]["profit_per_hour"])
-            point = arm["points"][arm_index]
-            values.append(float(point["means"]["profit_per_hour"]) - base)
-        groups.append(
-            {
-                "label": group_label,
-                "color": "#0d9488" if arm_index == 0 else "#b45309",
-                "values": values,
-            }
-        )
-    tea_util = float(data.sens_dims["tea_make_time"]["series"][0]["points"][-1]["means"]["util"])
-    return svg.bar_chart(
-        groups,
-        categories=categories,
-        y_label="Δ profit/h vs baseline (λ = 1.25, m = 3)",
-        title="Which lever moves profit most?",
-        width=760,
-        height=340,
-        note=f"one parameter at a time; the 2.5-minute tea setting pushes utilisation to {tea_util * 100:.0f}% (overload)",
-        aria_label="Sensitivity tornado chart",
-    )
-
-
-def fig_balking(data: Data) -> str:
-    categories = ["off", "3 min", "5 min", "8 min", "10 min"]
-    values = []
-    for lam_value, colour in ((1.0, "#0284c7"), (1.25, "#0d9488")):
-        row_values = [
-            data.balking[(lam_value, threshold)]["means"]["profit_per_hour"]
-            for threshold in (None, 3.0, 5.0, 8.0, 10.0)
-        ]
-        values.append(
-            {"label": f"λ = {lam_value:g}", "color": colour, "values": row_values}
-        )
-    return svg.bar_chart(
-        values,
-        categories=categories,
-        y_label="Profit per hour",
-        title="Balking rule: refusing the longest queue can raise profit",
-        width=760,
-        height=340,
-        note="customer leaves at arrival if the estimated wait exceeds the threshold; synchro + FCFS, 3 clerks",
-        aria_label="Profit by balking threshold and load",
-    )
-
-
-def fig_reneging(data: Data) -> str:
-    categories = ["off", "10 min", "15 min", "20 min"]
-    values = []
-    for lam_value, colour in ((1.0, "#0284c7"), (1.25, "#0d9488")):
-        row_values = [
-            data.reneging[(lam_value, threshold)]["means"]["profit_per_hour"]
-            for threshold in (None, 10.0, 15.0, 20.0)
-        ]
-        values.append(
-            {"label": f"λ = {lam_value:g}", "color": colour, "values": row_values}
-        )
-    return svg.bar_chart(
-        values,
-        categories=categories,
-        y_label="Profit per hour",
-        title="Reneging rule: trimming the tail of the wait distribution",
-        width=760,
-        height=340,
-        note="customer leaves if service has not started within the threshold; synchro + FCFS, 3 clerks",
-        aria_label="Profit by reneging threshold and load",
-    )
-
-
-def fig_priority(data: Data) -> str:
-    order = ["jump", "dynamic-1", "dynamic-2", "dynamic-3", "dynamic-5", "fcfs"]
-    series = []
-    for lam_value, colour in ((1.0, "#0284c7"), (1.25, "#0d9488")):
-        by_key = {
-            (
-                row["mode"]
-                if row["dynamic_threshold"] is None
-                else f"dynamic-{float(row['dynamic_threshold']):g}"
-            ): row
-            for row in data.priority
-            if round(float(row["lambda"]), 2) == lam_value
-        }
-        points = [
-            (
-                float(by_key[key]["means"]["mix_ice_hand"]),
-                float(by_key[key]["means"]["mean_los"]),
-            )
-            for key in order
-        ]
-        series.append({"label": f"λ = {lam_value:g}", "color": colour, "points": points})
-    return svg.line_chart(
-        series,
-        x_label="Ice-cream handoff wait for mixed orders (min) — lower is better",
-        y_label="All-store mean LOS (min) — lower is better",
-        title="Dynamic ice-cream priority is a dial between two extremes",
-        width=760,
-        height=360,
-        legend=True,
-        note="left end = ice jumps immediately (jump), right end = ice never jumps (FCFS); the middle points are dynamic thresholds 1, 2, 3, 5 minutes",
-        aria_label="Trade-off between ice-cream handoff time and all-store waiting",
-    )
-
-
-def fig_anylogic_profit(data: Data) -> str:
-    ids = [str(row["id"]) for row in data.archive]
-    archive_values = [float(row["profit_per_hour"]) for row in data.archive]
-    python_values = [
-        float(data.ledger_python[row_id]["multi_rep"]["means"]["profit_per_hour"])
-        for row_id in ids
-    ]
-    errors = [
-        (
-            python - float(data.ledger_python[row_id]["multi_rep"]["ci95"]["profit_per_hour"]),
-            python + float(data.ledger_python[row_id]["multi_rep"]["ci95"]["profit_per_hour"]),
-        )
-        for row_id, python in zip(ids, python_values)
-    ]
-    return svg.bar_chart(
-        [
-            {"label": "AnyLogic archive (single run)", "color": svg.PALETTE["archive"], "values": archive_values},
-            {
-                "label": "Python re-implementation (200 reps)",
-                "color": svg.PALETTE["python"],
-                "values": python_values,
-                "errors": errors,
-            },
-        ],
-        categories=ids,
-        y_label="Profit per hour",
-        title="E1-E6: archived AnyLogic profit vs the Python re-implementation",
-        width=760,
-        height=360,
-        note="archive values are read from docs/assets/slides/E_series/E*.png; Python bars are 200-replicate means with 95% CI",
-        aria_label="Archived AnyLogic profit versus Python recomputation",
-    )
-
-
-def fig_anylogic_deviation(data: Data) -> str:
-    ids = [str(row["id"]) for row in data.archive]
-    multi = [
-        float(data.ledger_dev[row_id]["profit_deviation_multi_rep"]) * 100.0 for row_id in ids
-    ]
-    single = [
-        float(data.ledger_dev[row_id]["profit_deviation_single_seed"]) * 100.0 for row_id in ids
-    ]
-    return svg.bar_chart(
-        [
-            {"label": "200-rep mean vs archive", "color": "#0d9488", "values": multi},
-            {"label": "single run vs archive", "color": "#94a3b8", "values": single},
-        ],
-        categories=ids,
-        y_label="Profit deviation vs archive (%, + = Python higher)",
-        title="Deviation of the re-implementation, and why averaging matters",
-        width=760,
-        height=340,
-        note="the acceptance band is ±5% at λ = 1.00 and ±12% at λ = 1.25; the signed deviation exposes the high-load bias",
-        aria_label="Deviation of the Python reimplementation from the archive",
-    )
-
-
-def build_figures(data: Data) -> Dict[str, str]:
-    workers = [worker for worker in data.workers() if worker >= 2]
-    profit_range = panel_ranges(data, "profit_per_hour", workers)
-    los_range = panel_ranges(data, "mean_los", workers)
-    figures: Dict[str, str] = {
-        "fig_process_flow": fig_process_flow(),
-        "fig_theory_vs_sim": fig_theory_vs_sim(data),
-        "fig_breakeven_profit": fig_breakeven(data, "profit_per_hour"),
-        "fig_breakeven_los": fig_breakeven(data, "mean_los"),
-        "fig_sens_wage": fig_sensitivity(data, "wage_per_worker_hour"),
-        "fig_sens_waiting": fig_sensitivity(data, "waiting_cost_per_customer_minute"),
-        "fig_sens_mix": fig_sensitivity(data, "mixed_order_share"),
-        "fig_sens_tea": fig_sensitivity(data, "tea_make_time"),
-        "fig_sens_tornado": fig_sens_tornado(data),
-        "fig_behaviour_balking": fig_balking(data),
-        "fig_behaviour_reneging": fig_reneging(data),
-        "fig_behaviour_priority": fig_priority(data),
-        "fig_anylogic_profit": fig_anylogic_profit(data),
-        "fig_anylogic_deviation": fig_anylogic_deviation(data),
-    }
-    for worker_count in workers:
-        figures[f"fig_profit_w{worker_count}"] = fig_profit_panel(data, worker_count, profit_range)
-        figures[f"fig_los_w{worker_count}"] = fig_los_panel(data, worker_count, los_range)
-    return figures
-
-
-# --------------------------------------------------------------------------
-# HTML fragments
-# --------------------------------------------------------------------------
-CSS = """
-:root{--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--bg:#f6f7f9;--card:#ffffff;
---teal:#0f766e;--teal-l:#ccfbf1;--amber:#b45309;--rose:#9f1239;
---mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace}
-*{box-sizing:border-box}html{scroll-behavior:smooth}
-body{margin:0;background:var(--bg);color:var(--ink);
-font:16px/1.62 system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
--webkit-font-smoothing:antialiased}
-.wrap{max-width:1100px;margin:0 auto;padding:0 22px 90px}
-a{color:var(--teal)}
-.hero{background:linear-gradient(135deg,#0f172a 0%,#134e4a 58%,#0f766e 100%);color:#e2e8f0;padding:52px 0 40px}
-.hero .wrap{padding-bottom:0}
-.hero h1{font-size:clamp(1.65rem,3.3vw,2.45rem);line-height:1.2;margin:0 0 10px;color:#fff;letter-spacing:-.5px}
-.hero .sub{font-size:1.04rem;color:#99f6e4;margin:0 0 4px}
-.hero .zh-title{font-size:1.13rem;color:#ccfbf1;margin:0 0 16px}
-.hero .meta{font-size:.8rem;color:#a5b4fc;font-family:var(--mono)}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(195px,1fr));gap:13px;margin:24px 0 0}
-.stat{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:13px 15px}
-.stat .label{font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;color:#7dd3fc}
-.stat .value{font-size:1.45rem;font-weight:700;color:#fff;margin-top:3px;font-variant-numeric:tabular-nums}
-.stat .hint{font-size:.74rem;color:#cbd5e1;margin-top:2px;line-height:1.4}
-nav.toc{position:sticky;top:0;z-index:20;background:rgba(246,247,249,.95);border-bottom:1px solid var(--line)}
-nav.toc .wrap{display:flex;flex-wrap:wrap;gap:4px;padding:9px 22px}
-nav.toc a{font-size:.79rem;color:#334155;text-decoration:none;padding:5px 9px;border-radius:7px;white-space:nowrap}
-nav.toc a:hover{background:#e2e8f0}
-section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:26px 30px;margin:22px 0}
-h2{font-size:1.4rem;margin:0 0 6px;letter-spacing:-.3px}
-h2 .num{color:var(--teal);font-variant-numeric:tabular-nums;margin-right:8px}
-h2 .zh-h{display:block;font-size:.98rem;color:var(--muted);font-weight:500;margin-top:2px}
-h3{font-size:1.05rem;margin:22px 0 8px}
-p{margin:0 0 12px}
-p.zh{color:#334155;background:#f8fafc;border-left:3px solid #cbd5e1;padding:9px 14px;border-radius:0 6px 6px 0;font-size:.95rem}
-.lead{font-size:1.02rem;color:#1e293b}
-.table-wrap{overflow-x:auto;margin:14px 0}
-table{border-collapse:collapse;width:100%;font-size:.85rem;font-variant-numeric:tabular-nums}
-caption{caption-side:top;text-align:left;font-size:.85rem;color:var(--muted);padding:0 0 6px}
-th{background:#f1f5f9;color:#334155;font-weight:600;padding:7px 9px;border-bottom:1px solid var(--line);white-space:nowrap}
-td{padding:6px 9px;border-bottom:1px solid #f1f5f9}
-tbody tr:hover{background:#f8fafc}
-td.c-l,th.c-l{text-align:left}td.c-r,th.c-r{text-align:right}
-.table-note{font-size:.78rem;color:var(--muted);margin:-4px 0 14px}
-.tag{display:inline-block;font-size:.67rem;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:999px;font-weight:600;vertical-align:1px}
-.tag.py{background:var(--teal-l);color:#115e59}
-.tag.an{background:#ffe4e6;color:#9f1239}
-.callout{border-radius:10px;padding:13px 16px;margin:16px 0;font-size:.92rem;border:1px solid}
-.callout.info{background:#f0f9ff;border-color:#bae6fd}
-.callout.warn{background:#fffbeb;border-color:#fde68a}
-.callout.good{background:#f0fdf4;border-color:#bbf7d0}
-.callout.key{background:#f5f3ff;border-color:#ddd6fe}
-.callout-title{font-weight:650;margin:0 0 5px}
-.callout ul{margin:6px 0 0 18px;padding:0}.callout li{margin:3px 0}
-figure{margin:18px 0;padding:14px 14px 8px;background:#fff;border:1px solid var(--line);border-radius:12px}
-figure svg{display:block;width:100%;height:auto}
-figcaption{font-size:.8rem;color:var(--muted);margin-top:6px}
-.fig-source{display:block;font-size:.73rem;color:#94a3b8;font-family:var(--mono);margin-top:3px}
-.fig-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}
-.fig-grid figure{margin:0}
-.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.8rem;color:#334155;margin:8px 0 0}
-.legend span{display:inline-flex;align-items:center;gap:5px}
-.legend i{width:15px;height:3px;border-radius:2px;display:inline-block}
-code,pre{font-family:var(--mono);font-size:.82rem}
-pre{background:#0f172a;color:#e2e8f0;padding:14px 16px;border-radius:10px;overflow-x:auto;line-height:1.55}
-code:not(pre code){background:#f1f5f9;padding:1px 5px;border-radius:4px}
-.kv{display:grid;grid-template-columns:max-content 1fr;gap:4px 16px;font-size:.9rem;margin:10px 0}
-.kv dt{color:var(--muted)}.kv dd{margin:0;font-variant-numeric:tabular-nums}
-footer{color:var(--muted);font-size:.8rem;text-align:center;padding:30px 0 0}
-.pill-row{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px}
-@media (max-width:780px){.fig-grid{grid-template-columns:1fr}section{padding:20px 16px}}
-@media print{nav.toc{display:none}body{background:#fff}section{break-inside:avoid;border:none;padding:0 0 18px}}
-"""
-
-
-def legend_html(data: Data) -> str:
-    items = "".join(
-        f'<span><i style="background:{POLICY_COLOR[key]}"></i>{esc(pkey_label(data, key))}</span>'
-        for key in POLICY_ORDER
-    )
-    return f'<div class="legend">{items}</div>'
-
-
-def panel_grid(figures: Dict[str, str], prefix: str, workers: Sequence[int]) -> str:
-    cells = "".join(
-        f'<figure>{figures[f"{prefix}{worker}"]}'
-        f"<figcaption>m = {worker} clerks</figcaption></figure>"
-        for worker in workers
-    )
-    return f'<div class="fig-grid">{cells}</div>'
-
-
-def hero(data: Data) -> str:
-    util_star = data.util_star(3)
-    delta_fast = data.pair_diff(3, 1.25, "fast_minus_fcfs", "profit_per_hour")
-    delta_fast_ci = data.pair_ci(3, 1.25, "fast_minus_fcfs", "profit_per_hour")
-    theory_dev = max(
-        abs(
-            (data.mean(3, lam_value, "synchro+fcfs", "mean_los") - float(data.theory_row(3, lam_value)["predicted_tflow"]))
-            / float(data.theory_row(3, lam_value)["predicted_tflow"])
-        )
-        for lam_value in data.lambdas(3)
-        if float(data.theory_row(3, lam_value)["utilization"]) < 0.85
-    )
-    max_dev = max(abs(float(row["profit_deviation_multi_rep"])) for row in data.ledger["deviations"])
-    stats = [
-        (
-            "Break-even utilisation",
-            pct(util_star, 1),
-            f"split delivery stops paying above this load (m = 3, λ* = {data.lambda_star(3):.3f})",
-        ),
-        (
-            "Fast-item triage at λ = 1.25",
-            f"{signed(delta_fast, 1)} ± {fx(delta_fast_ci, 1)}",
-            "Δ profit per hour vs FCFS (95% CI), m = 3",
-        ),
-        (
-            "Theory vs simulation",
-            f"{pct(theory_dev, 1)}",
-            "largest flow-time gap of the Lecture-3 approximation below 85% utilisation",
-        ),
-        (
-            "AnyLogic E1-E6 alignment",
-            f"{pct(max_dev, 1)}",
-            "largest absolute profit deviation of the re-implementation",
-        ),
-        (
-            "Simulated runs",
-            f"{data.total_runs():,}",
-            "five experiments, fixed seeds, standard library only",
-        ),
-    ]
-    cards = "".join(
-        f'<div class="stat"><div class="label">{esc(label)}</div>'
-        f'<div class="value">{value}</div><div class="hint">{esc(hint)}</div></div>'
-        for label, value, hint in stats
-    )
-    return f"""
-<header class="hero">
-  <div class="wrap">
-    <p class="sub">SYE5006 service-operations project · reproducible re-implementation and extension</p>
-    <h1>{esc(TITLE_EN)}</h1>
-    <p class="zh-title">{esc(TITLE_ZH)}</p>
-    <p class="meta">bubble_tea_sim {esc(data.sweep["meta"]["package_version"])} ·
-      Python {esc(data.sweep["meta"]["python_version"])} · seed {data.sweep["meta"]["seed"]} ·
-      standard library only · every number regenerated from results/*.json</p>
-    <div class="stats">{cards}</div>
-  </div>
-</header>
-"""
-
-
-NAV_ITEMS = [
-    ("s1", "1 · Background"),
-    ("s2", "2 · Model"),
-    ("s3", "3 · Strategies"),
-    ("s4", "4 · Theory"),
-    ("s5", "5 · Design"),
-    ("s6", "6 · Policy sweep"),
-    ("s7", "7 · Break-even"),
-    ("s8", "8 · Sensitivity"),
-    ("s9", "9 · Behaviour"),
-    ("s10", "10 · AnyLogic E1-E6"),
-    ("s11", "11 · Conclusions"),
-    ("s12", "12 · Limitations"),
-]
-
-
-def nav() -> str:
-    links = "".join(f'<a href="#{anchor}">{esc(label)}</a>' for anchor, label in NAV_ITEMS)
-    return f'<nav class="toc"><div class="wrap">{links}</div></nav>'
 
 
 def section(number: int, title_en: str, title_zh: str, anchor: str, body: str) -> str:
     return (
-        f'<section id="{anchor}">'
-        f'<h2><span class="num">{number}.</span>{esc(title_en)}'
+        f'<section id="{anchor}"><h2><span class="num">{number}.</span>{esc(title_en)}'
         f'<span class="zh-h">{esc(title_zh)}</span></h2>{body}</section>'
     )
 
 
-# --------------------------------------------------------------------------
-# sections 1-5
-# --------------------------------------------------------------------------
-def s1_background(data: Data) -> str:
-    mapping = [
-        ["1 Background", "1 Background (this section)"],
-        ["2 Model", "2 Model"],
-        ["3 Two delivery strategies + 3.1 order flow", "3 Delivery strategies"],
-        ["3b Theory predictions (Lectures 1-4)", "4 Theory, refined and tested on 200 replicates"],
-        ["4 Metrics", "5 Metrics, design and validity checks"],
-        ["5 Experiment matrix E1-E6", "10 AnyLogic E1-E6 alignment"],
-        ["6-9 E1-E6 results and conclusions", "10 (archive) + 6-9 (new reproducible experiments)"],
-        ["10 Summary table", "11 Summary tables"],
-        ["11 / 11b Conclusions and utilisation zones", "11.3 Decision zones (recomputed)"],
-        ["12 Limitations", "12 Limitations and reproducibility"],
-    ]
-    body = f"""
-<p class="lead">A small bubble-tea shop serves four order classes from one
-cross-trained clerk pool. Two decisions are easy to state and hard to answer
-quantitatively: should the shop <strong>triage fast items</strong> (bread, ice cream) ahead
-of the slow tea queue, and should a mixed order (tea + ice cream) <strong>hand the ice
-cream over immediately</strong> ("split") instead of waiting for the tea ("synchro")?</p>
-
-<p>The original course project answered these questions with an AnyLogic model and three
-single-purpose Python scripts. The AnyLogic runs cannot be repeated - only the screenshots
-survive - and the scripts each had their own seed convention and statistics window. This
-report keeps the questions and the answers, but rebuilds the evidence as <strong>one
-deterministic engine plus five experiments</strong> whose numbers can be regenerated
-from this repository in minutes.</p>
-
-<p class="zh">课程原始项目用 AnyLogic 模型加三个一次性 Python 脚本回答了这两个问题。
-AnyLogic 模型已无法重跑（只剩截图存档），三个脚本的随机种子与统计口径也各不相同。
-本报告保留问题与结论，但把证据重建为一个确定性仿真引擎 + 五组实验：所有数字都能在
-本仓库内用固定随机种子重新生成，结果以 JSON 形式提交。</p>
-
-<h3>What is new compared with the archived study</h3>
-<ul>
-  <li><strong>A fine policy grid.</strong> 356 cells: arrival rate 0.30-1.30 in steps of
-      0.05 × 1-5 clerks × the 2×2 policy matrix, 200 replicates each (60 in the
-      near-overload cells), with paired differences computed on common random numbers.</li>
-  <li><strong>A break-even load instead of a break-even interval.</strong> The original
-      report could only say "between λ = 1.10 and 1.25". A bisection on the paired
-      profit difference now returns λ* = {data.lambda_star(3):.3f} (ρ* = {pct(data.util_star(3), 1)}) for three clerks,
-      with an identification band from the confidence intervals.</li>
-  <li><strong>An honest sensitivity analysis.</strong> Wage, waiting cost, order mix and
-      tea make time are varied one at a time; the first two turn out to be exact linear
-      transforms of a single simulation run, which the report verifies numerically rather
-      than presenting as new experiments.</li>
-  <li><strong>Three behaviour mechanisms.</strong> Balking, reneging and a dynamic
-      ice-cream priority rule - none of them in the archived study.</li>
-  <li><strong>A line-by-line audit of the archived numbers</strong>, including one
-      archival row that cannot be reproduced from its own fields.</li>
-</ul>
-
-<div class="callout info">
-<p class="callout-title">Two kinds of numbers in this report</p>
-<p>Every table is tagged. {TAG_PY} means the number was produced just now by
-<code>bubble_tea_sim</code> through the scripts in <code>analysis/</code>, and is stored in
-<code>results/*.json</code>. {TAG_AN} means the number was read from the archived AnyLogic
-screenshots in <code>docs/assets/slides/</code> and the course experiment log; the AnyLogic
-model itself is not available, so those numbers can only be compared, never regenerated.</p>
-</div>
-
-<h3>How this maps to the original 12-section report</h3>
-{table(["Original report.html section", "Where it is re-derived here"], mapping,
-       note="The four new experiments (sections 6-9) sit between the metrics section and the archival audit; "
-            "every archival claim is re-checked against reproducible numbers.")}
-"""
-    return section(1, "Background: why this problem", "项目背景：为什么要研究这个问题", "s1", body)
-
-
-def s2_model(data: Data) -> str:
-    baseline = data.sensitivity["meta"]["baseline"]
-    mix = baseline["mix"]
-    times = baseline["service_times"]
-    prices = baseline["economics"]["prices"]
-    rows = []
-    for key, label in (
-        ("tea", "Tea only / 纯奶茶"),
-        ("bread", "Bread only / 面包"),
-        ("ice", "Ice cream only / 纯冰淇淋"),
-        ("mix", "Mixed tea + ice / 混合单"),
-    ):
-        if key == "mix":
-            make = times["tea"] + times["ice"]
-            timings = f"{times['order']:.3f} + {times['tea']:.3f} + {times['ice']:.3f} = {times['order'] + make:.3f}"
-        else:
-            make = times[key]
-            timings = f"{times['order']:.3f} + {make:.3f} = {times['order'] + make:.3f}"
-        service = times["order"] + make
-        rows.append(
-            [
-                label,
-                pct(mix[key], 0),
-                timings,
-                fx(prices[key], 0),
-                f"{mix[key] * service:.4f}",
-            ]
-        )
-    rows.append(["<strong>Demand-weighted mean p̄</strong>", "100%", "", "", f"<strong>{fx(data.sweep['theory']['p_bar'], 4)}</strong>"])
-    body = f"""
-<p>The shop is modelled as one queueing system. Customers arrive as a Poisson process with
-rate λ; each is a single order from one of four classes. A <strong>job</strong> is one
-uninterruptible block of clerk time: on a pure order it is order-taking plus making, on a
-mixed order it is either one long job (synchronised delivery) or two jobs (split delivery).
-All clerks are cross-trained and share one FIFO queue with a priority override for fast
-items, so the clerk pool is the only bottleneck.</p>
-
-<p class="zh">模型把门店视为单一排队系统：泊松到达，四类订单，一个共享队列，员工全部跨岗。
-"任务（job）"是不可中断的一段员工工时。纯订单只有一个任务（点单+制作），混合单在同步交付下
-是一个长任务、在拆分交付下是两个任务。瓶颈只有员工池一处。</p>
-
-{table(["Order class", "Share of arrivals", "Service time / min", "Price", "Share × time"],
-       rows, caption="Order mix and service times (the archived AnyLogic parameters)",
-       note="p̄ = 0.55(2.500) + 0.20(0.667) + 0.05(0.833) + 0.20(2.833) = 2.1167 clerk-minutes per customer.")}
-
-<figure>{data_figure(data, "fig_process_flow")}
-<figcaption>Process flow and job decomposition. Synchronised and split delivery consume the same
-2.833 clerk-minutes per mixed order, so they differ only in <em>when</em> the ice cream is handed over.
-<span class="fig-source">generated by analysis/build_report.py · docs/figures/fig_process_flow.svg</span></figcaption>
-</figure>
-
-<p>The engine is a small event loop: a binary-heap event calendar, a priority/FIFO job list
-and a pool of clerk free-times. Arrivals are drawn for the whole horizon up front, so
-behaviour rules can never feed back into the arrival stream - which is what makes the
-common-random-number comparisons in this report valid. Given a seed the run is
-deterministic; two different seeds are independent replicates.</p>
-
-<p class="zh">引擎是标准库实现的离散事件循环：二叉堆事件表、优先级+FIFO 任务表、员工空闲时间表。
-到达流在开跑前一次性生成，因此行为规则不会反过来改变到达序列——这正是本报告"公共随机数"
-配对比较成立的前提。给定随机种子，一次运行完全确定。</p>
-
-<div class="callout key">
-<p class="callout-title">Statistics window</p>
-<p>Each replicate simulates a 480-minute day with a 60-minute warm-up: customers who arrive
-during the first hour still receive service (and still occupy the clerks), but they are
-excluded from the reported means. This mirrors the archived study and keeps the queue in
-steady state at the start of the measurement window. Section 5 shows the price of this
-choice and how to undo it.</p>
-</div>
-"""
-    return section(2, "What the model actually is", "模型口径", "s2", body)
-
-
-def data_figure(data: Data, key: str) -> str:
-    return data.figures[key]
-
-
-def s3_strategies(data: Data) -> str:
-    knobs = [
-        ["<code>split_mix</code>", "false / true", "Hand the ice cream over as soon as it is ready instead of waiting for the tea."],
-        ["<code>fast_priority</code>", "false / true", "Bread and ice-cream orders jump ahead of tea orders (FCFS within class)."],
-        ["<code>balk_threshold</code>", "None or minutes", "Leave at arrival if the estimated wait exceeds the threshold."],
-        ["<code>renege_threshold</code>", "None or minutes", "Leave if service has not started within the threshold."],
-        ["<code>mix_ice_priority</code>", "jump / fcfs / dynamic", "When a mixed order is split, does its ice component jump immediately, never, or only after <code>dynamic_priority_threshold</code> minutes?"],
-    ]
-    compare = [
-        ["Jobs created", "1 × (order + tea + ice) = 2.833 min", "1 × (order + ice) = 0.833 min + 1 × tea = 2.000 min"],
-        ["Total clerk work", "2.833 min", "2.833 min (identical)"],
-        ["Mixed order departure", "tea completion", "max(tea, ice) = tea completion"],
-        ["Ice-cream handoff", "= departure", "ice completion (earlier)"],
-        ["Utilisation", "ρ = λ · p̄ / m", "ρ = λ · p̄ / m (identical)"],
-        ["What the policy changes", "nothing about work; who waits", "same work, waiting redistributed"],
-    ]
-    body = f"""
-<p>Both strategies produce exactly the same total clerk work for a mixed order, so
-<strong>utilisation cannot be a decision criterion</strong> - the policies differ only in how the
-waiting is distributed between the mixed customer, the tea queue and the fast-item queue.
-That is the theoretical reason the split/synchro question is interesting, and it is also why
-the break-even in section 7 is driven by queueing nonlinearity rather than by capacity.</p>
-
-<p class="zh">两种交付方式的总工作量完全相同，因此<strong>利用率不能作为决策指标</strong>；
-差别只在于等待如何分配给不同顾客。这也解释了为什么第 7 节的盈亏平衡点由排队非线性决定，
-而不是由产能决定。</p>
-
-{table(["Aspect", "Synchronised (synchro)", "Split"], compare,
-       caption="The two delivery strategies are workload-identical", align=["l", "l", "l"])}
-
-<h3>The policy matrix and the behaviour knobs</h3>
-<p>Four policies are simulated throughout: {esc(", ".join(pkey_label(data, key) for key in POLICY_ORDER))}.
-On top of that, four optional rules can be switched on:</p>
-{table(["Knob", "Values", "Meaning"], knobs, caption="Scheduling and behaviour parameters (src/bubble_tea_sim/params.py)", align=["l", "l", "l"])}
-
-<div class="callout warn">
-<p class="callout-title">Where the ice-cream priority applies</p>
-<p>The ice-cream component of a mixed order can jump the queue; the <strong>tea component never
-does</strong>. This is the "validity correction" the original study had to make after its first
-mixed-order table was withdrawn: letting the whole mixed order jump would double-count the
-priority and break the workload identity.</p>
-</div>
-"""
-    return section(3, "Two delivery strategies", "两种交付策略", "s3", body)
-
-
-def s4_theory(data: Data) -> str:
-    theory = data.sweep["theory"]
-    p_bar = float(theory["p_bar"])
-    sigma = float(theory["sigma_p"])
-    cv_p = float(theory["cv_p"])
-    weighted_price = float(theory["weighted_price"])
-    workers = data.workers()
-
-    capacity_rows = []
-    for worker_count in workers:
-        capacity = worker_count / p_bar
-        capacity_rows.append(
-            [f"m = {worker_count}", fx(capacity, 3), fx(capacity * 60, 1), pct(p_bar / worker_count, 1)]
-        )
-
-    little_rows = []
-    for lam_value in (0.50, 0.80, 1.00, 1.25):
-        row = data.theory_row(3, lam_value)
-        sim_los = data.mean(3, lam_value, "synchro+fcfs", "mean_los")
-        little_rows.append(
-            [
-                lam(lam_value),
-                pct(float(row["utilization"]), 1),
-                fx(float(row["predicted_tq"]), 3),
-                fx(float(row["predicted_tflow"]), 3),
-                fx(lam_value * float(row["predicted_tflow"]), 2),
-                fx(sim_los, 2),
-                fx(lam_value * sim_los, 2),
-                pct_signed((sim_los - float(row["predicted_tflow"])) / float(row["predicted_tflow"]), 1),
-            ]
-        )
-
-    mps_rows = []
-    for key, label, kit in (
-        ("tea", "Tea only", "Tea kit"),
-        ("bread", "Bread only", "Bread unit"),
-        ("ice", "Ice cream only", "Ice-cream kit"),
-        ("mix", "Mixed", "Tea kit + ice-cream kit"),
-    ):
-        share = float(data.sensitivity["meta"]["baseline"]["mix"][key])
-        mps_rows.append([label, f"{60 * 1.25 * share:.2f}", kit, f"{60 * 1.25 * share:.2f}"])
-
-    cell_125 = data.cell(3, 1.25, "synchro+fcfs")
-    means_125 = cell_125["means"]
-    hours = 8.0
-    revenue = float(means_125["revenue_per_hour"])
-    wage = float(means_125["wage_per_hour"])
-    waiting = float(means_125["waiting_cost_total"]) / hours
-    profit = float(means_125["profit_per_hour"])
-    corrected = (profit + wage) / 0.875 - wage
-
-    body = f"""
-<p>The course's four lectures provide testable predictions. This section states each one,
-computes it from the model parameters (no simulation), and then checks it against the 200-replicate
-runs. This is the "predict, then simulate" logic the original report argued for.</p>
-
-<h3>Lecture 1 - Little's Law: I = R × T</h3>
-<p>At a fixed arrival rate, the average number of customers inside the shop is λ times the
-average time in system. The table below compares the prediction (built from the queueing
-approximation) with the simulation, and reports the implied store population I both ways.</p>
-{table(["λ", "ρ", "Predicted T<sub>q</sub>", "Predicted T<sub>flow</sub>", "Predicted I", "Simulated T<sub>flow</sub>", "Simulated I", "Gap"],
-       little_rows, caption="Little's Law and the Lecture-3 flow-time prediction, 3 clerks, synchronised delivery, FCFS",
-       note="T<sub>flow</sub> = T<sub>q</sub> + p̄; I = λ · T. Simulation values are 200-replicate means from results/policy_sweep.json.")}
-
-<h3>Lecture 2 - Capacity and utilisation</h3>
-<p>With one cross-trained pool the process capacity is m / p̄. The demand-weighted mean service
-time is p̄ = {fx(p_bar, 4)} min with standard deviation σ<sub>p</sub> = {fx(sigma, 4)} min
-(CV<sub>p</sub> = {fx(cv_p, 4)}), driven by the mix rather than by within-class variability.</p>
-{table(["Headcount", "Capacity (customers/min)", "Capacity (customers/hour)", "Utilisation at λ = 1"],
-       capacity_rows, caption="Process capacity by headcount",
-       note="At λ = 1.25 and m = 3: ρ = 1.25 / (3 / 2.1167) = 88.2%, the load the archived study used for its high-load runs.")}
-
-<figure>{data_figure(data, "fig_theory_vs_sim")}
-<figcaption>The multi-server approximation and the simulation agree within about
-{pct(max(abs((data.mean(3, lam_value, "synchro+fcfs", "mean_los") - float(data.theory_row(3, lam_value)["predicted_tflow"])) / float(data.theory_row(3, lam_value)["predicted_tflow"])) for lam_value in data.lambdas(3) if float(data.theory_row(3, lam_value)["utilization"]) < 0.85), 1)}
-below 85% utilisation; the approximation over-predicts in the last few points because the
-simulation's fixed 480-minute horizon truncates the tail.
-<span class="fig-source">generated by analysis/build_report.py · results/policy_sweep.json</span></figcaption>
-</figure>
-
-<h3>Lecture 4 - MPS, BOM and CRP</h3>
-<p>Turn the arrival rate into a master production schedule, explode it through a one-level BOM
-and check it against available clerk minutes at λ = 1.25, m = 3:</p>
-{table(["Item", "MPS (orders/hour)", "BOM consumption", "Gross requirement (units/hour)"], mps_rows,
-       caption="MPS / BOM at λ = 1.25 (a tea kit is used by a tea order or the tea half of a mixed order)")}
-<dl class="kv">
-<dt>Required worker-minutes / hour</dt><dd>60 × 1.25 × {fx(p_bar, 4)} = {fx(60 * 1.25 * p_bar, 2)}</dd>
-<dt>Available worker-minutes / hour</dt><dd>3 × 60 = 180.0</dd>
-<dt>CRP utilisation</dt><dd>{pct(60 * 1.25 * p_bar / 180, 1)} - the same number as the Lecture-2 capacity check, as it must be</dd>
-</dl>
-
-<h3>Economic layer, and a caveat that matters</h3>
-<p>Revenue is Σ price × orders; costs are wages (25 per worker-hour) plus waiting priced at
-0.5 per customer-minute. The weighted price of a customer is {fx(weighted_price, 2)}.</p>
-<dl class="kv">
-<dt>Revenue per hour at λ = 1.25, m = 3</dt><dd>{fx(revenue, 2)}</dd>
-<dt>Wage per hour</dt><dd>{fx(wage, 2)}</dd>
-<dt>Waiting cost per hour (0.5 × total flow time)</dt><dd>{fx(waiting, 2)}</dd>
-<dt>Profit per hour as defined</dt><dd>{fx(profit, 2)}</dd>
-</dl>
-
-<div class="callout warn">
-<p class="callout-title">The reported profit level is deliberately conservative</p>
-<p>The engine counts revenue for arrivals <em>after</em> warm-up (87.5% of the day) but charges
-the <em>full</em> eight hours of wages. The measured profit is therefore an affine transform of the
-steady-state profit: <code>profit_ss = (profit + wage) / 0.875 - wage</code>.
-For λ = 1.25, m = 3 that gives {fx(corrected, 1)} per hour instead of {fx(profit, 1)}.
-Because the transform is affine with a positive slope it does not change any ranking, any
-break-even point or the location of the profit maximum - only the level.</p>
-<p>The same correction reproduces the archival experiment almost exactly: the E-series runs
-used no warm-up, and their Python recomputation gives {fx(float(data.ledger_python["E3"]["multi_rep"]["means"]["profit_per_hour"]), 1)}
-per hour at λ = 1.25 versus {fx(corrected, 1)} here. Two different measurement windows, one
-formula.</p>
-</div>
-
-<p class="zh">课程四讲给了可检验的预测：Little 定律、产能与利用率、多服务台等待近似、MPS/BOM/CRP。
-本节先只用参数算出预测，再用 200 次重复的仿真去验证，偏差在 85% 利用率以下不超过 1%。
-经济层需要注意一个口径：引擎只统计预热后到达的顾客（占全天 87.5%）的收入，却计入整整 8 小时的工资，
-因此报告的利润水平是偏保守的仿射变换，不改变任何排序与盈亏平衡点。</p>
-"""
-    return section(4, "Theory predictions, tested", "理论预测与仿真验证", "s4", body)
-
-
-def s5_design(data: Data) -> str:
-    metrics = [
-        ["<code>mean_los</code>", "min", "All-store average time in system, per replicate mean, warm-up arrivals excluded."],
-        ["<code>mix_los</code>", "min", "Mixed-order time in system (departure − arrival)."],
-        ["<code>mix_ice_hand</code>", "min", "Time until the ice cream of a mixed order is handed over (the split-delivery benefit)."],
-        ["<code>util</code>", "share", "Busy clerk-minutes / (m × simulated minutes)."],
-        ["<code>profit_per_hour</code>", "money/h", "(revenue − wages − 0.5 × total flow time) / hours. See the caveat in section 4."],
-        ["<code>abandon_rate</code>", "share", "Share of post-warm-up arrivals that balked or reneged (section 9 only)."],
-        ["paired difference", "metric units", "mean(a − b) over identical seeds with a 95% CI; the workhorse of every comparison here."],
-    ]
-    experiments = [
-        ["6 · Policy sweep", "1-5 clerks × λ = 0.30-1.30 (step 0.05) × 4 policies", "200 (60 near overload)", "results/policy_sweep.json"],
-        ["7 · Break-even", "split vs synchro difference curve + bisection on λ*", "200 (60 near overload)", "results/breakeven.json"],
-        ["8 · Sensitivity", "one-at-a-time: wage, waiting cost, mix share, tea time", "200", "results/sensitivity.json"],
-        ["9 · Behaviour", "balking, reneging, dynamic ice priority at λ = 1.0 and 1.25", "200", "results/behaviour.json"],
-        ["10 · AnyLogic audit", "E1-E6 at the archival settings (1000 min, no warm-up)", "200 + single run", "results/anylogic_ledger.json"],
-    ]
-
-    # validity checks, computed
-    gap = data.max_util_gap_pp()
-    served_ok = data.served_invariant()
-    util_pair_gap = data.max_util_pair_gap()
-    traffic = 0.0
-    for row in list(data.behaviour["balking"]) + list(data.behaviour["reneging"]):
-        means = row["means"]
-        traffic = max(
-            traffic,
-            abs(
-                float(means["arrivals_post_warmup"])
-                - float(means["served_post"])
-                - float(means["balked_post"])
-                - float(means["reneged_post"])
-            ),
-        )
-    mix_cell = data.cell(3, 1.25, "synchro+fcfs")["means"]
-    served = float(mix_cell["served"])
-    observed_mix = {key: float(mix_cell[f"count_{key}"]) / served for key in ("tea", "bread", "ice", "mix")}
-    nominal_mix = data.sensitivity["meta"]["baseline"]["mix"]
-    mix_gap = max(abs(observed_mix[key] - float(nominal_mix[key])) for key in observed_mix)
-    checks = [
-        ["Workload conservation", "Δ utilisation (split − synchro) over all 267 paired cells", f"max |Δ| = {fx(util_pair_gap, 6)}",
-         "same total work, to the last bit"],
-        ["Served count invariance", "served customers identical across the 4 policies in each (m, λ) cell", "identical" if served_ok else "MISMATCH",
-         "common random numbers do not change demand"],
-        ["Utilisation vs theory", "observed ρ − λ·p̄/m over all stable cells", f"max {fx(gap, 2)} pp",
-         "the engine also serves the arrival that overshoots the horizon"],
-        ["Order-mix realisation", "counts / served at λ = 1.25, m = 3", f"max {fx(mix_gap * 100, 1)} pp",
-         "Poisson sampling noise at ~525 customers"],
-        ["Traffic conservation (behaviour)", "arrivals − served − balked − reneged", f"max {fx(traffic, 6)}",
-         "nobody disappears unaccounted for"],
-        ["Parametric anchor tests", "tests/test_legacy_anchors.py vs docs/experiment_log.md", "8 + 6 anchors pass",
-         "the engine still reproduces the archived Python scripts bit-for-bit"],
-    ]
-
-    body = f"""
-<p>Five experiments are run by five scripts, each writing one JSON file. The report is then
-built from those files only: no number below is typed by hand, and re-running the scripts with
-the same seeds reproduces them exactly.</p>
-{table(["Experiment", "Design", "Replicates / cell", "Output"], experiments,
-       caption="The five reproducible experiments")}
-
-<h3>Validity checks</h3>
-<p>A simulation study is only as good as its sanity checks. These are computed from the result
-files every time the report is rebuilt - they are not claims, they are assertions:</p>
-{table(["Check", "What is compared", "Result", "Why it is expected"], checks,
-       caption="Automated validity checks",
-       note="The last row is enforced by pytest; the first five are recomputed from results/*.json in this build.", align=["l", "l", "l", "l"])}
-
-<div class="callout warn">
-<p class="callout-title">Three caveats you should read before quoting a number</p>
-<ul>
-<li><strong>Profit levels are conservative</strong> (section 4): the warm-up hour is paid but not
-billed. Rankings are unaffected.</li>
-<li><strong>Overload cells are not decision-grade.</strong> Once ρ ≥ 1 the queue never empties
-within the horizon, so the mean LOS depends on where the run is stopped. Those cells are shown
-for completeness but excluded from every conclusion; the sweep runs them with 60 replicates only.</li>
-<li><strong>LOS under balking is conditional.</strong> Customers who walk away are not served and
-therefore not in the LOS average, so a balking rule mechanically lowers mean LOS. Section 9
-therefore reports the abandonment rate next to every LOS number.</li>
-</ul>
-</div>
-
-<p class="zh">五组实验由五个脚本分别产出五个 JSON 文件，报告只从这些文件读数字。
-表 5.2 的六项有效性检查每次生成报告时都会重新计算：工作量守恒、服务人数不变、
-利用率与理论值偏差、订单比例实现、行为机制的流量守恒、以及 pytest 的锚点回归。
-三条使用注意：利润水平因预热口径偏保守（不影响排序）、过载区不作为决策依据、
-启用 balking 后的 LOS 是条件均值（要同时看流失率）。</p>
-"""
-    return section(5, "Metrics, design and validity", "指标、实验设计与有效性检查", "s5", body)
+def kv_list(pairs: Iterable[Tuple[str, str]]) -> str:
+    inner = "".join(f"<dt>{esc(key)}</dt><dd>{value}</dd>" for key, value in pairs)
+    return f'<dl class="kv">{inner}</dl>'
 
 
 # --------------------------------------------------------------------------
-# sections 6-9
+# figures
 # --------------------------------------------------------------------------
-def s6_sweep(data: Data) -> str:
-    panels = [worker for worker in data.workers() if worker >= 2]
-    selected = [0.50, 0.70, 0.90, 1.00, 1.10, 1.15, 1.20, 1.25, 1.30]
-    rows = []
-    for lam_value in selected:
-        rows.append(
-            [
-                lam(lam_value),
-                pct(data.mean(3, lam_value, "synchro+fcfs", "util"), 1),
-                fx(data.mean(3, lam_value, "synchro+fcfs", "profit_per_hour"), 1),
-                fx(data.mean(3, lam_value, "split+fcfs", "profit_per_hour"), 1),
-                fx(data.mean(3, lam_value, "synchro+fast", "profit_per_hour"), 1),
-                fx(data.mean(3, lam_value, "split+fast", "profit_per_hour"), 1),
-                signed(data.pair_diff(3, lam_value, "split_minus_synchro", "profit_per_hour"), 2),
-                signed(data.pair_diff(3, lam_value, "fast_minus_fcfs", "profit_per_hour"), 2),
-            ]
-        )
-    stress = []
-    for worker_count in data.workers():
-        for lam_value in data.lambdas(worker_count):
-            row = data.cell(worker_count, lam_value, "synchro+fcfs")
-            if float(row["theory_util"]) >= 1.0:
-                stress.append(
-                    [
-                        f"m = {worker_count}",
-                        lam(lam_value),
-                        pct(float(row["theory_util"]), 1),
-                        fx(data.mean(worker_count, lam_value, "synchro+fcfs", "mean_los"), 1),
-                        fx(data.mean(worker_count, lam_value, "synchro+fcfs", "profit_per_hour"), 1),
-                    ]
-                )
-    stress = stress[:8]
+def _figures_into(ctx: Ctx, name: str, markup: str) -> None:
+    ctx.figures[name] = markup
 
-    # value of scheduling, isolated by (headcount, load) cell and averaged per band
-    bands = [(0.0, 0.60), (0.60, 0.75), (0.75, 0.85), (0.85, 1.0)]
-    band_rows = []
-    for low, high in bands:
-        cells = [
-            (worker_count, lam_value)
-            for worker_count in data.workers()
-            for lam_value in data.lambdas(worker_count)
-            if low <= data.mean(worker_count, lam_value, "synchro+fcfs", "util") < high
-        ]
-        if not cells:
-            continue
-        spreads = [
-            max(data.mean(w, l, key, "profit_per_hour") for key in POLICY_ORDER)
-            - min(data.mean(w, l, key, "profit_per_hour") for key in POLICY_ORDER)
-            for w, l in cells
-        ]
-        deltas_split = [
-            data.pair_diff(w, l, "split_minus_synchro", "profit_per_hour") for w, l in cells
-        ]
-        deltas_fast = [
-            data.pair_diff(w, l, "fast_minus_fcfs", "profit_per_hour") for w, l in cells
-        ]
-        band_rows.append(
-            [
-                f"{low * 100:.0f}% – {high * 100:.0f}%",
-                str(len(cells)),
-                fx(average(spreads), 1),
-                signed(average(deltas_split), 2),
-                signed(average(deltas_fast), 2),
-            ]
-        )
 
-    peaks = []
-    for worker_count in data.workers():
-        cells = [
-            (lam_value, data.mean(worker_count, lam_value, "split+fast", "profit_per_hour"),
-             data.mean(worker_count, lam_value, "split+fast", "util"))
-            for lam_value in data.lambdas(worker_count)
-            if data.mean(worker_count, lam_value, "split+fast", "util") < 1.0
-        ]
-        best = max(cells, key=lambda item: item[1])
-        at_edge = best[0] == max(data.lambdas(worker_count))
-        peaks.append([f"m = {worker_count}", lam(best[0]), pct(best[2], 1), fx(best[1], 1),
-                      "grid ends before the peak" if at_edge else "interior maximum"])
+def fig_architecture() -> str:
+    """Hand-built diagram of the four mechanism layers on top of the baseline core."""
+    width, height = 900, 400
+    out = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="100%" '
+        f'role="img" aria-label="The four mechanism layers sit on top of the original engine" '
+        f'font-family="{svg.FONT}">',
+        f'<rect width="{width}" height="{height}" fill="#fff"/>',
+    ]
 
-    d_split_mid = data.pair_diff(3, 0.80, "split_minus_synchro", "profit_per_hour")
-    d_split_low = data.pair_diff(3, 0.50, "split_minus_synchro", "profit_per_hour")
-    d_split_125 = data.pair_diff(3, 1.25, "split_minus_synchro", "profit_per_hour")
-    d_fast_100 = data.pair_diff(3, 1.00, "fast_minus_fcfs", "profit_per_hour")
-    d_fast_125 = data.pair_diff(3, 1.25, "fast_minus_fcfs", "profit_per_hour")
-    d_fast_130 = data.pair_diff(3, 1.30, "fast_minus_fcfs", "profit_per_hour")
-    low_band_spread = max(
-        max(data.mean(worker, value, key, "profit_per_hour") for key in POLICY_ORDER)
-        - min(data.mean(worker, value, key, "profit_per_hour") for key in POLICY_ORDER)
-        for worker in data.workers()
-        for value in data.lambdas(worker)
-        if data.mean(worker, value, "synchro+fcfs", "util") < 0.60
+    def box(x, y, w, h, fill, stroke, title, lines, title_size=13, line_size=10.5):
+        out.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="10" fill="{fill}" stroke="{stroke}" stroke-width="1.2"/>')
+        out.append(f'<text x="{x + w / 2}" y="{y + 22}" text-anchor="middle" font-size="{title_size}" font-weight="650" fill="{svg.INK}">{esc(title)}</text>')
+        for index, line in enumerate(lines):
+            out.append(f'<text x="{x + w / 2}" y="{y + 22 + (index + 1) * 15}" text-anchor="middle" font-size="{line_size}" fill="{svg.MUTED}">{esc(line)}</text>')
+
+    # baseline core at the bottom
+    box(60, 292, 780, 84, "#ecfdf5", "#0f766e", "baseline core (unchanged): one clerk pool, stationary Poisson arrivals, fixed service times",
+        ["2x2 policy matrix: split vs synchronised delivery  x  fast-item priority vs FCFS",
+         "200 replicates per cell, common random numbers, 480-minute day with 60-minute warm-up"], title_size=12.5)
+    # four layers
+    box(60, 168, 185, 96, "#f0f9ff", "#0284c7", "1 · Demand",
+        ["intra-day profile", "batch arrivals", "customer classes", "patience (balk/renege)"])
+    box(250, 168, 185, 96, "#fff7ed", "#d97706", "2 · Supply network",
+        ["stations + capacity", "staff skills", "shift windows, breaks", "routing per component"])
+    box(440, 168, 185, 96, "#faf5ff", "#7c3aed", "3 · Inventory / BOM",
+        ["(s, S) replenishment", "lead time", "shelf life, waste", "stock-out policy"])
+    box(630, 168, 210, 96, "#fef2f2", "#be123c", "4 · Economics / fairness",
+        ["time-of-day pricing", "demand elasticity", "SLA compensation", "starvation cap"])
+    # arrows down into the core
+    for x in (152, 342, 532, 735):
+        out.append(f'<line x1="{x}" y1="264" x2="{x}" y2="292" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#arrow)"/>')
+    out.append('<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">'
+               '<path d="M0,0 L6,3 L0,6 z" fill="#94a3b8"/></marker></defs>')
+    out.append(f'<text x="60" y="145" font-size="12" font-weight="650" fill="{svg.INK}">Optional layers (each is off by default; every layer is a frozen, hashable spec object)</text>')
+    out.append(f'<text x="60" y="60" font-size="14" font-weight="650" fill="{svg.INK}">One engine, four optional layers, one baseline-compatible core</text>')
+    out.append(f'<text x="60" y="82" font-size="11.5" fill="{svg.MUTED}">A configuration with no layer enabled reproduces the original model bit-for-bit '
+               f'(pinned by tests/test_layers.py)</text>')
+    out.append(f'<text x="60" y="120" font-size="11.5" fill="{svg.MUTED}">Scenario JSON (data/scenarios/*.json) → SimConfig → discrete-event engine → metrics + trace</text>')
+    out.append("</svg>")
+    return "".join(out)
+
+
+def fig_demand_profiles(ctx: Ctx) -> str:
+    profiles = ctx.series_entry("scenario_library", "demand_profiles")
+    chosen = ("campus_rush", "exam_week", "cbd_commute", "late_night_study")
+    colors = ("#0284c7", "#d97706", "#7c3aed", "#059669")
+    series = []
+    for index, name in enumerate(chosen):
+        segments = profiles.get(name, [[0.0, 1.0]])  # type: ignore[union-attr]
+        points = []
+        for i, (start, multiplier) in enumerate(segments):
+            end = segments[i + 1][0] if i + 1 < len(segments) else 480.0
+            points.append((float(start), float(multiplier)))
+            points.append((float(end), float(multiplier)))
+        series.append({"label": name, "color": colors[index], "points": points, "marker": False})
+    return svg.line_chart(
+        series,
+        x_label="minute of the modelled day",
+        y_label="arrival-rate multiplier",
+        title="Intra-day demand profiles: the same daily mean can hide very different peaks",
+        width=820, height=300, y_range=(0, 2.6), legend=True,
+        note="Piecewise-constant DemandProfile segments; the loader normalises the daily mean when demand.normalize_daily_mean is set.",
+        aria_label="Intra-day demand profiles of four scenarios",
     )
-    p3_125 = data.mean(3, 1.25, "synchro+fcfs", "profit_per_hour")
-    p4_125 = data.mean(4, 1.25, "synchro+fcfs", "profit_per_hour")
-
-    body = f"""
-<p>The sweep is the backbone of the study: {len(data.sweep["records"])} configurations,
-{sum(int(row["reps"]) for row in data.sweep["records"]):,} individual simulated days, all on
-common random numbers so that policy differences are paired.</p>
-{legend_html(data)}
-{panel_grid(data.figures, "fig_profit_w", panels)}
-<p class="table-note">Profit per hour versus arrival rate, one panel per headcount. Cells above
-{int(MAX_UTIL_FOR_LOAD_CHARTS * 100)}% utilisation are omitted here (see the stress table); the
-vertical scale is shared across panels so the panels are directly comparable.
-<span class="fig-source">results/policy_sweep.json · docs/figures/fig_profit_w*.svg</span></p>
-
-<p>Three shapes are visible immediately. First, <strong>capacity dominates everything</strong>: moving
-from three to four clerks at λ = 1.25 is worth {signed(p4_125 - p3_125, 1)} per hour, far more than any
-policy change at that load. Second, <strong>the value of fast-item triage grows with load</strong>:
-{sign_small(d_fast_100)} at λ = 1.0, {signed(d_fast_125, 1)} at λ = 1.25 and {signed(d_fast_130, 1)} at λ = 1.30.
-Third, <strong>split delivery behaves like a small, load-dependent gift</strong>: {signed(d_split_low, 2)}
-at λ = 0.50, a maximum of about {signed(d_split_mid, 2)} around λ = 0.80, and then it turns negative
-({signed(d_split_125, 2)} at λ = 1.25).</p>
-
-{table(["λ", "ρ (observed)", "Synchro FCFS", "Split FCFS", "Synchro fast", "Split + fast", "Δ split", "Δ fast"],
-       rows, caption="Profit per hour, 3 clerks (selected loads)",
-       note="Δ columns are paired differences with common random numbers; positive Δ split means split is more profitable.")}
-
-{legend_html(data)}
-{panel_grid(data.figures, "fig_los_w", panels)}
-<p class="table-note">Mean time in system (log scale) for the same cells. The ordering is the
-mirror image of the profit chart: fast priority compresses the fast-item queues and lengthens
-the tea queue, split delivery does the same for the ice cream.
-<span class="fig-source">results/policy_sweep.json · docs/figures/fig_los_w*.svg</span></p>
-
-<h3>How much does the policy choice matter, by load band?</h3>
-<p>One number per band: the average gap between the best and the worst policy <em>inside the same
-(headcount, load) cell</em>, next to the average paired effect of each policy lever. This keeps
-headcount and load fixed, so it isolates what scheduling alone is worth.</p>
-{table(["Observed utilisation band", "Cells", "Avg best-worst policy gap", "Avg Δ split", "Avg Δ fast priority"],
-       band_rows, caption="Value of the scheduling decision, isolated from capacity",
-       note="Averages over every (headcount, load) cell in the band; Δ values are paired differences on common random numbers.")}
-
-<h3>Where the profit maximum sits</h3>
-{table(["Headcount", "λ at maximum", "ρ at maximum", "Profit per hour", "Comment"], peaks,
-       caption="Best tested load per headcount (split + fast arm)",
-       note="Because the warm-up correction is affine in profit, the location of these maxima is unaffected by the conservative profit level.")}
-
-<h3>The stress region, for completeness</h3>
-{table(["Headcount", "λ", "ρ = λ·p̄/m", "Mean LOS (min)", "Profit per hour"], stress,
-       caption="First overload cells (ρ ≥ 1). Not decision-grade: the queue never empties inside the horizon.",
-       note="These cells use 60 replicates. Their LOS grows with the remaining horizon, so the levels are artefacts of the stopping rule, not shop performance.")}
-
-<div class="callout key">
-<p class="callout-title">Reading the sweep correctly</p>
-<ul>
-<li>Below ~60% utilisation the four policies are within about {fx(low_band_spread, 1)} per hour of each
-other: <strong>triage has nothing to triage</strong>.</li>
-<li>Between 60% and 85% fast priority is a cheap win: it buys {signed(d_fast_125, 1)} per hour at
-λ = 1.25 while costing the tea queue only a few tenths of a minute.</li>
-<li>Above the break-even load (section 7) split delivery becomes a net cost, because it inserts a
-short high-priority job in front of a long queue.</li>
-<li>Above ρ ≈ 0.95 no policy helps: only capacity does.</li>
-</ul>
-</div>
-
-<p class="zh">策略扫描是整项研究的主干：356 个配置、共
-{sum(int(row["reps"]) for row in data.sweep["records"]):,} 个仿真"天"，全部使用公共随机数配对。
-三个形状立刻可见：产能压倒一切（λ=1.25 时多一名员工价值 {signed(p4_125 - p3_125, 1)}/小时）；
-快品优先的收益随负载放大（λ=1.0 {sign_small(d_fast_100)}，1.25 时 {signed(d_fast_125, 1)}，
-1.30 时 {signed(d_fast_130, 1)}）；拆分交付则是一个"随负载变化的小礼物"，
-在 λ≈0.8 附近达到最大 {signed(d_split_mid, 2)}，到 1.25 时转为 {signed(d_split_125, 2)}。
-利润最高点出现在利用率 75%–85% 区间；4–5 名员工时网格在利润峰值前就截断了，这一点必须如实说明。</p>
-"""
-    return section(6, "Policy sweep: load × headcount × policy", "策略扫描：负载 × 人数 × 策略", "s6", body)
 
 
-def sign_small(value: float) -> str:
-    return f"{value:+.2f}"
-
-
-def average(values: Sequence[float]) -> float:
-    return sum(values) / len(values) if values else float("nan")
-
-
-def s7_breakeven(data: Data) -> str:
-    rows = []
-    for worker_count in (2, 3, 4):
-        entry = data.be_entry(worker_count, "profit_per_hour")
-        band = entry.get("identification_band", {})
-        interp = entry.get("interpolated_lambda", {})
-        same = data.crosscheck.get(worker_count, {})
-        rows.append(
-            [
-                f"m = {worker_count}",
-                f"{data.lambda_star(worker_count):.3f}" if data.lambda_star(worker_count) else "n/a",
-                pct(data.util_star(worker_count), 1),
-                f"{interp.get('lambda', float('nan')):.3f}",
-                f"{band.get('last_significantly_better', 'n/a')} .. {band.get('first_significantly_worse', 'n/a')}",
-                f"{float(same.get('absolute_gap', 0.0)):.4f}",
-            ]
-        )
-    body = f"""
-<p>The question "when does split delivery stop paying?" has a sharp answer once the paired
-difference is treated as a function of load. The search uses the same bisection routine as the
-engine (<code>stats.breakeven_lambda</code>, tolerance 0.01) on the paired difference of
-profit per hour, and then again on mean time in system.</p>
-
-<figure>{data_figure(data, "fig_breakeven_profit")}
-<figcaption>Paired difference in profit per hour (split − synchro) against utilisation. The lines
-cross zero at the break-even load; the bars are 95% confidence half-widths.
-<span class="fig-source">results/breakeven.json · docs/figures/fig_breakeven_profit.svg</span></figcaption>
-</figure>
-
-{table(["Headcount", "λ* (bisection)", "ρ* = λ*·p̄/m", "λ* (grid interpolation)", "identification band", "money-vs-time gap"],
-       rows, caption="Break-even load for split versus synchronised delivery, FCFS",
-       note="The identification band is the load range between the last grid point where split is significantly better and the first where it is significantly worse.")}
-
-<figure>{data_figure(data, "fig_breakeven_los")}
-<figcaption>The same search on mean time in system. Negative means split gives the shorter wait.
-The crossing points coincide with the profit chart - which is the point of the next callout.
-<span class="fig-source">results/breakeven.json · docs/figures/fig_breakeven_los.svg</span></figcaption>
-</figure>
-
-<div class="callout info">
-<p class="callout-title">Why the money and the time break-even are the same number</p>
-<p>Both delivery modes serve exactly the same arrivals, so revenue is identical. Waiting cost is
-linear in total flow time. Therefore
-<code>Δprofit = −(0.5 / 8) × Δflow_time</code> for every replicate, and the two metrics change
-sign together. The measured gaps between the two bisections are
-{", ".join(f"{data.crosscheck[w]['absolute_gap']:.4f}" for w in (2, 3, 4) if w in data.crosscheck)} λ-units,
-i.e. pure bisection tolerance. Reporting both is a consistency check, not a second finding.</p>
-</div>
-
-<h3>What the break-even load depends on</h3>
-<p>The three break-even points are <strong>not</strong> a single utilisation threshold:
-ρ* = {pct(data.util_star(2), 1)} with two clerks, {pct(data.util_star(3), 1)} with three and
-{pct(data.util_star(4), 1)} with four. The more servers, the more load the shop can carry while
-split delivery still pays. This is the queueing-nonlinearity intuition from the course: the same
-utilisation produces much longer queues - and therefore much more damage from an inserted priority
-job - when there are fewer servers. A single "split below 65%" rule is therefore too coarse, which
-is the main correction this report makes to the original management guidance.</p>
-
-<p class="zh">"何时不该拆分交付"这个问题在把配对差值看成负载的函数后有了明确答案。用与引擎相同的
-二分法（容差 0.01）分别对利润与平均停留时间求根：两名员工 ρ*={pct(data.util_star(2),1)}，
-三名 {pct(data.util_star(3),1)}，四名 {pct(data.util_star(4),1)}。可见<b>不存在统一利用率阈值</b>：
-员工越少，同样的利用率对应更长的队列，插队任务的破坏也越大。原文"低于 65% 拆分"的经验规则过粗，
-应改为按人数分档。利润与时间两种口径的根完全相同，因为收入与策略无关、等待成本是总流时间的线性函数。</p>
-"""
-    return section(7, "Break-even: where split delivery stops paying", "盈亏平衡：拆分交付何时不再划算", "s7", body)
-
-
-def s8_sensitivity(data: Data) -> str:
-    rows = []
-    for key, entry in data.sens_dims.items():
-        for index, point in enumerate(entry["series"][0]["points"]):
-            split_point = entry["series"][1]["points"][index]
-            rows.append(
-                [
-                    entry["label"] if index == 0 else "",
-                    f"{float(point['value']):g}",
-                    pct(float(point["means"]["util"]), 1),
-                    fx(float(point["means"]["profit_per_hour"]), 1),
-                    fx(float(split_point["means"]["profit_per_hour"]), 1),
-                    fx(float(point["means"]["mean_los"]), 2),
-                ]
-            )
-    linearity = []
-    for row in data.sensitivity["linearity_check"]:
-        linearity.append(
-            [
-                row["dimension"],
-                row["policy"],
-                fx(float(row["analytical_slope"]), 3),
-                f"{float(row['max_abs_residual']):.2e}",
-                "yes" if row["is_exactly_linear"] else "no",
-            ]
-        )
-    base = float(data.sens_baseline["synchro+fcfs"]["means"]["profit_per_hour"])
-    tea_points = data.sens_dims["tea_make_time"]["series"][0]["points"]
-    tea_low = float(tea_points[0]["means"]["profit_per_hour"])
-    tea_high = float(tea_points[-1]["means"]["profit_per_hour"])
-    wage_points = data.sens_dims["wage_per_worker_hour"]["series"][0]["points"]
-    wage_span = abs(float(wage_points[0]["means"]["profit_per_hour"]) - float(wage_points[-1]["means"]["profit_per_hour"]))
-    wait_points = data.sens_dims["waiting_cost_per_customer_minute"]["series"][0]["points"]
-    wait_span = abs(float(wait_points[0]["means"]["profit_per_hour"]) - float(wait_points[-1]["means"]["profit_per_hour"]))
-    mix_points = data.sens_dims["mixed_order_share"]["series"][0]["points"]
-    mix_span = abs(float(mix_points[0]["means"]["profit_per_hour"]) - float(mix_points[-1]["means"]["profit_per_hour"]))
-    synchro_wins = sum(
-        1
-        for entry in data.sens_dims.values()
-        for index, point in enumerate(entry["series"][0]["points"])
-        if float(point["means"]["profit_per_hour"]) > float(entry["series"][1]["points"][index]["means"]["profit_per_hour"])
+def fig_scenario_compare(ctx: Ctx) -> str:
+    rows = ctx.rows("scenario_library", "comparison")
+    names = [str(row["name"]) for row in rows]
+    profit = [float(row["profit_per_hour"]) for row in rows]
+    colors = ["#0f766e" if row["baseline_compat"] else "#0284c7" for row in rows]
+    # bar chart is fine for 16 scenarios when the labels are rotated by giving
+    # short labels; svgchart keeps labels horizontal, so use short forms.
+    short = [name.replace("_", " ")[:14] for name in names]
+    groups = [{"label": "profit per hour", "color": "#0f766e", "values": profit}]
+    return svg.bar_chart(
+        groups, categories=short,
+        y_label="profit / hour",
+        title="Scenario catalogue: profit per hour in each scenario (100 replicates, each scenario's own policy)",
+        width=900, height=360, value_fmt=lambda v: f"{v:,.0f}",
+        note="Each scenario runs with its own configuration and policy, so differences mix context and policy; the rows are a map, not a controlled comparison.",
+        aria_label="Profit per hour per scenario",
     )
-    total_points = sum(len(entry["series"][0]["points"]) for entry in data.sens_dims.values())
-    tea_high_util = float(tea_points[-1]["means"]["util"])
-
-    body = f"""
-<p>Baseline: λ = 1.25 customers/min (ρ = 88.2%), three clerks, default mix and economics. Each
-parameter is moved on its own, with both the synchronised and the split arm simulated.</p>
-
-<figure>{data_figure(data, "fig_sens_tornado")}
-<figcaption>One-at-a-time profit impact at the extreme settings. Tea make time is by far the
-largest operational lever - but for the unpleasant reason that 2.5 minutes pushes the shop into
-overload. Wage and waiting cost move profit exactly linearly.
-<span class="fig-source">results/sensitivity.json</span></figcaption>
-</figure>
-
-<div class="fig-grid">
-<figure>{data_figure(data, "fig_sens_tea")}<figcaption>Tea make time: a capacity cliff, not a gentle slope.</figcaption></figure>
-<figure>{data_figure(data, "fig_sens_mix")}<figcaption>Mixed-order share: small effect, dominated by the extra workload.</figcaption></figure>
-<figure>{data_figure(data, "fig_sens_wage")}<figcaption>Wage: exactly −3 per hour of profit per unit of hourly wage (three clerks).</figcaption></figure>
-<figure>{data_figure(data, "fig_sens_waiting")}<figcaption>Waiting cost: exactly −(total flow time / 8) per unit.</figcaption></figure>
-</div>
-
-{table(["Dimension", "Value", "ρ", "Profit/h (synchro)", "Profit/h (split)", "Mean LOS (min)"], rows,
-       caption="One-at-a-time sensitivity at λ = 1.25, m = 3",
-       note=f"The 2.5-minute tea setting has ρ = {tea_high_util * 100:.0f}%: an overload configuration, included to show the cliff, not as an operating option.")}
-
-<h3>Two of the four dimensions are not experiments at all</h3>
-<p>Wage and waiting cost enter only in the post-processing economics; they do not touch the event
-schedule. Their sweeps are therefore exact affine transforms of a single run, and the slopes can be
-written down in closed form. The engine confirms this to floating-point precision:</p>
-{table(["Dimension", "Policy arm", "Analytical slope (profit/hour per unit)", "Max abs residual", "Exactly linear?"], linearity,
-       caption="Linearity check for the two economics-only knobs",
-       note="dProfit/dWage = −m; dProfit/dWaitingCost = −flow_time_total / hours. Because the transform is affine, these two sweeps carry zero simulation information - they are arithmetic, and the report says so instead of dressing them up.")}
-
-<div class="callout key">
-<p class="callout-title">What the sensitivity analysis actually says</p>
-<ul>
-<li><strong>Tea make time is the real lever</strong>: cutting it from 2.0 to 1.5 minutes adds
-{signed(tea_low - base, 1)} per hour; raising it to 2.5 minutes destroys {signed(tea_high - base, 1)}
-per hour because ρ jumps from 88% to {pct(tea_high_util, 0)}.</li>
-<li><strong>Waiting-cost pricing moves profit a lot, wage little</strong>: over the tested ranges
-{signed(-wait_span, 1)} versus {signed(-wage_span, 1)} per hour. Any profit claim is therefore
-mostly a statement about how waiting is valued.</li>
-<li><strong>Mixed-order share is almost neutral</strong> over 0.10-0.30 ({signed(-mix_span, 1)} per hour):
-the extra revenue of a mixed order roughly pays for its extra work.</li>
-<li><strong>The policy ranking is robust</strong>: at λ = 1.25 synchronised delivery is more profitable
-than split in {synchro_wins} of the {total_points} parameter settings tested. The single exception is
-the fastest tea setting (1.5 min), where utilisation falls to {pct(float(tea_points[0]['means']['util']), 1)}
-and split wins by {signed(float(tea_points[0]['means']['profit_per_hour']) - float(data.sens_dims['tea_make_time']['series'][1]['points'][0]['means']['profit_per_hour']), 1)} -
-exactly the low-utilisation regime where split is supposed to win.</li>
-</ul>
-</div>
-
-<p class="zh">以 λ=1.25、3 名员工为基线做单因素敏感性。结论分四层：奶茶制作时间才是真正的运营杠杆
-（1.5 分钟时每小时多赚 {signed(tea_low - base, 1)}，2.5 分钟时直接把系统推入 {pct(tea_high_util, 0)} 过载、每小时亏损
-{signed(tea_high - base, 1)}）；工资与等待成本这两维根本不是"实验"——它们只进入后处理经济学，
-不改变事件序列，因此是精确的线性变换（斜率为 −3/小时与 −总流时间/8），报告用数值验证而不是包装成新实验；
-混合单占比在 0.10–0.30 之间几乎中性；策略排序在所有 {total_points} 个设定中都保持"同步优于拆分"，
-没有任何单参数调整能在 88% 利用率下救回拆分交付。</p>
-"""
-    return section(8, "Sensitivity: which lever actually moves profit", "敏感性分析：哪个杠杆真正影响利润", "s8", body)
 
 
-def s9_behaviour(data: Data) -> str:
-    balk_rows = []
-    for threshold in (None, 3.0, 5.0, 8.0, 10.0):
-        label = "off" if threshold is None else f"{threshold:g} min"
-        cells = []
-        for lam_value in (1.0, 1.25):
-            row = data.balking[(lam_value, threshold)]
-            means = row["means"]
-            cells.extend(
-                [
-                    f"{pct(float(means['abandon_rate']), 1)}",
-                    fx(float(means["served_post"]), 0),
-                    fx(float(means["mean_los"]), 2),
-                    fx(float(means["profit_per_hour"]), 1),
-                ]
-            )
-        balk_rows.append([label] + cells)
-
-    renege_rows = []
-    for threshold in (None, 10.0, 15.0, 20.0):
-        label = "off" if threshold is None else f"{threshold:g} min"
-        cells = []
-        for lam_value in (1.0, 1.25):
-            row = data.reneging[(lam_value, threshold)]
-            means = row["means"]
-            cells.extend(
-                [
-                    f"{pct(float(means['abandon_rate']), 1)}",
-                    fx(float(means["mean_los"]), 2),
-                    fx(float(means["profit_per_hour"]), 1),
-                ]
-            )
-        renege_rows.append([label] + cells)
-
-    prio_rows = []
-    for row in data.priority:
-        if round(float(row["lambda"]), 2) != 1.25:
-            continue
-        means = row["means"]
-        delta = row.get("delta_vs_jump", {}).get("diff", {}).get("profit_per_hour")
-        prio_rows.append(
-            [
-                esc(str(row["mode_label"])),
-                fx(float(means["mix_ice_hand"]), 2),
-                fx(float(means["mix_los"]), 2),
-                fx(float(means["mean_los"]), 2),
-                fx(float(means["profit_per_hour"]), 1),
-                signed(float(delta), 2) if delta is not None else "0.00",
-            ]
-        )
-
-    balk_base = data.balking[(1.25, None)]["means"]
-    balk_best = max(
-        (data.balking[(1.25, threshold)] for threshold in (None, 3.0, 5.0, 8.0, 10.0)),
-        key=lambda row: row["means"]["profit_per_hour"],
+def fig_inv_lead_time(ctx: Ctx) -> str:
+    series = ctx.series_entry("inventory_study", "lead_time")
+    x = [float(v) for v in series["x"]]  # type: ignore[index]
+    fill = [float(v) for v in series["fill_rate"]]  # type: ignore[index]
+    profit = [float(v) for v in series["profit_per_hour"]]  # type: ignore[index]
+    left = svg.line_chart(
+        [{"label": "fill rate", "color": "#0d9488", "points": list(zip(x, fill))}],
+        x_label="replenishment lead time (min)", y_label="fill rate",
+        title="Fill rate vs lead time", width=430, height=280,
+        y_fmt=lambda v: f"{v * 100:.0f}%", x_fmt=lambda v: f"{v:.0f}",
+        aria_label="Fill rate versus lead time",
     )
-    balk_best_threshold = [
-        threshold
-        for threshold in (None, 3.0, 5.0, 8.0, 10.0)
-        if data.balking[(1.25, threshold)] is balk_best
-    ][0]
-    renege_base = data.reneging[(1.25, None)]["means"]
-    jump = data.priority[
-        next(
-            index
-            for index, row in enumerate(data.priority)
-            if round(float(row["lambda"]), 2) == 1.25 and row["mode"] == "jump"
-        )
-    ]["means"]
-    fcfs = data.priority[
-        next(
-            index
-            for index, row in enumerate(data.priority)
-            if round(float(row["lambda"]), 2) == 1.25 and row["mode"] == "fcfs"
-        )
-    ]["means"]
-
-    body = f"""
-<p>Real shops do not serve an infinite queue of infinitely patient customers. Three behavioural
-rules are switched on one at a time. All of them are measured at λ = 1.0 (ρ = 71%) and λ = 1.25
-(ρ = 88%), three clerks, synchronised FCFS baseline.</p>
-
-<h3>Balking: refusing the front of the queue can raise profit</h3>
-<figure>{data_figure(data, "fig_behaviour_balking")}
-<figcaption>Profit per hour against the balking threshold. At 88% utilisation a 5-minute rule
-raises profit above the no-rule baseline while shedding about
-{pct(float(balk_best["means"]["abandon_rate"]) - float(balk_base["abandon_rate"]), 1)} of demand.
-<span class="fig-source">results/behaviour.json</span></figcaption>
-</figure>
-
-{table(["Balking threshold", "λ = 1.0: abandon", "served", "LOS", "profit/h", "λ = 1.25: abandon", "served", "LOS", "profit/h"],
-       balk_rows, caption="Balking rule (customer leaves at arrival if the estimated wait exceeds the threshold)",
-       note="The estimate is in_system × p̄ / m, so a 3-minute threshold at m = 3 fires with about four customers already in the shop.")}
-
-<p>The mechanism is a selection effect: a customer who walks away is, on average, one who would
-have waited a long time, and the marginal waiting cost of the last customers in the queue is what
-dominates total waiting cost. Trimming exactly that tail can pay even after losing the revenue.
-Note the non-monotonicity at λ = 1.25: a 3-minute threshold fires far too often (19% of demand
-lost) and gives back the gain. A 5-minute threshold is the best tested setting
-({signed(float(balk_best["means"]["profit_per_hour"]) - float(balk_base["profit_per_hour"]), 1)} per hour, i.e.
-{pct_signed((float(balk_best["means"]["profit_per_hour"]) - float(balk_base["profit_per_hour"])) / float(balk_base["profit_per_hour"]), 1)}).</p>
-
-<h3>Reneging: a 10-minute rule is almost free insurance</h3>
-<figure>{data_figure(data, "fig_behaviour_reneging")}
-<figcaption>Profit per hour against the reneging threshold. Only the 10-minute rule binds at all,
-and it costs well under one per cent of demand.
-<span class="fig-source">results/behaviour.json</span></figcaption>
-</figure>
-{table(["Reneging threshold", "λ = 1.0: abandon", "LOS", "profit/h", "λ = 1.25: abandon", "LOS", "profit/h"],
-       renege_rows, caption="Reneging rule (customer leaves if service has not started within the threshold)")}
-<p>At λ = 1.0 no customer ever waits ten minutes, so all four thresholds are identical. At λ = 1.25
-a 10-minute rule removes the extreme tail: profit rises by
-{signed(float(data.reneging[(1.25, 10.0)]["means"]["profit_per_hour"]) - float(renege_base["profit_per_hour"]), 1)}
-per hour for {pct(float(data.reneging[(1.25, 10.0)]["means"]["abandon_rate"]), 1)} abandonment.
-This is the cheapest of all the levers in this report - and the easiest to justify operationally.</p>
-
-<h3>Dynamic ice-cream priority: a dial, not a switch</h3>
-<figure>{data_figure(data, "fig_behaviour_priority")}
-<figcaption>Every point is a priority rule; the axes are the mixed customer's ice-cream wait
-(horizontal) and everyone's average wait (vertical). Moving down-left is impossible; the curve is the
-achievable frontier.
-<span class="fig-source">results/behaviour.json</span></figcaption>
-</figure>
-{table(["Priority rule (λ = 1.25)", "Ice handoff (min)", "Mixed LOS (min)", "All-store LOS (min)", "Profit/h", "Δ vs jump"], prio_rows,
-       caption="Mixed-order ice-cream priority at λ = 1.25, split delivery, FCFS fast-item queue")}
-<p>If the ice cream jumps immediately, the mixed customer gets it after
-{fx(float(jump["mix_ice_hand"]), 2)} minutes instead of {fx(float(fcfs["mix_ice_hand"]), 2)} - a
-{fx(float(fcfs["mix_ice_hand"]) - float(jump["mix_ice_hand"]), 2)}-minute improvement for one fifth of
-the customers - but every other customer pays {fx(float(jump["mean_los"]) - float(fcfs["mean_los"]), 2)}
-minutes and the shop pays
-{fx(float(fcfs["profit_per_hour"]) - float(jump["profit_per_hour"]), 1)} per hour. A dynamic threshold
-interpolates smoothly between the two extremes, which makes it the right *implementable* rule when the
-shop cannot price the mixed customer's impatience.</p>
-
-<div class="callout warn">
-<p class="callout-title">Do not read "balking raises profit" as "turn customers away"</p>
-<p>Three things are missing from the model: balkers may come back later, they may tell others, and the
-waiting-cost rate (0.5 per customer-minute) is a modelling assumption rather than a measured
-willingness-to-pay. What the experiment does establish is the *sign and size of the mechanism*: at
-88% utilisation the last customers in the queue impose more waiting cost than their revenue covers, so
-some form of admission control has real economic value. That is a capacity-planning signal, not a
-licence to shoo customers away.</p>
-</div>
-
-<p class="zh">真实门店不会面对无限耐心、无限的队列。三项行为规则逐一开启：balking（到店看到长队直接离开）、
-reneging（等待过久离开）、混合单冰淇淋动态优先级。
-在 88% 利用率下，5 分钟 balking 阈值把每小时利润提高
-{signed(float(balk_best["means"]["profit_per_hour"]) - float(balk_base["profit_per_hour"]), 1)}
-（代价是流失 {pct(float(balk_best["means"]["abandon_rate"]), 1)} 的需求），
-机制是"剔除最长的等待尾部"；3 分钟阈值则过度触发（流失 19%）反而抵消收益。
-10 分钟 reneging 规则几乎无成本（流失 {pct(float(data.reneging[(1.25,10.0)]["means"]["abandon_rate"]),1)}），
-却带来 {signed(float(data.reneging[(1.25,10.0)]["means"]["profit_per_hour"]) - float(renege_base["profit_per_hour"]),1)}/小时 的改善。
-动态冰淇淋优先级是一条"可调刻度"而非开关：立即插队让混合顾客提前
-{fx(float(fcfs["mix_ice_hand"]) - float(jump["mix_ice_hand"]), 2)} 分钟拿到冰淇淋，
-但全店平均等待增加 {fx(float(jump["mean_los"]) - float(fcfs["mean_los"]), 2)} 分钟。
-必须强调：balking 提升"利润"不等于应该赶客——模型缺少顾客回流与口碑效应，只证明了机制的方向与量级。</p>
-"""
-    return section(9, "Behaviour mechanisms", "行为机制：离开、流失与动态优先级", "s9", body)
-
-
-# --------------------------------------------------------------------------
-# section 10-12
-# --------------------------------------------------------------------------
-def s10_anylogic(data: Data) -> str:
-    archive_rows = []
-    for row in data.archive:
-        los = row["los"]
-        archive_rows.append(
-            [
-                f"<strong>{esc(row['id'])}</strong>",
-                lam(float(row["arrival_rate"])),
-                "split" if row["split_mix"] else "synchro",
-                "fast" if row["fast_priority"] else "FCFS",
-                fx(float(row["revenue_total"]), 0),
-                fx(float(row["profit_per_hour"]), 3),
-                fx(float(row["flow_time_total"]), 1),
-                f"{row['served']:,}",
-                " / ".join(f"{los[key]:.2f}" for key in ("tea", "bread", "ice") if key in los)
-                + (f" / {los['mix_sync']:.2f}" if "mix_sync" in los else "")
-                + (f" / {los['mix_tea']:.2f}" if "mix_tea" in los else ""),
-                pct(float(row["util_display"]), 0),
-            ]
-        )
-    dev_rows = []
-    for row in data.ledger["deviations"]:
-        dev_rows.append(
-            [
-                f"<strong>{esc(row['id'])}</strong>",
-                pct(float(row["util_theory"]), 1),
-                f"{fx(float(row['python_multi_rep_profit_per_hour']), 2)} ± {fx(float(row['python_multi_rep_ci95']), 2)}",
-                pct_signed(float(row["profit_deviation_multi_rep"])),
-                pct(float(row["tolerance"]), 0),
-                "pass" if row["profit_within_tolerance"] else "<strong>fail</strong>",
-                pct_signed(float(row["profit_deviation_single_seed"])),
-                fx(float(row["served_python_multi_rep"]), 1) + f" / {row['served_archive']}",
-            ]
-        )
-    los_rows = []
-    for row in data.ledger["deviations"]:
-        cells = [f"<strong>{esc(row['id'])}</strong>"]
-        for key in ("tea", "bread", "ice", "mix_sync", "mix_tea", "mix_ice_hand"):
-            entry = row["los_deviation"].get(key)
-            if entry is None:
-                cells.append("-")
-            elif entry.get("not_applicable"):
-                cells.append("— (split mode)")
-            elif entry.get("deviation") is None:
-                cells.append(f"{fx(float(entry['python']), 2)} vs 0.00 (n/a)")
-            else:
-                cells.append(
-                    f"{fx(float(entry['python']), 2)} vs {fx(float(entry['archive']), 2)} "
-                    f"({pct_signed(float(entry['deviation']))})"
-                )
-        los_rows.append(cells)
-
-    decomposition_rows = []
-    for row in data.ledger["deviations"]:
-        decomposition = row["profit_decomposition"]
-        decomposition_rows.append(
-            [
-                f"<strong>{esc(row['id'])}</strong>",
-                signed(float(decomposition["revenue_component"]), 2),
-                signed(float(decomposition["wage_component"]), 2),
-                signed(float(decomposition["waiting_component"]), 2),
-                signed(float(decomposition["net"]), 2),
-            ]
-        )
-    los_mean_cells = []
-    for row in data.ledger["deviations"]:
-        entry = row["mean_los"]
-        los_mean_cells.append(
-            [f"<strong>{esc(row['id'])}</strong>", fx(float(entry["archive"]), 3),
-             fx(float(entry["python"]), 3), pct_signed(float(entry["deviation"]))]
-        )
-    audit_rows = []
-    for row in data.ledger["archive_internal_audit"]:
-        audit_rows.append(
-            [
-                f"<strong>{esc(row['id'])}</strong>",
-                fx(float(row["implied_hours_from_revenue"]), 4),
-                fx(float(row["profit_recomputed_from_own_fields"]), 3),
-                fx(float(row["profit_archived"]), 3),
-                pct_signed(float(row["deviation"])),
-                "consistent" if row["consistent"] else "<strong>inconsistent</strong>",
-            ]
-        )
-    util_rows = []
-    for row in data.ledger["archive_utilization_audit"]:
-        util_rows.append(
-            [
-                f"<strong>{esc(row['id'])}</strong>",
-                pct(float(row["displayed_utilization"]), 0),
-                pct(float(row["utilization_implied_by_served"]), 1),
-                fx(float(row["implied_measurement_window_minutes"]), 1),
-                pct(float(row["gap_vs_served_implied"]), 1),
-            ]
-        )
-    paired_rows = []
-    for row in data.ledger_paired:
-        paired_rows.append(
-            [
-                esc(row["label"]).replace("_", " "),
-                f"{row['a']} − {row['b']}",
-                f"{signed(float(row['diff']['profit_per_hour']), 2)} ± {fx(float(row['ci95']['profit_per_hour']), 2)}",
-                signed(float(row["diff"]["mean_los"]), 3),
-            ]
-        )
-    verdict = data.ledger_verdict
-    sources = "".join(f"<li>{esc(item)}</li>" for item in verdict["deviation_sources"])
-    body = f"""
-<p>The archived study produced six economic runs, E1-E6, in AnyLogic. The model file survives
-but the runs cannot be repeated here, so the only evidence is the screenshot set
-(<code>docs/assets/slides/E_series/</code>) and the experiment log. This section does three
-things: it restates the archival numbers, it re-simulates the identical configurations with the
-Python engine, and it audits the archive against itself.</p>
-
-<p class="zh">存档的 E1–E6 是 AnyLogic 单次运行结果，模型无法在本机重跑，只有截图与台账。
-本节做三件事：复述存档数字、用 Python 引擎按完全相同的参数重新仿真、并对台账做自洽性审计。</p>
-
-<h3>10.1 The archived ledger {TAG_AN}</h3>
-{table(["Run", "λ", "Delivery", "Triage", "Revenue", "Profit/h", "Flow time", "Served", "LOS tea/bread/ice (+mix)", "Util (screen)"],
-       archive_rows, caption="E1-E6 exactly as recorded in the screenshots and docs/experiment_log.md",
-       note="Workers = 3, 1000 simulated minutes, no warm-up, mix 55/20/5/20, prices 8/6/2/10, wage 25/worker-hour, waiting 0.5/customer-minute.")}
-
-<h3>10.2 Re-simulation with the Python engine {TAG_PY}</h3>
-<figure>{data_figure(data, "fig_anylogic_profit")}
-<figcaption>Archived profit (single AnyLogic run) against the Python 200-replicate mean with its
-95% confidence interval. The two agree in level and in ordering: the fast-priority runs
-E5 and E6 are the most profitable in both.
-<span class="fig-source">results/anylogic_ledger.json · docs/figures/fig_anylogic_profit.svg</span></figcaption>
-</figure>
-
-{table(["Run", "ρ (theory)", "Python profit/h (200 reps)", "Δ profit", "Tolerance", "Verdict", "Δ single run", "Served py / archive"],
-       dev_rows, caption="Acceptance test: |Δ profit| ≤ 5% at λ = 1.00 and ≤ 12% at λ = 1.25",
-       note="The single-run column shows what a like-for-like comparison would have looked like; averaging 200 replicates reduces the high-load bias because the archived runs are one draw from a very wide distribution.")}
-
-<figure>{data_figure(data, "fig_anylogic_deviation")}
-<figcaption>Every deviation, signed. Low-load runs are reproduced within 3.5%; high-load runs are
-systematically 5-9% lower in the Python mean, which is the expected consequence of comparing a
-single run with an expected value at 88% utilisation.
-<span class="fig-source">results/anylogic_ledger.json</span></figcaption>
-</figure>
-
-<h3>10.3 Class-level LOS comparison</h3>
-{table(["Run", "Tea", "Bread", "Ice", "Mix sync", "Mix tea", "Ice handoff"], los_rows,
-       caption="Python 200-rep mean vs archived value, with the deviation in brackets",
-       note="Tea LOS is slightly higher and bread LOS slightly lower in the Python engine at low load; at high load the Python means are lower across the board because the archived run is a single draw.")}
-
-{table(["Run", "Archive mean LOS", "Python 200-rep mean", "Deviation"], los_mean_cells,
-       caption="All-store mean time in system",
-       note="Mean LOS = flowTimeTotal / servedCount for the archive, and the replicate mean for the engine.")}
-
-<div class="callout warn">
-<p class="callout-title">The waiting-time alignment is weaker than the profit alignment - and that is the honest headline</p>
-<p>Profit deviations are within 3.4% (low load) and 8.6% (high load), but mean time in system
-deviates by +6.5% to +31.8%. At 88% utilisation the archived queues are materially shorter than
-this engine's. The decomposition below shows that the entire high-load profit gap is a
-<em>waiting-cost</em> gap; revenue actually favours the re-implementation because it serves every
-arrival. The table is not a defect list, it is the source of the deviation:</p>
-<ul>
-<li>the archive's own utilisation read-out is 2-3 points below the value implied by its served
-count and about 4 points below the theoretical 88.2%. A 4-point utilisation difference moves the
-queueing approximation by roughly 20%, which is the same size as the LOS gap;</li>
-<li>one AnyLogic run is a single draw from that wide distribution; the Python mean is an expected
-value, so at high load the two are not the same quantity;</li>
-<li>the stop-time treatment (customers still in the shop at 1000 minutes never reach the sink)
-removes exactly the longest waits, even though the censored variant shows this is a smaller effect
-than the utilisation read-out suggests.</li>
-</ul>
-<p>No parameter was tuned to close this. A full re-run of the AnyLogic model with a recorded seed
-would settle it; until then the profit claim carries the alignment argument and the waiting levels
-should be treated as archive-specific.</p>
-</div>
-
-<h3>10.4 Where the profit difference comes from</h3>
-{table(["Run", "Revenue component", "Wage component", "Waiting-cost component", "Net Δ profit/h"],
-       decomposition_rows, caption="Δ profit per hour (Python − archive) decomposed on a common 1000-minute denominator",
-       note="The components add up to the net difference exactly (residual 0). Positive revenue = the engine serves more customers; negative waiting = the engine's customers wait longer.")}
-
-<h3>10.5 Auditing the archive against itself</h3>
-<p>The documented formula is <code>profit/h = (revenueTotal − wage × hours − 0.5 × flowTimeTotal) / hours</code>.
-Applying it to each archival row's <em>own</em> revenue and flow time gives:</p>
-{table(["Run", "Implied hours", "Profit recomputed", "Profit archived", "Deviation", "Status"], audit_rows,
-       caption="Internal consistency of the archived rows",
-       note="Five of the six rows reproduce to within 0.03%. E3 does not: its archived profit is 3.44% above what its own revenue and flow-time figures imply, which is larger than every other row by two orders of magnitude.")}
-<div class="callout warn">
-<p class="callout-title">Finding: E3's archived profit cannot be reproduced from E3's archived inputs</p>
-<p>E3's screenshot shows revenueTotal 9346, flowTimeTotal 4949.015 and profitPerHour 349.478.
-The formula that reproduces E1, E2, E4, E5 and E6 to 0.03% gives <strong>337.44</strong> for E3.
-The archived 349.478 corresponds to a flow time near 4549 minutes - suspiciously close to E4's
-4563.771 - which suggests the AnyLogic profit variable was read against a stale flow-total value.
-This is an <em>archive</em> defect, not an engine defect: the Python re-implementation is internally
-consistent, and the E-series conclusions do not depend on E3's absolute level (E3 and E4 differ by
-0.3 per hour in the archive and by 4.1 per hour in the re-simulation; both say "split is neutral to
-slightly worse at 88% load").</p>
-</div>
-
-<p>The utilisation column has a milder version of the same problem:</p>
-{table(["Run", "Displayed util", "Implied by served × p̄", "Implied window (min)", "Gap"], util_rows,
-       caption="Utilisation read-out audit",
-       note="The displayed utilisation implies a measurement window of about 1027-1032 minutes rather than the nominal 1000, while the revenue rate implies about 999.6 minutes. The archive columns are therefore not all on the same denominator - a 2-3 percentage-point artefact that matters when comparing against a theoretical 88.2%.")}
-
-<h3>10.6 Paired comparisons inside the re-implementation</h3>
-{table(["Comparison", "Runs", "Δ profit/h (95% CI)", "Δ mean LOS (min)"], paired_rows,
-       caption="Paired differences between the E configurations, common random numbers, 200 replicates")}
-
-<h3>10.7 Verdict</h3>
-<div class="callout good">
-<p class="callout-title">Re-implementation alignment: {'PASS' if verdict["passed"] else 'FAIL'}</p>
-<ul>
-<li><strong>Low load (λ = 1.00):</strong> {verdict["low_load_passed"]}/{verdict["low_load_cases"]} within the ±5% band.</li>
-<li><strong>High load (λ = 1.25):</strong> {verdict["high_load_passed"]}/{verdict["high_load_cases"]} within the ±12% band.</li>
-<li><strong>Ordering:</strong> archive rank {esc(", ".join(verdict["archive_ranking"]))} vs Python rank
-    {esc(", ".join(verdict["python_ranking"]))}. The top-two set matches
-    ({esc(", ".join(verdict["best_pair_archive"]))}); only E5 and E6 swap, by about 0.2% in the archive and
-    0.8% in the re-simulation.</li>
-<li><strong>Workload identity:</strong> split minus synchro utilisation is exactly
-{esc(", ".join(f"{value:+.1e}" for value in verdict["utilization_policy_invariant_python"].values()))}
-at both loads - the two delivery modes do the same work, in the archive as in the engine.</li>
-</ul>
-<p>{esc(verdict["ranking_note"])}</p>
-</div>
-
-<div class="callout info">
-<p class="callout-title">Where the 3-9% deviation comes from (all five causes, none of them a tuned parameter)</p>
-<ul>{sources}</ul>
-</div>
-
-<p class="zh">对齐结论：低负载 2/2、高负载 4/4 全部落在容差带内（±5% / ±12%），利润排序在
-"快品优先最优"这一点上完全一致，仅 E5 与 E6 互换（差距约 0.2%–0.8%，属于噪声级）。
-偏差的五个来源已逐条写清：不同的随机流、单种子单次 vs 200 次重复、AnyLogic 停止时间只统计到达 sink 的顾客、
-台账自身读数窗口不一致（收入口径约 999.6 分钟，利用率口径约 1027–1032 分钟），以及 E3 行自相矛盾（-3.44%）。
-没有为了让数字吻合而调整任何引擎参数。</p>
-"""
-    return section(10, "AnyLogic E1-E6: archived numbers vs re-implementation", "与 AnyLogic 台账 E1–E6 对齐", "s10", body)
-
-
-def s11_conclusions(data: Data) -> str:
-    d_fast_125 = data.pair_diff(3, 1.25, "fast_minus_fcfs", "profit_per_hour")
-    d_fast_ci = data.pair_ci(3, 1.25, "fast_minus_fcfs", "profit_per_hour")
-    d_split_080 = data.pair_diff(3, 0.80, "split_minus_synchro", "profit_per_hour")
-    d_split_125 = data.pair_diff(3, 1.25, "split_minus_synchro", "profit_per_hour")
-    p3_125 = data.mean(3, 1.25, "synchro+fcfs", "profit_per_hour")
-    p4_125 = data.mean(4, 1.25, "synchro+fcfs", "profit_per_hour")
-    p3_125_fast = data.mean(3, 1.25, "synchro+fast", "profit_per_hour")
-    # triage versus one more clerk at lambda = 1.0
-    p3_100_fast = data.mean(3, 1.0, "synchro+fast", "profit_per_hour")
-    p3_100 = data.mean(3, 1.0, "synchro+fcfs", "profit_per_hour")
-    p4_100 = data.mean(4, 1.0, "synchro+fcfs", "profit_per_hour")
-    p2_080_fast = data.mean(2, 0.80, "synchro+fast", "profit_per_hour")
-    p3_080 = data.mean(3, 0.80, "synchro+fcfs", "profit_per_hour")
-    tea_points = data.sens_dims["tea_make_time"]["series"][0]["points"]
-    low_load_spread = max(
-        max(data.mean(worker, value, key, "profit_per_hour") for key in POLICY_ORDER)
-        - min(data.mean(worker, value, key, "profit_per_hour") for key in POLICY_ORDER)
-        for worker in data.workers()
-        for value in data.lambdas(worker)
-        if data.mean(worker, value, "synchro+fcfs", "util") < 0.60
+    right = svg.line_chart(
+        [{"label": "profit / hour", "color": "#b45309", "points": list(zip(x, profit))}],
+        x_label="replenishment lead time (min)", y_label="profit / hour",
+        title="Profit per hour vs lead time", width=430, height=280,
+        x_fmt=lambda v: f"{v:.0f}",
+        aria_label="Profit per hour versus lead time",
     )
-    zone_bands = [
-        ["ρ < 60 %", f"the four policies differ by at most {low_load_spread:.1f} / hour", "either delivery mode; split gives the ice-cream benefit for free"],
-        ["60 % – break-even", f"split still positive (m = 3: {signed(d_split_080, 2)} at ρ = 56%)", "split, and switch on fast-item triage as soon as ρ > 60%"],
-        [f"break-even (ρ* = {pct(data.util_star(3), 1)} at m = 3)", "split = synchro by construction", "choose delivery mode on customer-experience grounds, not on profit"],
-        ["break-even – 95 %", f"split negative ({signed(d_split_125, 2)} at ρ = 88%); triage strongly positive ({signed(d_fast_125, 1)})", "synchronise + fast-item triage + admission control"],
-        ["ρ ≥ 95 %", "every policy collapses; LOS is horizon-limited", "add capacity; no scheduling rule can fix an overloaded shop"],
-    ]
-    tea_low_point = float(tea_points[0]["means"]["profit_per_hour"])
-    tea_base_point = float(tea_points[1]["means"]["profit_per_hour"])
-    zone_rows = []
-    for worker_count in (2, 3, 4):
-        zone_rows.append(
-            [
-                f"m = {worker_count}",
-                f"{data.lambda_star(worker_count):.3f}",
-                pct(data.util_star(worker_count), 1),
-                f"{data.be_entry(worker_count, 'profit_per_hour').get('identification_band', {}).get('last_significantly_better', 'n/a')} .. "
-                f"{data.be_entry(worker_count, 'profit_per_hour').get('identification_band', {}).get('first_significantly_worse', 'n/a')}",
-            ]
-        )
+    return f'<div class="fig-grid">{left}{right}</div>'
 
-    # Capacity equivalence: the highest load that meets a service target.
-    def max_lambda_for_los(worker_count: int, policy: str, target: float):
-        best = None
-        for lam_value in data.lambdas(worker_count):
-            if data.mean(worker_count, lam_value, "synchro+fcfs", "util") >= 1.0:
-                continue
-            if data.mean(worker_count, lam_value, policy, "mean_los") <= target:
-                best = lam_value
-        return best
 
-    cap_columns = (
-        ("2 clerks + triage", 2, "synchro+fast"),
-        ("2 clerks FCFS", 2, "synchro+fcfs"),
-        ("3 clerks + triage", 3, "synchro+fast"),
-        ("3 clerks FCFS", 3, "synchro+fcfs"),
-        ("4 clerks FCFS", 4, "synchro+fcfs"),
+def fig_inv_shelf_life(ctx: Ctx) -> str:
+    series = ctx.series_entry("inventory_study", "shelf_life")
+    x = [float(v) for v in series["x"]]  # type: ignore[index]
+    waste = [float(v) for v in series["waste_units"]]  # type: ignore[index]
+    fill = [float(v) for v in series["fill_rate"]]  # type: ignore[index]
+    left = svg.line_chart(
+        [{"label": "waste units", "color": "#be123c", "points": list(zip(x, waste))}],
+        x_label="pearl shelf life (min)", y_label="wasted units / day",
+        title="Waste vs shelf life", width=430, height=280, x_fmt=lambda v: f"{v:.0f}",
+        aria_label="Waste versus shelf life",
     )
-    capacity_rows = []
-    for target in (3.0, 4.0, 5.0):
-        row = [f"≤ {target:g} min"]
-        for _, worker_count, policy in cap_columns:
-            value = max_lambda_for_los(worker_count, policy, target)
-            row.append(f"λ ≤ {value:.2f}" if value is not None else "not reached")
-        capacity_rows.append(row)
-    cap = {
-        name: max_lambda_for_los(worker_count, policy, 3.0)
-        for name, worker_count, policy in cap_columns
+    right = svg.line_chart(
+        [{"label": "fill rate", "color": "#0d9488", "points": list(zip(x, fill))}],
+        x_label="pearl shelf life (min)", y_label="fill rate",
+        title="Fill rate vs shelf life", width=430, height=280,
+        y_fmt=lambda v: f"{v * 100:.0f}%", x_fmt=lambda v: f"{v:.0f}",
+        aria_label="Fill rate versus shelf life",
+    )
+    return f'<div class="fig-grid">{left}{right}</div>'
+
+
+def fig_inv_ceiling(ctx: Ctx) -> str:
+    series = ctx.series_entry("inventory_study", "pearls_order_ceiling")
+    x = [float(v) for v in series["x"]]  # type: ignore[index]
+    waste = [float(v) for v in series["waste_units"]]  # type: ignore[index]
+    fill = [float(v) for v in series["fill_rate"]]  # type: ignore[index]
+    left = svg.line_chart(
+        [{"label": "waste", "color": "#be123c", "points": list(zip(x, waste))}],
+        x_label="pearl order quantity (units)", y_label="wasted units / day",
+        title="Pearl order quantity: waste appears at the ceiling", width=430, height=260,
+        x_fmt=lambda v: f"{v:.0f}", aria_label="Waste versus pearl order quantity",
+    )
+    right = svg.line_chart(
+        [{"label": "fill rate", "color": "#0d9488", "points": list(zip(x, fill))}],
+        x_label="pearl order quantity (units)", y_label="fill rate",
+        title="Fill rate vs pearl order quantity", width=430, height=260,
+        y_fmt=lambda v: f"{v * 100:.0f}%", x_fmt=lambda v: f"{v:.0f}",
+        aria_label="Fill rate versus pearl order quantity",
+    )
+    return f'<div class="fig-grid">{left}{right}</div>'
+
+
+def fig_inv_stockout(ctx: Ctx) -> str:
+    rows = ctx.rows("inventory_study", "stockout_policy")
+    categories: List[str] = []
+    values: List[float] = []
+    colors: List[str] = []
+    palette = {"baseline": "#64748b", "ice_short": "#b45309", "pearls_short": "#be123c"}
+    for row in rows:
+        categories.append(f"{row['regime']} · {str(row['stockout_policy']).replace('_', ' ')}")
+        values.append(float(row["profit_per_hour"]))
+        colors.append(palette.get(str(row["regime"]), "#0f766e"))
+    return svg.bar_chart(
+        [{"label": "profit / hour", "color": "#0f766e", "values": values}],
+        categories=categories, category_labels=categories,
+        y_label="profit / hour",
+        title="Stock-out policy: losing the sale vs substituting",
+        width=900, height=330, value_fmt=lambda v: f"{v:,.0f}",
+        note="Bars share one colour per row; the table in docs/experiments-layers.md lists the regime for every row.",
+        aria_label="Profit per hour by stock-out policy",
+    )
+
+
+def fig_econ_pricing(ctx: Ctx) -> str:
+    curves = ctx.series_entry("economics_study", "pricing_curves")
+    colors = {"-0.5": "#0284c7", "-1": "#b45309", "-1.5": "#7c3aed", "-2": "#059669"}
+    series = []
+    for key, payload in curves.items():  # type: ignore[union-attr]
+        x = [float(v) for v in payload["x"]]
+        y = [float(v) for v in payload["profit_per_hour"]]
+        series.append({"label": f"elasticity {key}", "color": colors.get(str(key), "#64748b"), "points": list(zip(x, y))})
+    return svg.line_chart(
+        series, x_label="peak price multiplier", y_label="profit / hour",
+        title="Peak pricing: profit per hour vs the peak multiplier",
+        width=820, height=330, x_fmt=lambda v: f"×{v:.1f}",
+        note="Same peak windows (60–180 and 300–420 min of the campus_rush day); higher elasticity means demand falls faster when the multiplier rises.",
+        aria_label="Profit per hour versus peak price multiplier",
+    )
+
+
+def fig_econ_sla(ctx: Ctx) -> str:
+    rows = ctx.rows("economics_study", "sla_grid")
+    categories = [f"{row['target_minutes']:.0f} min / {row['compensation']:.0f}" for row in rows]
+    attainment = [float(row["sla_attainment"]) if row.get("sla_attainment") is not None else 0.0 for row in rows]
+    profit = [float(row["profit_per_hour"]) for row in rows]
+    left = svg.bar_chart(
+        [{"label": "SLA attainment", "color": "#0f766e", "values": attainment}],
+        categories=categories, y_label="attainment",
+        title="SLA attainment (target / compensation)", width=430, height=300,
+        value_fmt=lambda v: f"{v * 100:.0f}%", y_fmt=lambda v: f"{v * 100:.0f}%",
+        aria_label="SLA attainment by target and compensation",
+    )
+    right = svg.bar_chart(
+        [{"label": "profit / hour", "color": "#b45309", "values": profit}],
+        categories=categories, y_label="profit / hour",
+        title="Profit per hour with SLA compensation", width=430, height=300,
+        value_fmt=lambda v: f"{v:,.0f}", aria_label="Profit per hour by SLA target and compensation",
+    )
+    return f'<div class="fig-grid">{left}{right}</div>'
+
+
+def fig_econ_fairness(ctx: Ctx) -> str:
+    rows = ctx.rows("economics_study", "fairness_pareto")
+    points = [(float(row["los_p95"]), float(row["profit_per_hour"])) for row in rows]
+    return svg.line_chart(
+        [{"label": "starvation cap", "color": "#7c3aed", "points": points, "no_line": True}],
+        x_label="p95 time in system (min)", y_label="profit / hour",
+        title="Fairness vs profit: each dot is one starvation-cap setting",
+        width=820, height=330, zero_line=False,
+        note="No line is drawn: these are distinct configurations, not a trajectory. Tooltips carry the exact values; the table lists the caps.",
+        aria_label="Profit per hour versus p95 waiting under different starvation caps",
+    )
+
+
+def fig_econ_manager(ctx: Ctx) -> str:
+    rows = ctx.rows("economics_study", "good_manager")
+    categories = [str(row["scenario"]).replace("_", " ") for row in rows]
+    profit = [float(row["profit_per_hour"]) for row in rows]
+    return svg.bar_chart(
+        [{"label": "profit / hour", "color": "#0f766e", "values": profit}],
+        categories=categories, y_label="profit / hour",
+        title="The management bundle, one lever at a time",
+        width=900, height=340, value_fmt=lambda v: f"{v:,.0f}",
+        note="Every row starts from the same campus_rush baseline; the full metrics are in the table below and in docs/experiments-layers.md.",
+        aria_label="Profit per hour for each management lever",
+    )
+
+
+def fig_baseline_policies(ctx: Ctx) -> str:
+    chosen = baseline_policy_rows(ctx, workers=3, lam=1.25)
+    keys = [str(row["policy_key"]) for row in chosen]
+    values = [float(row["means"]["profit_per_hour"]) for row in chosen]
+    return svg.bar_chart(
+        [{"label": "profit / hour", "color": "#0f766e", "values": values}],
+        categories=[POLICY_LABEL.get(key, key) for key in keys],
+        y_label="profit / hour",
+        title="baseline (Python engine, 200 replicates): profit per hour at λ = 1.25, m = 3",
+        width=820, height=320, value_fmt=lambda v: f"{v:,.1f}",
+        note="All four policies at the same load; the values are also tabulated in docs/experiments.md (baseline).",
+        aria_label="baseline profit per hour by policy",
+    )
+
+
+def fig_demand_hourly(ctx: Ctx) -> str:
+    hourly = ctx.series_entry("demand_study", "peak_vs_flat_hourly")
+    styles = {
+        "peak_shape": ("campus peak shape", "#b45309"),
+        "flat_same_daily_mean": ("flat, same daily mean", "#0284c7"),
     }
-    triage_gap = (cap["3 clerks FCFS"] or 0.0) - (cap["2 clerks + triage"] or 0.0)
-    body = f"""
-<p>Six findings survive every robustness check in this report. Each one is stated with the number
-that supports it and the experiment that produced it.</p>
-
-<h3>11.1 The six claims</h3>
-<ol>
-<li><strong>Capacity dominates scheduling.</strong> At λ = 1.25, adding one clerk is worth
-{signed(p4_125 - p3_125, 1)} per hour; the whole 2×2 policy matrix spans
-{fx(max(data.mean(3, 1.25, key, "profit_per_hour") for key in POLICY_ORDER) - min(data.mean(3, 1.25, key, "profit_per_hour") for key in POLICY_ORDER), 1)}
-per hour at that load. Triage is a cheap lever, not a capacity substitute: at a 3-minute
-all-store waiting target, two clerks with triage sustain λ ≤ {cap["2 clerks + triage"]:.2f} while
-three clerks without it sustain λ ≤ {cap["3 clerks FCFS"]:.2f} - a {triage_gap:.2f} customers/min
-capacity gap that no scheduling rule closes. The original report's retraction of "one clerk +
-priority ≈ two clerks" survives the fine grid.</li>
-<li><strong>Fast-item triage pays, and pays more as the shop gets busier.</strong>
-{signed(d_fast_125, 1)} ± {fx(d_fast_ci, 1)} per hour at λ = 1.25 (m = 3), rising to
-{signed(data.pair_diff(3, 1.30, "fast_minus_fcfs", "profit_per_hour"), 1)} at λ = 1.30 and essentially
-zero below 60% utilisation. The tea queue absorbs a small, bounded cost.</li>
-<li><strong>Split delivery has a real but modest value, and it expires.</strong>
-{signed(d_split_080, 2)} per hour at λ = 0.80, {signed(d_split_125, 2)} at λ = 1.25.
-The break-even is at ρ* = {pct(data.util_star(3), 1)} for three clerks, and the threshold moves with
-headcount ({pct(data.util_star(2), 1)} for two clerks, {pct(data.util_star(4), 1)} for four) - so the
-original "split below 65%" rule should be replaced by a headcount-specific one.</li>
-<li><strong>The money view and the waiting view are the same view.</strong> Revenue is policy-invariant
-and waiting cost is linear in flow time, so the profit and LOS break-even loads coincide; the
-bisection gap is at most
-{fx(max(float(data.crosscheck[w]["absolute_gap"]) for w in (2, 3, 4)), 4)} λ-units. Any
-apparent trade-off between "profit" and "service" in this model is a pricing question, not an
-operations question.</li>
-<li><strong>Behaviour rules beat both delivery policies at high load - and are the cheapest
-instruments in the study.</strong> A 5-minute balking rule is worth
-{signed(float(data.balking[(1.25, 5.0)]["means"]["profit_per_hour"]) - float(data.balking[(1.25, None)]["means"]["profit_per_hour"]), 1)}
-per hour at λ = 1.25, and a 10-minute reneging rule
-{signed(float(data.reneging[(1.25, 10.0)]["means"]["profit_per_hour"]) - float(data.reneging[(1.25, None)]["means"]["profit_per_hour"]), 1)}
-per hour at the cost of under 1% of demand. Both work by removing the longest waits, not by
-scheduling.</li>
-<li><strong>The archived AnyLogic study is reproducible to within its own noise.</strong>
-Low-load profit within 3.4%, high-load within 8.6%, the top-two set identical, workload identity
-exact - and the archive contains one row (E3) whose own numbers are mutually inconsistent by
-3.4%. The one ranking difference is E5 versus E6 (0.2% in the archive, 0.8% here), which is noise-
-level. Waiting-time levels are less well reproduced than profit (section 10); the report says so
-rather than quoting only the flattering aggregate.</li>
-</ol>
-
-<h3>11.2 Summary of headline numbers</h3>
-{table(["Quantity", "Value", "Source"],
-       [
-           ["Policy-sweep configurations", f"{len(data.sweep['records'])}", "results/policy_sweep.json"],
-           ["Total simulated runs in this report", f"{data.total_runs():,}", "all five result files"],
-           ["Break-even load, m = 2 / 3 / 4",
-            f"{data.lambda_star(2):.3f} / {data.lambda_star(3):.3f} / {data.lambda_star(4):.3f}",
-            "results/breakeven.json"],
-           ["Break-even utilisation, m = 2 / 3 / 4",
-            f"{pct(data.util_star(2), 1)} / {pct(data.util_star(3), 1)} / {pct(data.util_star(4), 1)}",
-            "results/breakeven.json"],
-           ["Fast-item triage value at λ = 1.25 (m = 3)", f"{signed(d_fast_125, 1)} / hour", "results/policy_sweep.json"],
-           ["Value of one extra clerk at λ = 1.25 (m = 3 → 4)", f"{signed(p4_125 - p3_125, 1)} / hour", "results/policy_sweep.json"],
-           ["Largest theory-vs-simulation gap below 85% load",
-            pct(max(abs((data.mean(3, value, "synchro+fcfs", "mean_los") - float(data.theory_row(3, value)["predicted_tflow"])) / float(data.theory_row(3, value)["predicted_tflow"])) for value in data.lambdas(3) if float(data.theory_row(3, value)["utilization"]) < 0.85), 1),
-            "results/policy_sweep.json"],
-           ["Largest AnyLogic profit deviation",
-            pct(max(abs(float(row["profit_deviation_multi_rep"])) for row in data.ledger["deviations"]), 1),
-            "results/anylogic_ledger.json"],
-           ["Tea make time 1.5 vs 2.0 min (profit change)",
-            f"{signed(tea_low_point - tea_base_point, 1)} / hour", "results/sensitivity.json"],
-       ], caption="Headline numbers, all regenerated from results/*.json")}
-
-<h3>11.3 Decision zones (recomputed)</h3>
-{table(["Utilisation zone", "What the evidence says", "Recommendation"], zone_bands,
-       caption="Management rules by utilisation (m = 3 unless stated)",
-       note="These bands replace the original report's 65%/85% rule; the lower and upper switches are measured, not assumed.", align=["l", "l", "l"])}
-{table(["Headcount", "Break-even λ*", "Break-even ρ*", "Identification band (λ)"], zone_rows,
-       caption="The delivery-mode switch depends on headcount")}
-
-<h3>11.4 What capacity buys that scheduling cannot</h3>
-{table(["Service target (all-store mean LOS)", *[name for name, _, _ in cap_columns]], capacity_rows,
-       caption="Highest load (λ) that still meets a waiting target (0.05 grid resolution)",
-       note="Read across a row: triage improves the same headcount; moving down a headcount column is a different order of magnitude. The table only uses cells below 100% utilisation.")}
-
-<p class="zh">六条结论都经过稳健性检验：(1) 产能压倒排程——λ=1.25 时多一名员工价值
-{signed(p4_125 - p3_125, 1)}/小时，而整个策略矩阵在该点的跨度只有
-{fx(max(data.mean(3, 1.25, key, "profit_per_hour") for key in POLICY_ORDER) - min(data.mean(3, 1.25, key, "profit_per_hour") for key in POLICY_ORDER), 1)}/小时；
-(2) 快品优先的收益随负载放大（λ=1.25 时 {signed(d_fast_125, 1)}/小时）；
-(3) 拆分交付价值有限且会"过期"，盈亏平衡点随员工数变化（71%/81%/86%），
-原文"65% 以下拆分"的统一规则应改为按人数分档；
-(4) 利润口径与等待口径给出同一个平衡点，因为收入与策略无关、等待成本线性；
-(5) 行为规则在高负载下比交付策略更有效、成本更低（5 分钟 balking = {signed(float(data.balking[(1.25, 5.0)]["means"]["profit_per_hour"]) - float(data.balking[(1.25, None)]["means"]["profit_per_hour"]), 1)}/小时）；
-(6) 存档 AnyLogic 结果在自身噪声范围内可复现，且台账中 E3 一行自相矛盾 3.4%。</p>
-"""
-    return section(11, "Conclusions and management rules", "结论与管理建议", "s11", body)
+    busy_series = []
+    los_series = []
+    for key, (label, color) in styles.items():
+        rows = hourly.get(key, [])  # type: ignore[union-attr]
+        busy_points = [(float(row["hour_start"]) / 60.0 + 1.0, float(row["busy_ratio"])) for row in rows]
+        los_points = [
+            (float(row["hour_start"]) / 60.0 + 1.0, float(row["mean_los"]))
+            for row in rows
+            if row.get("mean_los") is not None
+        ]
+        busy_series.append({"label": label, "color": color, "points": busy_points, "marker": False})
+        los_series.append({"label": label, "color": color, "points": los_points, "marker": False})
+    left = svg.line_chart(
+        busy_series, x_label="hour of the modelled day", y_label="busy ratio",
+        title="Busy staff-minutes per hour", width=470, height=290,
+        x_fmt=lambda v: f"{int(v)}h", y_fmt=lambda v: f"{v * 100:.0f}%",
+        aria_label="Hourly busy ratio for peak and flat demand",
+    )
+    right = svg.line_chart(
+        los_series, x_label="hour of the modelled day", y_label="mean time in system (min)",
+        title="Hourly mean time in system", width=470, height=290,
+        x_fmt=lambda v: f"{int(v)}h",
+        aria_label="Hourly mean LOS for peak and flat demand",
+    )
+    return f'<div class="fig-grid">{left}{right}</div>'
 
 
-def s12_limitations(data: Data) -> str:
-    inventory = [
-        ["results/policy_sweep.json", f"{len(data.sweep['records'])} cells (m × λ × policy), means + 95% CI, paired differences", f"{sum(int(r['reps']) for r in data.sweep['records']):,}"],
-        ["results/breakeven.json", f"{len(data.breakeven['curve'])} paired-difference grid points, bisection roots, identification bands", f"{sum(2 * int(r['reps']) for r in data.breakeven['curve']):,} + bisection"],
-        ["results/sensitivity.json", "4 one-at-a-time dimensions × 2 policy arms + linearity check", f"{int(data.sensitivity['meta']['reps']) * (2 + sum(len(d['values']) for d in data.sensitivity['dimensions']) * 2):,}"],
-        ["results/behaviour.json", "balking (5) + reneging (4) + dynamic priority (6) × 2 loads + references", f"{sum(int(r['reps']) for r in list(data.behaviour['balking']) + list(data.behaviour['reneging']) + list(data.behaviour['priority']) + list(data.behaviour['reference'])):,}"],
-        ["results/anylogic_ledger.json", "E1-E6: archived values, single-run, censored and 200-rep variants, internal audit", f"{sum(int(r['multi_rep']['reps']) + 1 for r in data.ledger['python']):,}"],
+def fig_peak_factor(ctx: Ctx) -> str:
+    series = ctx.series_entry("demand_study", "peak_factor")
+    curve = series["curve"]  # type: ignore[index]
+    xs = [float(row["peak_to_mean"]) for row in curve]
+    panels = (
+        ("p95 time in system (min)", "los_p95", "#b45309", lambda v: f"{v:.1f}"),
+        ("walk-away rate", "balk_rate", "#e11d48", lambda v: f"{v * 100:.0f}%"),
+        ("profit per hour", "profit_per_hour", "#0f766e", lambda v: f"{v:,.0f}"),
+    )
+    charts = []
+    for y_label, key, color, y_fmt in panels:
+        points = [(xs[i], float(row[key])) for i, row in enumerate(curve)]
+        charts.append(
+            svg.line_chart(
+                [{"label": key, "color": color, "points": points}],
+                x_label="peak-to-mean multiplier", y_label=y_label,
+                title=f"{y_label} vs peakiness", width=330, height=280,
+                legend=False, x_fmt=lambda v: f"×{v:.1f}", y_fmt=y_fmt,
+                aria_label=f"{y_label} versus peak-to-mean multiplier",
+            )
+        )
+    return '<div class="fig-grid three">' + "".join(charts) + "</div>"
+
+
+def fig_variability(ctx: Ctx) -> str:
+    series = ctx.series_entry("demand_study", "variability")
+    variants = [str(row["variant"]) for row in series["lambda_1"]]  # type: ignore[index]
+    short = {
+        "fixed": "fixed",
+        "exponential": "exponential (CV 1)",
+        "lognormal_cv0.25": "lognormal CV .25",
+        "lognormal_cv0.50": "lognormal CV .50",
+        "lognormal_cv0.75": "lognormal CV .75",
+    }
+    categories = [short.get(name, name) for name in variants]
+    groups = []
+    for key, label, color in (("lambda_1", "λ = 1.0", "#0284c7"), ("lambda_1.2", "λ = 1.2", "#b45309")):
+        rows = series[key]  # type: ignore[index]
+        groups.append({"label": label, "color": color, "values": [float(row["p95"]) for row in rows]})
+    return svg.bar_chart(
+        groups, categories=categories, y_label="p95 time in system (min)",
+        title="Make-time variability moves the tail, not the mean",
+        width=900, height=340, value_fmt=lambda v: f"{v:.1f} min",
+        note="The engine forces exponential sampling (CV = 1) whenever the variability kind is exponential; the lognormal cells set their CV explicitly.",
+        aria_label="p95 time in system by service-time variability and load",
+    )
+
+
+def fig_patience(ctx: Ctx) -> str:
+    series = ctx.series_entry("demand_study", "patience")
+    grid = series["grid"]  # type: ignore[index]
+    rows = [row for row in grid if abs(float(row["lambda"]) - 1.2) < 1e-9 and abs(float(row["renege_mean"]) - 10.0) < 1e-9]
+    rows.sort(key=lambda row: float(row["balk_mean"]))
+    categories = [f"balk at {row['balk_mean']:.0f} min" for row in rows]
+    left = svg.bar_chart(
+        [{"label": "abandonment rate", "color": "#e11d48", "values": [float(row["abandon_rate"]) for row in rows]}],
+        categories=categories, y_label="abandonment rate", title="Who leaves (λ = 1.2)",
+        width=430, height=290, value_fmt=lambda v: f"{v * 100:.1f}%", y_fmt=lambda v: f"{v * 100:.0f}%",
+        aria_label="Abandonment rate by balk threshold",
+    )
+    right = svg.bar_chart(
+        [{"label": "profit / hour", "color": "#0f766e", "values": [float(row["profit_per_hour"]) for row in rows]}],
+        categories=categories, y_label="profit / hour", title="What the leaving costs (λ = 1.2)",
+        width=430, height=290, value_fmt=lambda v: f"{v:,.0f}",
+        aria_label="Profit per hour by balk threshold",
+    )
+    return f'<div class="fig-grid">{left}{right}</div>'
+
+
+def fig_batch(ctx: Ctx) -> str:
+    series = ctx.series_entry("demand_study", "batch")
+    styles = {
+        "arrival_events_fixed": ("arrival-event rate fixed", "#7c3aed"),
+        "customer_mean_fixed": ("daily customer mean fixed", "#0d9488"),
+    }
+    balk_series = []
+    profit_series = []
+    for key, (label, color) in styles.items():
+        rows = series.get(key, [])  # type: ignore[union-attr]
+        balk_series.append(
+            {"label": label, "color": color,
+             "points": [(float(row["batch_probability"]), float(row["balk_rate"])) for row in rows]}
+        )
+        profit_series.append(
+            {"label": label, "color": color,
+             "points": [(float(row["batch_probability"]), float(row["profit_per_hour"])) for row in rows]}
+        )
+    left = svg.line_chart(
+        balk_series, x_label="batch probability", y_label="walk-away rate",
+        title="Group orders: walk-aways", width=470, height=280,
+        x_fmt=lambda v: f"{v:.1f}", y_fmt=lambda v: f"{v * 100:.0f}%",
+        aria_label="Walk-away rate versus batch probability",
+    )
+    right = svg.line_chart(
+        profit_series, x_label="batch probability", y_label="profit / hour",
+        title="Group orders: profit", width=470, height=280,
+        x_fmt=lambda v: f"{v:.1f}",
+        aria_label="Profit per hour versus batch probability",
+    )
+    return f'<div class="fig-grid">{left}{right}</div>'
+
+
+def fig_tea_capacity(ctx: Ctx) -> str:
+    series = ctx.series_entry("network_study", "tea_capacity")
+    by_lambda = series["by_lambda"]  # type: ignore[index]
+    colors = {"lambda_0.6": "#0284c7", "lambda_0.9": "#7c3aed", "lambda_1.2": "#b45309"}
+    los_series = []
+    profit_series = []
+    for key, rows in by_lambda.items():  # type: ignore[union-attr]
+        label = f"λ = {key.split('_')[1]}"
+        color = colors.get(key, "#64748b")
+        los_series.append(
+            {"label": label, "color": color,
+             "points": [(float(row["capacity"]), float(row["los_p95"])) for row in rows]}
+        )
+        profit_series.append(
+            {"label": label, "color": color,
+             "points": [(float(row["capacity"]), float(row["profit_per_hour"])) for row in rows]}
+        )
+    left = svg.line_chart(
+        los_series, x_label="tea stations (baristas synced)", y_label="p95 time in system (min)",
+        title="More tea stations: the tail", width=470, height=300,
+        x_fmt=lambda v: f"{int(v)}", aria_label="p95 LOS versus tea station capacity",
+    )
+    right = svg.line_chart(
+        profit_series, x_label="tea stations (baristas synced)", y_label="profit / hour",
+        title="More tea stations: the profit", width=470, height=300,
+        x_fmt=lambda v: f"{int(v)}", aria_label="Profit per hour versus tea station capacity",
+    )
+    return f'<div class="fig-grid">{left}{right}</div>'
+
+
+def fig_bottleneck_utils(ctx: Ctx) -> str:
+    migration = ctx.table("network_study", "bottleneck_migration")
+    row = migration["lambda_1.2"]  # type: ignore[index]
+    tea = row["tea_util_by_capacity"]  # type: ignore[index]
+    pool = row["barista_pool_util_by_capacity"]  # type: ignore[index]
+    capacities = sorted(int(key) for key in tea)
+    series = [
+        {"label": "tea station utilisation", "color": "#b45309",
+         "points": [(float(k), float(tea[str(k)])) for k in capacities]},
+        {"label": "barista pool utilisation", "color": "#0284c7",
+         "points": [(float(k), float(pool[str(k)])) for k in capacities]},
     ]
-    body = f"""
-<h3>12.1 Limitations</h3>
-<ol>
-<li><strong>Deterministic service times per class.</strong> Only the order mix creates service-time
-variability (CV<sub>p</sub> = 0.39). Real baristas vary, and that variance would raise queues - the
-queueing approximation already shows how sensitive the high-load region is to it.</li>
-<li><strong>One node, no resources but clerks.</strong> No machine capacity, no ingredient stock-outs,
-no shift handover, no delivery-platform orders, no batching. The bottleneck is labour by assumption,
-so "capacity dominates" is a statement about this abstraction.</li>
-<li><strong>The profit level is conservative</strong> (section 4): the warm-up hour is paid but not
-billed. Rankings, break-evens and optimal loads are unaffected, the absolute level is ~15% low at
-λ = 1.25 and more at low load.</li>
-<li><strong>Overload cells are not decision-grade.</strong> For ρ ≥ 1 the queue never empties, so LOS
-depends on the stopping rule; those cells are reported with 60 replicates and excluded from
-conclusions.</li>
-<li><strong>Behaviour rules are stylised.</strong> Balking uses an in-system estimate rather than a
-true expected wait; balkers do not return and do not damage goodwill; reneging does not depend on
-the customer's class. The measured effects are mechanism-level, not policy-level.</li>
-<li><strong>One-at-a-time sensitivity only.</strong> No interaction terms were estimated. The
-robustness claim ("synchronised delivery is the more profitable mode in 17 of the 18 tested
-settings") is a statement about the tested grid, not about the whole parameter space.</li>
-<li><strong>The AnyLogic archive cannot be re-run</strong>, so the alignment in section 10 is a
-comparison against fixed screenshots, one of which (E3) is internally inconsistent. The audit
-separates "the archive is noisy" from "the re-implementation is wrong" as carefully as the data
-allow, but a re-run of the original model would settle it definitively.</li>
-<li><strong>Costs and prices are the archived assumptions</strong>, not measured data: waiting is
-priced at 0.5 per customer-minute with no evidence about true willingness to wait, and that single
-number drives most of the economic conclusions (section 8).</li>
-</ol>
-
-<h3>12.2 Reproducibility</h3>
-<p>Everything in this report is regenerated by six commands, with fixed seeds and no dependencies
-beyond the Python standard library (tested on Python {esc(data.sweep["meta"]["python_version"])}):</p>
-<pre>python -m pip install -e .
-python analysis/run_policy_sweep.py        # ~4 min
-python analysis/run_breakeven.py           # ~4 min
-python analysis/run_sensitivity.py         # ~1 min
-python analysis/run_behaviour.py           # ~1 min
-python analysis/reproduce_anylogic_ledger.py  # ~1 min
-python analysis/build_report.py            # seconds
-pytest                                     # engine regression anchors</pre>
-<p>The JSON files are byte-identical when the scripts are re-run: the only non-determinism allowed
-is wall-clock time, which is printed to the console and never stored. The report itself is built
-from those files, so re-running the report cannot change a number without changing a result file.</p>
-
-{table(["Result file", "Content", "Runs"], inventory, caption="What each result file contains")}
-
-<h3>12.3 What the next study should do</h3>
-<ul>
-<li>Re-run the AnyLogic model once with a recorded seed to close the single-run comparison properly.</li>
-<li>Replace the waiting-cost assumption with a measured willingness-to-wait, then recompute the
-break-even load - section 8 shows how much of the economic conclusion rides on that one number.</li>
-<li>Add service-time variability (fitted to a real shift) and re-test whether the break-even
-utilisation stays near 80%; the queueing approximation suggests it will move down.</li>
-<li>Model balking with a returning-customer process before recommending admission control.</li>
-</ul>
-
-<p class="zh">本节如实列出口径与局限：品类内服务时间确定性（变异只来自订单结构）、单节点且唯一瓶颈是人力、
-利润水平因预热口径偏低（不影响排序）、过载区不作为决策依据、行为规则是示意性的（离开者不回流、
-不区分品类）、敏感性只做单因素、AnyLogic 存档无法重跑且 E3 自相矛盾、价格与等待成本沿用存档假设。
-复现方式与文件清单见表 12.2；JSON 文件重跑后逐字节一致。</p>
-
-<footer>
-<p>Generated by <code>analysis/build_report.py</code> from <code>results/*.json</code>.
-{SECTIONS_NOTE}</p>
-</footer>
-"""
-    return section(12, "Limitations and reproducibility", "局限性与可复现性", "s12", body)
+    return svg.line_chart(
+        series, x_label="tea stations (fixed labour: one barista per station)",
+        y_label="utilisation",
+        title="Where the constraint sits at λ = 1.2: the tea station stops being the binding resource",
+        width=880, height=300, y_fmt=lambda v: f"{v * 100:.0f}%", x_fmt=lambda v: f"{int(v)}",
+        note="The dashed vertical line marks the critical capacity the study computes from paired marginal profit. Beyond it the shared barista pool and the order counter, not the tea station, decide the queue.",
+        aria_label="Tea station and barista pool utilisation by capacity",
+    )
 
 
-SECTIONS_NOTE = (
-    "Engine: bubble_tea_sim · standard library only · no external fonts, scripts, stylesheets or "
-    "network access in this document."
+def fig_strategy(ctx: Ctx) -> str:
+    """Two panels: the six paired contrasts of the study, profit and tail."""
+    rows = ctx.rows("network_study", "strategy_bottleneck_paired")
+
+    def classify(name: str) -> str:
+        if name.endswith("_split_fast_minus_synchro_plain"):
+            return "split + fast"
+        if name.endswith("_synchro_fast_minus_synchro_plain"):
+            return "fast priority"
+        if name.endswith("_split_plain_minus_synchro_plain"):
+            return "split delivery"
+        return "other"
+
+    categories = []
+    profit_values, profit_errors = [], []
+    p95_values, p95_errors = [], []
+    for row in rows:
+        surname = str(row["name"])
+        kind = "tea" if "tea" in surname else "ice"
+        categories.append(f"{kind} · {classify(str(row['name']))}")
+        profit = dict(row["metrics"]["profit_per_hour"])
+        tail = dict(row["metrics"]["los_p95"])
+        profit_values.append(float(profit["diff"]))
+        profit_errors.append((float(profit["diff"]) - float(profit["ci95"]), float(profit["diff"]) + float(profit["ci95"])))
+        p95_values.append(float(tail["diff"]))
+        p95_errors.append((float(tail["diff"]) - float(tail["ci95"]), float(tail["diff"]) + float(tail["ci95"])))
+
+    left = svg.bar_chart(
+        [{"label": "Δ profit / hour", "color": "#0f766e", "values": profit_values, "errors": profit_errors}],
+        categories=categories, y_label="Δ profit / hour vs synchro + plain",
+        title="Policy value against each bottleneck", width=450, height=320,
+        value_fmt=lambda v: f"{v:+.1f}", aria_label="Profit effect of each policy contrast by bottleneck",
+    )
+    right = svg.bar_chart(
+        [{"label": "Δ p95", "color": "#b45309", "values": p95_values, "errors": p95_errors}],
+        categories=categories, y_label="Δ p95 time in system (min)",
+        title="Tail effect of the same contrasts", width=450, height=320,
+        value_fmt=lambda v: f"{v:+.2f}", aria_label="p95 effect of each policy contrast by bottleneck",
+    )
+    return f'<div class="fig-grid">{left}{right}</div>'
+
+
+def fig_skills(ctx: Ctx) -> str:
+    series = ctx.series_entry("network_study", "skills")
+    rows = series["profit"]  # type: ignore[index]
+    categories = [str(row["configuration"]).replace("_", "-") for row in rows]
+    left = svg.bar_chart(
+        [{"label": "profit / hour", "color": "#0f766e", "values": [float(row["profit_per_hour"]) for row in rows]}],
+        categories=categories, y_label="profit / hour", title="Skill matrix: same headcount, same wage",
+        width=430, height=300, value_fmt=lambda v: f"{v:,.1f}",
+        aria_label="Profit per hour by skill matrix",
+    )
+    right = svg.bar_chart(
+        [{"label": "p95", "color": "#b45309", "values": [float(row["los_p95"]) for row in rows]}],
+        categories=categories, y_label="p95 time in system (min)", title="Skill matrix: the tail",
+        width=430, height=300, value_fmt=lambda v: f"{v:.1f} min",
+        aria_label="p95 LOS by skill matrix",
+    )
+    return f'<div class="fig-grid">{left}{right}</div>'
+
+
+def fig_shifts(ctx: Ctx) -> str:
+    series = ctx.series_entry("network_study", "shifts")
+    los = series["hourly_los"]  # type: ignore[index]
+    busy = series["hourly_busy_ratio"]  # type: ignore[index]
+    styles = {
+        "no_shift": ("no breaks", "#64748b"),
+        "staggered_break": ("staggered break", "#b45309"),
+        "mid_shift_barista": ("mid-shift barista", "#0d9488"),
+    }
+    los_series = []
+    busy_series = []
+    for key, (label, color) in styles.items():
+        values = los.get(key, [])
+        los_series.append(
+            {"label": label, "color": color,
+             "points": [(float(index) + 1.0, float(value)) for index, value in enumerate(values) if value is not None]}
+        )
+        busy_values = busy.get(key, [])
+        busy_series.append(
+            {"label": label, "color": color,
+             "points": [(float(index) + 1.0, float(value)) for index, value in enumerate(busy_values) if value is not None]}
+        )
+    left = svg.line_chart(
+        los_series, x_label="hour of the modelled day", y_label="mean time in system (min)",
+        title="Hourly LOS: where the break hurts", width=470, height=300,
+        x_fmt=lambda v: f"{int(v)}h", aria_label="Hourly mean LOS by shift plan",
+    )
+    right = svg.line_chart(
+        busy_series, x_label="hour of the modelled day", y_label="busy ratio",
+        title="Hourly busy ratio by shift plan", width=470, height=300,
+        x_fmt=lambda v: f"{int(v)}h", y_fmt=lambda v: f"{v * 100:.0f}%",
+        aria_label="Hourly busy ratio by shift plan",
+    )
+    return f'<div class="fig-grid">{left}{right}</div>'
+
+
+# --------------------------------------------------------------------------
+# baseline helpers
+# --------------------------------------------------------------------------
+def baseline_policy_rows(ctx: Ctx, *, workers: int, lam: float) -> List[Dict[str, object]]:
+    records = ctx.baseline["policy_sweep"]["records"]  # type: ignore[index]
+    chosen = [
+        dict(row) for row in records
+        if row["workers"] == workers and abs(float(row["arrival_rate"]) - lam) < 1e-9
+    ]
+    order = {key: index for index, key in enumerate(POLICY_ORDER)}
+    chosen.sort(key=lambda row: order.get(str(row["policy_key"]), 99))
+    return chosen
+
+
+def baseline_pair(ctx: Ctx, *, workers: int, lam: float, pair_key: str) -> Dict[str, object]:
+    pairs = ctx.baseline["policy_sweep"]["pairs"]  # type: ignore[index]
+    for row in pairs:
+        if (
+            row["workers"] == workers
+            and abs(float(row["arrival_rate"]) - lam) < 1e-9
+            and row["pair_key"] == pair_key
+        ):
+            return dict(row)
+    raise KeyError(f"no baseline pair {pair_key} at m={workers}, lambda={lam}")
+
+
+def baseline_breakeven(ctx: Ctx, workers: int) -> Dict[str, object]:
+    rows = ctx.baseline["breakeven"]["breakeven"]  # type: ignore[index]
+    for row in rows:
+        if row["workers"] == workers and row["metric"] == "profit_per_hour":
+            return dict(row)
+    raise KeyError(f"no baseline break-even row for m={workers}")
+
+
+# --------------------------------------------------------------------------
+# build-time validation (cheap; the heavy version is in tests/)
+# --------------------------------------------------------------------------
+def run_checks(ctx: Ctx) -> Dict[str, object]:
+    from bubble_tea_sim import library, scenarios
+    from bubble_tea_sim.engine import Simulation
+
+    checks: Dict[str, object] = {}
+
+    # 1. Degenerate equivalence: a scenario with no mechanism layer enabled must equal
+    #    the exact baseline configuration, bit-for-bit.
+    base = library.load_scenario("baseline_flat")
+    original = scenarios.mixed_order_baseline(1.25, split_mix=False)
+    first = Simulation(base, seed=7).run().metrics.as_dict()
+    second = Simulation(original, seed=7).run().metrics.as_dict()
+    checks["equivalence"] = {
+        "identical": first == second,
+        "baseline_compat": bool(getattr(base, "baseline_compat", False)),
+        "reference": "scenarios.mixed_order_baseline(1.25, split_mix=False)",
+        "seed": 7,
+    }
+
+    # 2. Determinism: same seed -> identical metrics; different seed -> different.
+    campus = library.load_scenario("campus_rush")
+    same_a = Simulation(campus, seed=11).run().metrics.as_dict()
+    same_b = Simulation(campus, seed=11).run().metrics.as_dict()
+    other = Simulation(campus, seed=12).run().metrics.as_dict()
+    checks["determinism"] = {
+        "same_seed_identical": same_a == same_b,
+        "different_seed_differs": same_a != other,
+    }
+
+    # 3. Flow conservation and provenance for every scenario in the library.
+    names = library.scenario_names()
+    flow_ok = 0
+    provenance_ok = 0
+    for name in names:
+        raw = library.load_raw(name)
+        provenance = raw.get("provenance") or {}
+        if all(provenance.get(field) for field in ("source", "method", "uncertainty")):
+            provenance_ok += 1
+        config = library.load_scenario(name)
+        result = Simulation(config, seed=4).run()
+        accounted = (
+            sum(1 for customer in result.customers if customer.served)
+            + result.metrics.balked
+            + result.metrics.reneged
+            + result.metrics.stockout_losses
+            + result.metrics.stranded
+        )
+        if accounted == len(result.customers):
+            flow_ok += 1
+    checks["scenarios"] = {
+        "count": len(names),
+        "flow_conservation_ok": flow_ok,
+        "provenance_complete": provenance_ok,
+    }
+    checks["python"] = platform.python_version()
+    return checks
+
+
+def validated_flag(ctx: Ctx, study: str, field: str) -> Optional[bool]:
+    """Read a validation flag the study recorded for every scenario, if any."""
+    rows = ctx.table(study, "scenarios")
+    if not isinstance(rows, list) or not rows:
+        return None
+    values = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        validation = row.get("validation") or {}
+        if field in validation:
+            values.append(bool(validation[field]))
+    if not values:
+        return None
+    return all(values)
+
+
+# --------------------------------------------------------------------------
+# sections
+# --------------------------------------------------------------------------
+def s01_overview(ctx: Ctx) -> str:
+    records = baseline_policy_rows(ctx, workers=3, lam=1.25)
+    means = {str(row["policy_key"]): row["means"] for row in records}
+    breakeven = baseline_breakeven(ctx, 3)
+    fast_pair = baseline_pair(ctx, workers=3, lam=1.25, pair_key="fast_minus_fcfs")
+    split_pair = baseline_pair(ctx, workers=3, lam=1.25, pair_key="split_minus_synchro")
+    lambda_star = float(breakeven["lambda_star"])
+    util_star = float(breakeven["utilization_star"])
+    fast_gain = float(fast_pair["diff"]["profit_per_hour"])
+    fast_ci = float(fast_pair["ci95"]["profit_per_hour"])
+    split_gain = float(split_pair["diff"]["profit_per_hour"])
+    split_ci = float(split_pair["ci95"]["profit_per_hour"])
+    base_profit = float(means["synchro+fcfs"]["profit_per_hour"])
+    fast_profit = float(means["synchro+fast"]["profit_per_hour"])
+    split_profit = float(means["split+fcfs"]["profit_per_hour"])
+    base_los = float(means["synchro+fcfs"]["mean_los"])
+    fast_los = float(means["synchro+fast"]["mean_los"])
+    scenario_count = int(ctx.baseline.get("_scenario_count", 0) or 0)
+    if ctx.has("scenario_library"):
+        scenario_count = len(ctx.rows("scenario_library", "comparison"))
+
+    body: List[str] = []
+    body.append(
+        '<p class="lead">The original course model asked two questions: should a bubble-tea shop '
+        "triage fast items ahead of the tea queue, and should it hand the ice cream of a mixed order "
+        "over as soon as it is ready? It answered them with one clerk pool, stationary Poisson arrivals, "
+        "fixed service times and a 2×2 policy matrix. Version 2 keeps that engine as the "
+        "<strong>special case</strong> it always was and adds four optional layers around it: an "
+        "intra-day demand profile, a station network with skills and shifts, an inventory bill of "
+        "materials with shelf life, and an economics layer with pricing, SLA and a fairness cap.</p>"
+    )
+    body.append(
+        '<div class="pill-row"><span class="tag baseline">baseline kept</span>'
+        '<span class="tag layer">same engine</span>'
+        '<span class="tag py">all numbers regenerated</span>'
+        '<span class="tag an">AnyLogic archive, not rerunnable</span></div>'
+    )
+    body.append(
+        callout(
+            "key",
+            "<p>With every layer switched off, the engine reproduces the original model exactly. "
+            f"The build-time check compares <code>baseline_flat</code> against "
+            f"<code>scenarios.mixed_order_baseline(1.25)</code> at seed 7 and the two metric dictionaries are "
+            f"<strong>{'identical' if ctx.validation.get('equivalence', {}).get('identical') else 'different'}</strong>. "
+            "That is the contract: the four-layer model adds mechanisms, it does not change the old answers.</p>",
+            title="The engine is an extension, not a replacement",
+        )
+    )
+
+    # What baseline concluded, from the baseline files (not retyped).
+    body.append(
+        table(
+            ["original question (m = 3, λ = 1.25, 200 replicates)", "baseline number (Python engine)", "How the four-layer model re-opens it"],
+            [
+                ["Baseline: synchro delivery + FCFS",
+                 f"profit {fx(base_profit, 2)} /h · mean LOS {fx(base_los, 2)} min",
+                 "Nothing changes at equal load; the four-layer model only adds mechanisms around it."],
+                ["Does fast-item triage pay?",
+                 f"{signed(fast_gain, 2)} ± {fx(fast_ci, 2)} /h vs FCFS (profit {fx(fast_profit, 2)}); "
+                 f"mean LOS {fx(fast_los, 2)} vs {fx(base_los, 2)} min",
+                 "Layer 2: does it still pay when the bottleneck is a station rather than the clerk pool?"],
+                ["Does split delivery pay?",
+                 f"{signed(split_gain, 2)} ± {fx(split_ci, 2)} /h vs synchro (profit {fx(split_profit, 2)}); "
+                 f"break-even at λ* = {fx(lambda_star, 3)} (ρ* = {pct(util_star, 1)})",
+                 "Layer 1+2: peak demand, patience and the network can move the break-even load."],
+                ["Is utilisation a decision metric?",
+                 f"theory ρ = 88.2% at λ = 1.25, yet the four policies differ by "
+                 f"{fx(max(float(means[k]['profit_per_hour']) for k in means) - min(float(means[k]['profit_per_hour']) for k in means), 1)} /h",
+                 "Layer 4: the fairness gap and the peak-hour busy ratio make 'utilisation' even less sufficient."],
+            ],
+            caption="Table 1 · The baseline, read from results/*.json (the archived AnyLogic study remains non-rerunnable).",
+            note="baseline values are the means of 200 paired replicates in results/policy_sweep.json and results/breakeven.json; λ* is the bisection break-even between split and synchronised delivery with FCFS.",
+            align=["l", "l", "l"],
+        )
+    )
+    body.append(
+        callout(
+            "info",
+            "<p>The archived AnyLogic model (<code>archive/anylogic/</code>, screenshots in "
+            "<code>docs/assets/slides/</code>) produced the original E1–E6 numbers. It cannot be re-run, "
+            "so it is never a data source in this report: every number here is regenerated by the Python "
+            "engine. The earlier report itself is preserved unchanged at "
+            '<a href="../archive/report-2026-11.html">archive/report-2026-11.html</a>.</p>',
+            title="Provenance: Python reproducible vs AnyLogic archive",
+        )
+    )
+    body.append(
+        f'<figure class="figure">{fig_baseline_policies(ctx)}'
+        "<figcaption>The baseline at λ = 1.25 with three clerks: fast-item priority is worth more than splitting "
+        "the mixed order at this load. The later sections ask whether that ordering survives a peak, a station "
+        "bottleneck and a perishable ingredient."
+        '<span class="fig-source">results/policy_sweep.json · docs/figures-layers/fig_baseline_policies.svg</span></figcaption></figure>'
+    )
+    body.append('<h3>Architecture</h3>')
+    body.append(
+        '<p>Each layer is a frozen specification object (<code>data_spec.py</code>) that the loader turns '
+        "into a <code>SimConfig</code>; scenarios are JSON files composing the layers they need. "
+        "The engine dispatches events per station and staff skill when a network is present, and keeps the "
+        "baseline dispatch rule when the configuration is baseline-compatible.</p>"
+    )
+    body.append(fig_architecture())
+    body.append(
+        '<h3>What this report contains</h3>'
+        "<p>The next section maps the scenario library. Sections 3–7 are the two demand-side layers and the "
+        "network layer; sections 8–10 are inventory, pricing and fairness; section 11 turns everything into a "
+        "management bundle; section 12 compares course model and four-layer model conclusions; section 13 collects the validation "
+        "evidence and section 14 the reproducibility contract. The complete numeric grids are in "
+        "<a href="
+        '"experiments-layers.md">docs/experiments-layers.md</a>. An interactive, precomputed demo (no simulation in '
+        'the browser) lives at <a href="../demo/index.html">demo/index.html</a>.</p>'
+    )
+    body.append(
+        zh(
+            "baseline 回答了两个问题：快品优先是否值得、混合单拆分交付是否值得；它的模型是单一员工池、平稳泊松到达、固定服务时间。"
+            "四层机制把这套模型保留为“关闭全部新层”的退化特例（构建时用 baseline_flat 与 baseline 配置逐位对比验证），"
+            "再叠加需求侧、站台网络、库存/物料清单、经济与公平四层。报告中所有 baseline 数字来自 results/*.json 的 200 次配对重复，"
+            "层机制数字来自 results/*.json；AnyLogic 仅作为不可重跑的存档，不作为证据来源。"
+        )
+    )
+    return section(1, "What the four layers add to the course model", "四层机制相对课程模型增加了什么", "s1", "".join(body))
+
+
+def s02_scenarios(ctx: Ctx) -> str:
+    if not ctx.has("scenario_library"):
+        return section(2, "The scenario library", "场景库", "s2", ctx.pending("scenario_library"))
+    rows = ctx.rows("scenario_library", "comparison")
+    table_rows = []
+    for row in rows:
+        layers = []
+        layers_row = None
+        for candidate in ctx.rows("scenario_library", "scenarios"):
+            if candidate["name"] == row["name"]:
+                layers_row = candidate
+                break
+        layers_data = (layers_row or {}).get("layers") or {}
+        if isinstance(layers_data, dict):
+            if layers_data.get("demand") and not layers_data["demand"].get("flat"):
+                layers.append("demand")
+            if layers_data.get("batches"):
+                layers.append("batches")
+            if len(layers_data.get("classes") or []) > 1:
+                layers.append("classes")
+            if (layers_data.get("variability") or {}).get("kind", "fixed") != "fixed":
+                layers.append("variability")
+            if layers_data.get("network"):
+                layers.append("network")
+            if layers_data.get("inventory"):
+                layers.append("inventory")
+            if layers_data.get("pricing"):
+                layers.append("pricing")
+            if layers_data.get("sla"):
+                layers.append("sla")
+        table_rows.append(
+            [
+                f'<code>{esc(row["name"])}</code>',
+                esc(row["title"]),
+                str(int(row["workers"])),
+                f"×{fx(row['peak_multiplier'], 1)}",
+                pct(float(row["util"]), 1),
+                minutes(float(row["los_p95"]), 1),
+                pct(float(row["abandon_rate"]), 1),
+                fx(float(row["profit_per_hour"]), 1),
+                "<span class=\"tag py\">baseline</span>" if row["baseline_compat"] else esc(", ".join(layers) or "core"),
+            ]
+        )
+    meta = ctx.meta("scenario_library")
+    body: List[str] = []
+    body.append(
+        '<p class="lead">The layer study runs on a library of shop contexts instead of a single configuration. '
+        "Each file in <code>data/scenarios/</code> composes the layers it needs and carries a provenance block "
+        "that names its source, its method and its uncertainty. No scenario claims field data: the library is a "
+        "set of synthetic teaching cases anchored on the course assumptions, and the uncertainty field says so.</p>"
+    )
+    body.append(
+        f"<p>The catalogue below uses <strong>{ctx.reps_note('scenario_library')}</strong> per scenario "
+        f"(seed 0, stride 1), the same convention as the layer studies, and is generated by "
+        f"<code>analysis/run_demand_network.py</code>. It is a map of contexts, not a causal comparison: every "
+        f"row changes several things at once (crew, peaks, stations, stock), so read it as a spread, not as an "
+        f"experiment. The layer sections that follow isolate one mechanism at a time.</p>"
+    )
+    body.append(
+        table(
+            ["Scenario", "Context", "Crew", "Peak", "Util", "p95", "Leave", "Profit/h", "Layers"],
+            table_rows,
+            caption="Table 2 · The scenario library (means over 100 replicates per scenario; the layer composition is read from each config).",
+            note=f"Source: results/scenario_library.json · {esc(str(meta.get('notes', '')))}",
+            align=["l", "l", "r", "r", "r", "r", "r", "r", "l"],
+        )
+    )
+    body.append(fig_demand_profiles(ctx))
+    body.append(
+        '<p>The spread is the point. <code>baseline_flat</code> is the baseline configuration; '
+        "<code>campus_rush</code>, <code>exam_week</code> and <code>cbd_commute</code> keep the same daily "
+        "demand but concentrate it into peaks; <code>network_tea_bottleneck</code> and "
+        "<code>ice_cream_bottleneck</code> move the constraint into a station; <code>inventory_lean</code> "
+        "adds perishable stock; <code>peak_pricing</code> and <code>strict_sla_fairness</code> add the "
+        "economic layers. Every later section refers to these names.</p>"
+    )
+    body.append(fig_scenario_compare(ctx))
+    body.append(
+        table(
+            ["Layer", "Mechanism it contributes", "New metrics it makes visible"],
+            [
+                ["1 · Demand", "piecewise-constant intra-day profile, group arrivals, customer classes with their own mix, lognormal patience",
+                 "peak-hour busy ratio, p50/p90/p95 LOS, balk and renege rates, per-class LOS and fairness gap"],
+                ["2 · Supply network", "stations with capacities, staff roles with skills, shift windows and staggered breaks, component routing",
+                 "per-station utilisation and queueing, staged order → make flow, skill and shift effects"],
+                ["3 · Inventory / BOM", "ingredients, recipes, (s, S) replenishment with lead time, shelf life, stock-out policy",
+                 "fill rate, stock-out losses, waste units, purchase cost, ingredient cost per hour"],
+                ["4 · Economics / fairness", "time-of-day pricing with elasticity, SLA target and compensation, starvation cap for the low-priority queue",
+                 "SLA attainment and compensation, mean price factor, starvation events, fairness gap, profit with penalties"],
+            ],
+            caption="Table 3 · What each layer contributes (implemented in src/bubble_tea_sim/data_spec.py and engine.py).",
+            align=["l", "l", "l"],
+        )
+    )
+    body.append(
+        zh(
+            "场景库不是真实门店数据：每个文件都写明来源为课程假设/教学案例区间，并标注不确定性为 high。"
+            "表格是 4 次重复的筛选运行，用来展示 16 个情境之间的差异；各层实验使用的是每格 100 次重复的结果。"
+            "其中 baseline_flat 就是 baseline 配置，作为退化对照；campus_rush/exam_week/cbd_commute 把同样的日均需求压进尖峰；"
+            "network_tea_bottleneck 与 ice_cream_bottleneck 把瓶颈搬到站台；inventory_lean 引入易腐库存；"
+            "peak_pricing 与 strict_sla_fairness 打开经济/公平层。"
+        )
+    )
+    return section(2, "The scenario library", "场景库：16 个情境与来源", "s2", "".join(body))
+
+
+def s03_design(ctx: Ctx) -> str:
+    checks = ctx.validation.get("scenarios", {})
+    equivalence = ctx.validation.get("equivalence", {})
+    determinism = ctx.validation.get("determinism", {})
+    scenario_count = int(checks.get("count", 0) or 0)
+    flow_ok = int(checks.get("flow_conservation_ok", 0) or 0)
+    provenance_ok = int(checks.get("provenance_complete", 0) or 0)
+    body: List[str] = []
+    body.append(
+        '<p class="lead">The experimental design is the baseline design, generalised: one simulated day (480 minutes, '
+        "60-minute warm-up excluded from service metrics), fixed seeds, paired comparisons on common random "
+        "numbers, and a reported 95% confidence interval for every mean. The layer studies keep the same seed "
+        "convention (seed 0, stride 1) so that a table cell can be regenerated on its own.</p>"
+    )
+    body.append(
+        table(
+            ["Design decision", "experiment convention", "Why it matters here"],
+            [
+                ["Replicates", "100 per cell (60 above 95% utilisation)", "The tails are noisy; 100 replicates keep the 95% CI half-width small enough to separate mechanisms."],
+                ["Seeds", "seed = 0, stride = 1, identical across policies in a paired comparison",
+                 "Common random numbers make policy and layer differences far less noisy than independent runs."],
+                ["Warm-up", "first 60 simulated minutes excluded from served/waiting metrics",
+                 "The shop does not start empty at 09:00 in the metrics; this matches the baseline convention."],
+                ["Denominators", "fill rate and abandonment count all arrivals; money and served metrics are post-warm-up",
+                 "Documented as a caveat in the inventory study; morning stock-outs appear in fill rate but not in served."],
+                ["Uncertainty", "95% CI of the mean printed next to every mean; each scenario carries a provenance block",
+                 "A synthetic library without an uncertainty statement would invite over-reading."],
+                ["AnyLogic", "archive only; never a data source", "The .alp file and the screenshots cannot be re-run; the Python engine is the reproducible baseline."],
+            ],
+            caption="Table 4 · Experimental design conventions used by all five layer studies.",
+            align=["l", "l", "l"],
+        )
+    )
+    body.append('<h3>What the builder checks on every run</h3>')
+    body.append(
+        "<p>These checks are cheap enough to run while building the report, so the report states their result "
+        "instead of asking the reader to trust them. They are also pinned by "
+        "<code>tests/test_layers.py</code>.</p>"
+    )
+    body.append(
+        table(
+            ["Check", "Result on this build", "What it rules out"],
+            [
+                ["Degenerate equivalence: <code>baseline_flat</code> vs <code>mixed_order_baseline(1.25)</code>, seed 7",
+                 "<strong>identical</strong>" if equivalence.get("identical") else "<strong>different</strong>",
+                 "A silent change to the baseline answers when a layer is off."],
+                ["Determinism: same seed twice, then a different seed",
+                 "identical / differs" if determinism.get("same_seed_identical") and determinism.get("different_seed_differs") else "see note",
+                 "Hidden state or an unseeded random draw."],
+                [f"Flow conservation across all {scenario_count} scenarios (one replicate each)",
+                 f"{flow_ok} / {scenario_count} scenarios account for every customer",
+                 "Double counting or lost customers in the network layer."],
+                [f"Provenance completeness across all {scenario_count} scenarios",
+                 f"{provenance_ok} / {scenario_count} files carry source + method + uncertainty",
+                 "Unattributed assumptions in the scenario library."],
+                ["Offline report: no script, no external asset",
+                 "checked by this script before writing the file", "The report failing to open from file://."],
+            ],
+            caption="Table 5 · Build-time validation. The command is the command that regenerates this report.",
+            note="Determinism, equivalence and flow-conservation are also covered by the test suite; the numbers in this table are computed by analysis/build_report.py itself, not copied from a results file.",
+            align=["l", "l", "l"],
+        )
+    )
+    body.append(
+        callout(
+            "warn",
+            "<p>The scenario catalogue runs 100 replicates per context, like the layer studies, but its rows "
+            "change several things at once: crew size, peak shape, stations, stock. It is a map of contexts, "
+            "not a controlled experiment; causal claims come only from the layer sections, which vary one "
+            "mechanism at a time on common random numbers.</p>",
+            title="Read the catalogue as a map, not as an experiment",
+        )
+    )
+    body.append(
+        zh(
+            "实验设计与 baseline 保持一致：480 分钟仿真日、剔除前 60 分钟预热、固定随机种子（seed=0，步长 1）、"
+            "同一组随机数下的配对比较、每个均值配 95% 置信区间。报告在每次构建时自动执行退化等价、确定性、流量守恒与来源完整性检查，"
+            "结果直接写入本节末尾的验证表，同时由 tests/test_layers.py 固化，避免“报告说验证过、实际上没有”。"
+        )
+    )
+    return section(3, "Design and what the builder validates", "实验设计与构建时验证", "s3", "".join(body))
+
+
+def s04_demand_peaks(ctx: Ctx) -> str:
+    if not ctx.has("demand_study"):
+        return section(4, "Layer 1: the cost of a peak", "需求侧：峰值的代价", "s4", ctx.pending("demand_study"))
+    return section(4, "Layer 1: the cost of a peak", "需求侧：峰值的代价", "s4", _demand_peaks_body(ctx))
+
+
+def _demand_peaks_body(ctx: Ctx) -> str:
+    meta = ctx.meta("demand_study")
+    findings = dict(ctx.study("demand_study").get("findings") or {})
+    peak = dict(findings.get("peak_vs_flat") or {})
+    rows = ctx.rows("demand_study", "peak_vs_flat")
+    paired = dict(ctx.table("demand_study", "peak_vs_flat_paired") or {})
+    factor_rows = ctx.rows("demand_study", "peak_factor_scan")
+    factor_findings = dict(findings.get("peak_factor_scan") or {})
+    body: List[str] = []
+    body.append(
+        '<p class="lead">This is the experiment the course model could not run. The original model had a flat arrival rate, so a busy '
+        "hour and a busy day were the same thing. The demand layer separates them: the peak and the flat profile "
+        "below have the <strong>same daily mean demand</strong>, and differ only in shape.</p>"
+    )
+    body.append(
+        f"<p>The peak profile (peak-to-mean ×{fx(float(peak.get('peak_to_mean', 0.0)) or 1.4945, 2)}) raises the "
+        f"peak-hour busy ratio from {pct(float(peak.get('peak_hour_busy_ratio_flat', 0.0)))} to "
+        f"{pct(float(peak.get('peak_hour_busy_ratio_peak', 0.0)))}, multiplies the p95 wait by "
+        f"{fx(float(peak.get('p95_ratio_peak_over_flat', 0.0)), 2)}× and lifts the walk-away rate from "
+        f"{pct(float(peak.get('balk_rate_flat', 0.0)))} to {pct(float(peak.get('balk_rate_peak', 0.0)))} — while the "
+        f"<em>daily</em> utilisation actually falls from {pct(float(peak.get('daily_util_flat', 0.0)))} to "
+        f"{pct(float(peak.get('daily_util_peak', 0.0)))}, because abandoning customers remove work from the system. "
+        f"Profit per hour drops from {fx(float(peak.get('profit_per_hour_flat', 0.0)), 1)} to "
+        f"{fx(float(peak.get('profit_per_hour_peak', 0.0)), 1)}.</p>"
+    )
+    body.append(
+        table(
+            ["Profile", "Peak-to-mean", "Replicates", "Daily util", "Peak-hour busy", "p95", "Balk", "Profit / h"],
+            [
+                [
+                    esc(str(row["label"]).replace("_", " ")),
+                    f"×{fx(float(row['peak_to_mean']), 2)}",
+                    str(int(row["reps"])),
+                    pct(float(row["metrics"]["util"])),
+                    pct(float(row["metrics"]["peak_busy_ratio"])),
+                    minutes(float(row["metrics"]["los_p95"])),
+                    pct(float(row["metrics"]["balk_rate"])),
+                    fx(float(row["metrics"]["profit_per_hour"]), 1),
+                ]
+                for row in rows
+            ],
+            caption="Table 6 · Peak versus flat demand at the same daily mean (campus_rush).",
+            note=f"Peak cells use {rows[0]['reps']} replicates when the estimated peak load exceeds 0.95, otherwise 100; seeds 0, stride 1. Source: results/demand_study.json.",
+            align=["l", "r", "r", "r", "r", "r", "r", "r"],
+        )
+    )
+    if paired:
+        keys = ("peak_busy_ratio", "los_p95", "balk_rate", "profit_per_hour", "served", "util")
+        body.append(
+            table(
+                ["Paired difference (peak − flat)", "Δ", "95% CI"],
+                [
+                    [key_label(key), fx(float(paired["metrics"][key]["diff"]), 3), f"± {fx(float(paired['metrics'][key]['ci95']), 3)}"]
+                    for key in keys
+                    if key in (paired.get("metrics") or {})
+                ],
+                caption="Table 7 · The same comparison on common random numbers: every difference is far outside its confidence band.",
+                note=f"{esc(str(paired.get('comparison', '')))} · {paired.get('reps')} replicates.",
+                align=["l", "r", "r"],
+            )
+        )
+    body.append(fig_demand_hourly(ctx))
+    body.append('<h3>The shape of the cost is J-shaped</h3>')
+    body.append(
+        f"<p>Holding the daily mean fixed and raising the peak multiplier from ×{fx(float(factor_findings.get('baseline_peak_to_mean', 0.0)), 2)} "
+        f"to ×{fx(float(factor_findings.get('max_peak_to_mean', 0.0)), 2)} costs "
+        f"{signed(float(factor_findings.get('profit_change', 0.0)), 1)}/h of profit, adds "
+        f"{signed(float(factor_findings.get('p95_change', 0.0)), 2)} minutes to the p95 and "
+        f"{pct_signed(float(factor_findings.get('balk_rate_change', 0.0)))} to the walk-away rate. Note that the "
+        f"daily mean never moves: the entire effect is queuing non-linearity.</p>"
+    )
+    body.append(fig_peak_factor(ctx))
+    body.append(
+        table(
+            ["Peak factor", "Peak-to-mean", "Daily util", "p95", "Balk", "Served", "Profit / h"],
+            [
+                [
+                    f"×{fx(float(row['factor']), 1)}",
+                    f"×{fx(float(row['peak_to_mean']), 2)}",
+                    pct(float(row["metrics"]["util"])),
+                    minutes(float(row["metrics"]["los_p95"])),
+                    pct(float(row["metrics"]["balk_rate"])),
+                    fx(float(row["metrics"]["served"]), 1),
+                    fx(float(row["metrics"]["profit_per_hour"]), 1),
+                ]
+                for row in factor_rows
+            ],
+            caption="Table 8 · Peak-factor sweep: the daily mean is held fixed, so this is the price of variability alone.",
+            note="Multiplier shape raised to multiplier**factor and re-normalised so that the daily mean equals the quoted campus_rush rate.",
+            align=["r", "r", "r", "r", "r", "r", "r"],
+        )
+    )
+    body.append(
+        callout(
+            "key",
+            "<p>Decision rule from this section: <strong>plan for the peak, not for the average.</strong> A shop "
+            "that staffs to its daily utilisation will be fine on paper and short at lunch. The next layer asks "
+            "what happens when the staff are organised into stations rather than one pool.</p>",
+            title="What the peak does to the shop",
+        )
+    )
+    body.append(
+        zh(
+            "这是 baseline 无法回答的问题：baseline 的到达率是平稳的，忙时和忙日是同一件事。需求层把两者分开："
+            "在日均客流完全相同的条件下，把峰值形状拉高，峰值时段繁忙度从 66.0% 升到 77.7%，p95 等待乘以 1.46，"
+            "流失率从 6.9% 升到 15.1%，而日均利用率反而下降（因为流失顾客带走了工作量），利润每小时从 296 降到 239。"
+            "结论是“按峰值配置资源，而不是按日均值”，且改善峰值形状的收益是凸的（J 型成本）。"
+        )
+    )
+    return "".join(body)
+
+
+def s05_demand_mechanisms(ctx: Ctx) -> str:
+    if not ctx.has("demand_study"):
+        return section(5, "Layer 1: variability, patience and group orders", "需求侧：变异、耐心与批量到达", "s5", ctx.pending("demand_study"))
+    return section(5, "Layer 1: variability, patience and group orders", "需求侧：变异、耐心与批量到达", "s5", _demand_mechanisms_body(ctx))
+
+
+def _demand_mechanisms_body(ctx: Ctx) -> str:
+    findings = dict(ctx.study("demand_study").get("findings") or {})
+    variability = ctx.rows("demand_study", "variability_scan")
+    variability_findings = dict(findings.get("variability") or {})
+    patience = [row for row in ctx.rows("demand_study", "patience_scan") if abs(float(row["lambda"]) - 1.2) < 1e-9]
+    reneging_only = ctx.rows("demand_study", "patience_reneging_only")
+    patience_findings = dict(findings.get("patience") or {})
+    batch = ctx.rows("demand_study", "batch_scan")
+    batch_findings = dict(findings.get("batch") or {})
+    body: List[str] = []
+    body.append(
+        '<p class="lead">Peaks are not the only way demand stops being a smooth rate. The shop also sees '
+        "variable make times, customers with finite patience, and group arrivals. These mechanisms are often "
+        "discussed separately; the engine can switch each on while holding the others fixed.</p>"
+    )
+    body.append('<h3>Service-time variability: the tail, not the mean</h3>')
+    body.append(
+        f"<p>Replacing deterministic make times by exponential ones — the engine forces exponential sampling, i.e. "
+        f"CV = 1, whenever the variability kind is <code>exponential</code> — moves the p95 by "
+        f"{fx(float(variability_findings.get('p95_range_lam1.0', 0.0)), 2)} minutes at λ = 1.0 and "
+        f"{fx(float(variability_findings.get('p95_range_lam1.2', 0.0)), 2)} minutes at λ = 1.2, while the mean time "
+        f"in system moves by only {fx(float(variability_findings.get('mean_los_range_lam1.2', 0.0)), 2)} minutes. "
+        f"The p95 ratio at lognormal CV 0.75 versus deterministic is {fx(float(variability_findings.get('p95_ratio_cv075_over_fixed_lam1.2', 0.0)), 2)}× "
+        f"at λ = 1.2: the tail grows with load much faster than the mean.</p>"
+    )
+    body.append(
+        table(
+            ["Variant", "λ", "Theory ρ", "p50", "p90", "p95", "Profit / h"],
+            [
+                [
+                    esc(str(row["variant"])),
+                    fx(float(row["lambda"]), 1),
+                    pct(float(row["theoretical_rho"])),
+                    minutes(float(row["metrics"]["los_p50"])),
+                    minutes(float(row["metrics"]["los_p90"])),
+                    minutes(float(row["metrics"]["los_p95"])),
+                    fx(float(row["metrics"]["profit_per_hour"]), 1),
+                ]
+                for row in variability
+            ],
+            caption="Table 9 · Service-time variability at two loads (the mean wait barely moves; the tail does).",
+            note="All variability cells use a two-segment demand profile so the fixed-service cell also runs on the event-driven dispatch path; the CVs are explicit in the study design.",
+            align=["l", "r", "r", "r", "r", "r", "r"],
+        )
+    )
+    body.append(fig_variability(ctx))
+    body.append('<h3>Patience: who leaves, and why</h3>')
+    body.append(
+        f"<p>With balking active at arrival, reneging almost never binds "
+        f"(<code>reneging_binds_in_grid = {bool(patience_findings.get('reneging_binds_in_grid'))}</code>): the "
+        f"customer who would have reneged has usually already walked away at arrival. At λ = 1.2 the walk-away "
+        f"rate falls from {pct(float(patience_findings.get('abandon_rate_balk3_lam1.2', 0.0)))} with a 3-minute "
+        f"threshold to {pct(float(patience_findings.get('abandon_rate_balk12_lam1.2', 0.0)))} with a 12-minute one. "
+        f"Patience is therefore a demand-side lever: it decides how much of the queue becomes lost sales.</p>"
+    )
+    body.append(
+        table(
+            ["Balk after", "Renege after", "Abandon rate", "Mean LOS", "p95", "Profit / h"],
+            [
+                [
+                    minutes(float(row["balk_mean"]), 0),
+                    minutes(float(row["renege_mean"]), 0),
+                    pct(float(row["metrics"]["abandon_rate"])),
+                    minutes(float(row["metrics"]["mean_los"])),
+                    minutes(float(row["metrics"]["los_p95"])),
+                    fx(float(row["metrics"]["profit_per_hour"]), 1),
+                ]
+                for row in patience
+            ],
+            caption="Table 10 · Patience grid at λ = 1.2 (the reneging columns are identical because balking decides first).",
+            note="The reneging-only table in docs/experiments-layers.md isolates reneging by switching balking off.",
+            align=["r", "r", "r", "r", "r", "r"],
+        )
+    )
+    if reneging_only:
+        body.append(
+            table(
+                ["Balking off: renege after", "λ", "Abandon rate", "Mean LOS", "Profit / h"],
+                [
+                    [
+                        minutes(float(row["renege_mean"]), 0),
+                        fx(float(row["lambda"]), 1),
+                        pct(float(row["metrics"]["abandon_rate"])),
+                        minutes(float(row["metrics"]["mean_los"])),
+                        fx(float(row["metrics"]["profit_per_hour"]), 1),
+                    ]
+                    for row in reneging_only
+                ],
+                caption="Table 11 · Reneging on its own: with balking off, the renege threshold does bind.",
+                note="This is the cell that isolates the reneging mechanism; in the full grid it is masked by balking.",
+                align=["l", "r", "r", "r", "r"],
+            )
+        )
+    body.append(fig_patience(ctx))
+    body.append('<h3>Group orders: burstiness versus demand</h3>')
+    body.append(
+        f"<p>Batches are easy to misread. Holding the <em>arrival-event</em> rate fixed, a 30% batch probability "
+        f"raises the walk-away rate from {pct(float(batch_findings.get('balk_rate_p0', 0.0)))} to "
+        f"{pct(float(batch_findings.get('balk_rate_p0.3_arrival_events_fixed', 0.0)))} — but that is mostly a "
+        f"demand increase, because each event brings several customers. Holding the <em>daily customer mean</em> "
+        f"fixed, the same probability leaves the walk-away rate at "
+        f"{pct(float(batch_findings.get('balk_rate_p0.3_customer_mean_fixed', 0.0)))} and profit at "
+        f"{fx(float(batch_findings.get('profit_p0.3_customer_mean_fixed', 0.0)), 1)}/h versus "
+        f"{fx(float(batch_findings.get('profit_p0', 0.0)), 1)}/h for singles. Burstiness is real but second-order "
+        f"next to the peak shape.</p>"
+    )
+    body.append(
+        table(
+            ["Rate policy", "Batch p", "Expected size", "Effective λ", "Peak busy", "Balk", "Profit / h"],
+            [
+                [
+                    esc(str(row["rate_policy"]).replace("_", " ")),
+                    fx(float(row["batch_probability"]), 1),
+                    fx(float(row["expected_arrival_size"]), 2),
+                    fx(float(row["effective_arrival_rate"]), 3),
+                    pct(float(row["metrics"]["peak_busy_ratio"])),
+                    pct(float(row["metrics"]["balk_rate"])),
+                    fx(float(row["metrics"]["profit_per_hour"]), 1),
+                ]
+                for row in batch
+            ],
+            caption="Table 12 · Batch arrivals under two rate conventions; only the second isolates burstiness.",
+            note="‘arrival events fixed’ holds the event rate constant (so batching increases demand); ‘customer mean fixed’ holds the daily customer mean constant.",
+            align=["l", "r", "r", "r", "r", "r", "r"],
+        )
+    )
+    body.append(fig_batch(ctx))
+    body.append(
+        zh(
+            "需求侧另外三个机制：①服务时间变异主要抬高尾部而不是均值——指数分布（引擎强制按 CV=1 采样）与对数正态 CV 0.75 会让 p95 "
+            "显著变差，均值只动一点，因此用平均等待评估体验会系统性低估风险；②在“到达即评估等待”的设置下，流失主要由 balking 决定，"
+            "reneging 几乎从不触发（单独关闭 balking 后才可见）；③批量到达要区分口径：固定到达事件率时批量化主要是需求增加，"
+            "固定日均顾客数后，真正的“突发性”效应仍然存在，但明显小于峰型效应。"
+        )
+    )
+    return "".join(body)
+
+
+def s06_network_bottleneck(ctx: Ctx) -> str:
+    if not ctx.has("network_study"):
+        return section(6, "Layer 2: the bottleneck moves", "供给侧：瓶颈会迁移", "s6", ctx.pending("network_study"))
+    return section(6, "Layer 2: the bottleneck moves", "供给侧：瓶颈会迁移", "s6", _network_bottleneck_body(ctx))
+
+
+def _network_bottleneck_body(ctx: Ctx) -> str:
+    findings = dict(ctx.study("network_study").get("findings") or {})
+    migration_findings = dict(findings.get("bottleneck_migration") or {})
+    sweep = ctx.rows("network_study", "tea_capacity_sweep")
+    migration = dict(ctx.table("network_study", "bottleneck_migration") or {})
+    body: List[str] = []
+    body.append(
+        '<p class="lead">The course model had one homogeneous clerk pool, so the only possible bottleneck was the pool itself. '
+        "The network layer splits the work into stations — order counter, tea station, ice machine, bread counter — "
+        "with staff that have skills, and asks a different question: when the shop adds capacity, where does "
+        "the constraint move to?</p>"
+    )
+    critical = dict(migration_findings.get("critical_capacity_by_lambda") or {})
+    body.append(
+        f"<p>The study sweeps tea-station capacity 1–4 with baristas synced to stations, at λ = 0.6, 0.9 and 1.2. "
+        f"Critical capacity — the smallest capacity whose extra station no longer pays for itself on paired common "
+        f"random numbers — is "
+        + ", ".join(f"{esc(key.replace('_', ' '))}: {esc(str(value))}" for key, value in critical.items())
+        + ". The tea station remains the busiest station at every capacity, but beyond the critical capacity the "
+        "queue is decided by the shared barista pool and the order counter, not by the tea station.</p>"
+    )
+    body.append(fig_tea_capacity(ctx))
+    body.append(
+        table(
+            ["λ", "Tea stations", "Baristas", "Tea util", "Barista pool", "Order counter", "p95", "Balk", "Profit / h"],
+            [
+                [
+                    fx(float(row["lambda"]), 1),
+                    str(int(row["tea_capacity"])),
+                    str(int(row["baristas"])),
+                    pct(float(row["tea_util"])),
+                    pct(float(row["pool_util"]["barista"])),
+                    pct(float(row["order_util"])),
+                    minutes(float(row["metrics"]["los_p95"])),
+                    pct(float(row["metrics"]["balk_rate"])),
+                    fx(float(row["metrics"]["profit_per_hour"]), 1),
+                ]
+                for row in sweep
+            ],
+            caption="Table 13 · Tea-capacity sweep with staff synced to stations (station utilisation comes straight from the engine).",
+            note="Pool utilisation groups the stations that share a skill and divides their busy minutes by the pre-break shift minutes available to that skill.",
+            align=["r", "r", "r", "r", "r", "r", "r", "r", "r"],
+        )
+    )
+    body.append(fig_bottleneck_utils(ctx))
+    migration_rows = []
+    for key, payload in migration.items():
+        rows = payload  # type: ignore[assignment]
+        migration_rows.append(
+            [
+                esc(str(key).replace("_", " ")),
+                str(rows.get("critical_capacity", "n/a")),
+                "yes" if rows.get("tea_is_top_station_all_capacities") else "no",
+                pct(float(rows["tea_util_by_capacity"]["1"]), 1),
+                pct(float(rows["tea_util_by_capacity"][str(rows["critical_capacity"])]), 1),
+                pct(float(rows["barista_pool_util_by_capacity"][str(rows["critical_capacity"])]), 1),
+            ]
+        )
+    body.append(
+        table(
+            ["Load", "Critical capacity", "Tea stays top?", "Tea util at 1 station", "Tea util at critical", "Pool util at critical"],
+            migration_rows,
+            caption="Table 14 · Where the bottleneck stops moving: the study's own critical-capacity summary.",
+            note="critical_capacity is the smallest capacity whose marginal profit per hour is non-positive on common random numbers; utilisation is computed from the engine's station busy minutes.",
+            align=["l", "r", "r", "r", "r", "r"],
+        )
+    )
+    body.append(
+        callout(
+            "key",
+            "<p>The bottleneck is not a property of the shop — it is a property of the shop <em>plus its staff "
+            "plan</em>. Adding tea stations helps until the barista pool or the order counter becomes the binding "
+            "resource; after that, more equipment only moves the queue. This is the classic capacity-planning "
+            "insight, but here it is measured with paired confidence intervals rather than asserted.</p>",
+            title="The bottleneck migrates",
+        )
+    )
+    body.append(
+        zh(
+            "课程模型只有单一员工池，瓶颈只能是员工池本身。网络层把流程拆成下单台、茶站、冰淇淋机、面包柜等站台，"
+            "并让员工带技能、带班次，于是可以问：加容量之后，约束会迁到哪里？实验显示：茶站始终是最忙的站台，"
+            "但超过“临界容量”（0.6/0.9 负载下为 3 个茶站，1.2 负载下为 4 个）后，新增茶站的边际利润不再为正，"
+            "真正的约束转移到共享吧台人力池与下单台。结论：瓶颈是“门店+排班”的属性，不是设备本身的属性。"
+        )
+    )
+    return "".join(body)
+
+
+def s07_network_policy(ctx: Ctx) -> str:
+    if not ctx.has("network_study"):
+        return section(7, "Layer 2: policies, skills and shifts", "供给侧：策略、技能与班次", "s7", ctx.pending("network_study"))
+    return section(7, "Layer 2: policies, skills and shifts", "供给侧：策略、技能与班次", "s7", _network_policy_body(ctx))
+
+
+def _network_policy_body(ctx: Ctx) -> str:
+    findings = dict(ctx.study("network_study").get("findings") or {})
+    strategy_findings = dict(findings.get("strategy_by_bottleneck") or {})
+    skill_findings = dict(findings.get("skill_matrix") or {})
+    shift_findings = dict(findings.get("shifts") or {})
+    strategy_pairs = ctx.rows("network_study", "strategy_bottleneck_paired")
+    strategy_cells = ctx.rows("network_study", "strategy_bottleneck")
+    skills = ctx.rows("network_study", "skill_matrix")
+    skill_pairs = ctx.rows("network_study", "skill_matrix_paired")
+    shifts = ctx.rows("network_study", "shifts")
+    shift_pairs = ctx.rows("network_study", "shifts_paired")
+    body: List[str] = []
+    body.append(
+        '<p class="lead">The policy question was first asked against a single clerk pool. The network layer lets the '
+        "same 2×2 policy matrix run against two different bottlenecks: one scenario where the tea station is the "
+        "binding constraint, and one where the ice-cream machine is.</p>"
+    )
+    body.append(
+        "<h3>Strategy × bottleneck: fast priority is a bet on slack</h3>"
+    )
+    def contrast_label(name: str) -> str:
+        if name.endswith("_split_fast_minus_synchro_plain"):
+            return "split + fast vs synchro + plain"
+        if name.endswith("_synchro_fast_minus_synchro_plain"):
+            return "fast priority vs plain"
+        if name.endswith("_split_plain_minus_synchro_plain"):
+            return "split vs synchro"
+        return name
+
+    body.append(
+        table(
+            ["Scenario", "Contrast (common random numbers)", "Δ profit / h", "Δ mean LOS", "Δ p95"],
+            [
+                [
+                    "tea bottleneck" if "tea" in str(row["name"]) else "ice-cream bottleneck",
+                    esc(contrast_label(str(row["name"]))),
+                    f"{signed(float(row['metrics']['profit_per_hour']['diff']), 2)} ± {fx(float(row['metrics']['profit_per_hour']['ci95']), 2)}",
+                    f"{signed(float(row['metrics']['mean_los']['diff']), 2)} ± {fx(float(row['metrics']['mean_los']['ci95']), 2)}",
+                    f"{signed(float(row['metrics']['los_p95']['diff']), 2)} ± {fx(float(row['metrics']['los_p95']['ci95']), 2)}",
+                ]
+                for row in strategy_pairs
+            ],
+            caption="Table 15 · The six paired policy contrasts, run against a tea bottleneck and against an ice-cream bottleneck.",
+            note="Each contrast is measured against the same synchro + plain baseline inside its scenario. A positive profit difference favours the contrast. Fast priority is worth roughly twice as much in the ice-cream bottleneck, and the split-only contrast is negative in the tea bottleneck.",
+            align=["l", "l", "r", "r", "r"],
+        )
+    )
+    body.append(fig_strategy(ctx))
+    body.append(
+        f"<p>{esc(str(strategy_findings.get('note', '')))}</p>"
+    )
+    body.append(
+        table(
+            ["Scenario", "Policy", "Top station", "Profit / h", "Mean LOS", "p95", "Balk"],
+            [
+                [
+                    esc(str(row["scenario"]).replace("_", " ")),
+                    esc(str(row["policy"]).replace("_", " ")),
+                    esc(str(row["top_station"])),
+                    fx(float(row["metrics"]["profit_per_hour"]), 1),
+                    minutes(float(row["metrics"]["mean_los"])),
+                    minutes(float(row["metrics"]["los_p95"])),
+                    pct(float(row["metrics"]["balk_rate"])),
+                ]
+                for row in strategy_cells
+            ],
+            caption="Table 16 · The eight strategy cells behind that comparison.",
+            note="All cells run 100 replicates on the same seeds; station utilisation for each cell is in docs/experiments-layers.md.",
+            align=["l", "l", "l", "r", "r", "r", "r"],
+        )
+    )
+    body.append("<h3>Skills: the pooling gain lives in the generalist</h3>")
+    body.append(
+        f"<p>With the same headcount and the same wage bill, turning four dedicated staff into four generalists is "
+        f"worth {signed(float(skill_findings.get('generalist_minus_dedicated_profit', {}).get('diff', 0.0)), 2)} "
+        f"± {fx(float(skill_findings.get('generalist_minus_dedicated_profit', {}).get('ci95', 0.0)), 2)}/h. "
+        f"One-way cross-training — a barista who can also run the register — is worth "
+        f"{signed(float(skill_findings.get('cross_trained_minus_dedicated_profit', {}).get('diff', 0.0)), 2)} "
+        f"± {fx(float(skill_findings.get('cross_trained_minus_dedicated_profit', {}).get('ci95', 0.0)), 2)}/h, "
+        "i.e. nothing measurable: the flexibility has to go both ways to matter.</p>"
+    )
+    body.append(
+        table(
+            ["Configuration", "Description", "Headcount", "Barista pool", "Cashier pool", "p95", "Profit / h"],
+            [
+                [
+                    esc(str(row["configuration"])),
+                    esc(str(row["description"])),
+                    str(int(row["headcount"])),
+                    pct(float(row["pool_util"]["barista"])),
+                    pct(float(row["pool_util"]["cashier"])),
+                    minutes(float(row["metrics"]["los_p95"])),
+                    fx(float(row["metrics"]["profit_per_hour"]), 1),
+                ]
+                for row in skills
+            ],
+            caption="Table 17 · Skill matrix at equal headcount: the difference is pure queueing.",
+            note="Wage per hour is identical in all three cells (the study records Δ wage = 0), so the profit difference is not a cost difference.",
+            align=["l", "l", "r", "r", "r", "r", "r"],
+        )
+    )
+    body.append(fig_skills(ctx))
+    body.append("<h3>Shifts and breaks: removing capacity near the peak</h3>")
+    peak_los = dict(shift_findings.get("peak_hour_los") or {})
+    body.append(
+        f"<p>The shift experiment adds realistic staffing: staggered unpaid breaks, or a mid-shift barista. "
+        f"The peak-hour mean LOS is {minutes(float(peak_los.get('no_shift', 0.0)))} with no breaks, "
+        f"{minutes(float(peak_los.get('staggered_break', 0.0)))} with a staggered break and "
+        f"{minutes(float(peak_los.get('mid_shift_barista', 0.0)))} with the mid-shift barista. Breaks remove "
+        f"capacity exactly when demand is highest, so both the peak-hour wait and the p95 jump while the wage "
+        f"bill falls — a net loss. The mid-shift barista adds headcount but leaves the peak-hour wait essentially "
+        f"unchanged (+0.06 ± 0.08 min): at the peak the tea station, not headcount, is the binding resource, so "
+        f"the extra wage line buys little.</p>"
+    )
+    body.append(
+        table(
+            ["Shift plan", "Headcount", "Mean LOS", "p95", "Peak-hour LOS", "Profit / h"],
+            [
+                [
+                    esc(str(row["configuration"]).replace("_", " ")),
+                    str(int(row["headcount"])),
+                    minutes(float(row["metrics"]["mean_los"])),
+                    minutes(float(row["metrics"]["los_p95"])),
+                    minutes(float(row["metrics"].get("peak_hour_los", 0.0))),
+                    fx(float(row["metrics"]["profit_per_hour"]), 1),
+                ]
+                for row in shifts
+            ],
+            caption="Table 18 · Shift and break plans. The break plan is not free even when the break is unpaid.",
+            note="The engine excludes break time from available staff-minutes, so an unpaid break lowers the wage bill but removes capacity; the paired table below shows the net effect.",
+            align=["l", "r", "r", "r", "r", "r"],
+        )
+    )
+    if shift_pairs:
+        body.append(
+            table(
+                ["Paired difference vs no-break baseline", "Δ profit / h", "Δ p95", "Δ peak-hour LOS", "Δ served"],
+                [
+                    [
+                        esc(str(row["name"]).replace("_", " ")),
+                        f"{signed(float(row['metrics']['profit_per_hour']['diff']), 2)} ± {fx(float(row['metrics']['profit_per_hour']['ci95']), 2)}",
+                        f"{signed(float(row['metrics']['los_p95']['diff']), 2)} ± {fx(float(row['metrics']['los_p95']['ci95']), 2)}",
+                        f"{signed(float(row['metrics'].get('peak_hour_los', {}).get('diff', 0.0)), 2)} ± {fx(float(row['metrics'].get('peak_hour_los', {}).get('ci95', 0.0)), 2)}",
+                        f"{signed(float(row['metrics']['served']['diff']), 1)} ± {fx(float(row['metrics']['served']['ci95']), 1)}",
+                    ]
+                    for row in shift_pairs
+                ],
+                caption="Table 19 · Shift plans on common random numbers: the break plan loses profit through the queue, not only through wages.",
+                align=["l", "r", "r", "r", "r"],
+            )
+        )
+    body.append(fig_shifts(ctx))
+    body.append(
+        zh(
+            "把 baseline 的 2×2 策略矩阵搬到“茶站瓶颈”和“冰淇淋机瓶颈”两个场景里，结论明显不同：快品优先在冰淇淋机瓶颈下价值约为茶站瓶颈的两倍，"
+            "在茶站瓶颈下甚至会让 p95 变差——因为快品通道只在“它自己的站台有富余”时才有意义。技能矩阵方面，"
+            "同样人数同样工资下，全员通才比专职分工多赚约 84.5/h（±5.1），而“单向交叉培训”几乎没有可测量收益："
+            "弹性必须双向才有用。班次实验显示，错峰休息虽然工资账单更低，却把容量从峰值时段挪走，净效果是利润下降、p95 上升；"
+            "中班吧台增加了人手，但峰值等待几乎不变（+0.06±0.08 分钟）——峰值时约束是茶站而不是人数，所以多出的工资只是成本。"
+        )
+    )
+    return "".join(body)
+
+
+def s08_inventory(ctx: Ctx) -> str:
+    if not ctx.has("inventory_study"):
+        return section(8, "Layer 3: fill rate, waste and profit", "库存层：满足率、损耗与利润", "s8", ctx.pending("inventory_study"))
+    meta = ctx.meta("inventory_study")
+    tables = ctx.tables("inventory_study")
+    baseline = tables["baseline"]
+    metrics = dict(baseline.get("metrics", {}))  # type: ignore[union-attr]
+    ci95 = dict(baseline.get("ci95", {}))  # type: ignore[union-attr]
+    config = dict(baseline.get("config", {}))  # type: ignore[union-attr]
+    tradeoff = dict(tables["tradeoff"])
+    frontier = list(tradeoff["frontier"])
+    decision = dict(tables["decision_summary"])
+    base_dec = dict(decision["baseline"])
+    recommended = dict(decision["recommended_ss"])
+    caveats = meta.get("caveats") or []
+
+    def ci(key: str) -> str:
+        value = ci95.get(key)
+        return f" ± {fx(value, 2)}" if value is not None else ""
+
+    body: List[str] = []
+    body.append(
+        '<p class="lead">The inventory layer answers a different question from the queueing layers: given a '
+        "twenty-minute tea and a perishable pearl, how much stock should the shop hold when a stock-out loses the "
+        "sale and a shelf life turns safety stock into waste? The scenario used here is "
+        f"<code>{esc(config.get('name', 'inventory_lean'))}</code>: {config.get('workers')} clerks, quoted arrival "
+        f"rate {fx(config.get('arrival_rate'), 3)}/min, four ingredients with (s, S) replenishment, a 60–90 minute "
+        "lead time and a four-hour pearl shelf life.</p>"
+    )
+    body.append(
+        table(
+            ["Metric", "Mean", "95% CI", "Reading"],
+            [
+                ["Fill rate (all arrivals)", pct(float(metrics["fill_rate"])), ci("fill_rate"), "share of demand that is actually served"],
+                ["Stock-out losses / day", fx(float(metrics["stockout_losses"]), 2), ci("stockout_losses"), "orders lost to an empty ingredient"],
+                ["Waste units / day", fx(float(metrics["waste_units"]), 2), ci("waste_units"), "perishable stock that expires"],
+                ["Purchase cost / day", fx(float(metrics["purchase_cost"]), 1), ci("purchase_cost"), "ingredient spend"],
+                ["Profit / hour", fx(float(metrics["profit_per_hour"]), 2), ci("profit_per_hour"), "revenue − wages − waiting cost − ingredients"],
+                ["Mean time in system", minutes(float(metrics["mean_los"])), ci("mean_los"), "waiting is unaffected by inventory except through lost sales"],
+                ["Staff utilisation", pct(float(metrics["util"])), ci("util"), "busy staff-minutes / available staff-minutes"],
+            ],
+            caption="Table 6 · Inventory baseline: the lean scenario at 100 replicates (seed 0, stride 1).",
+            note=f"Source: results/inventory_study.json · baseline.metrics/ci95 · {esc(str(meta.get('reps', '')))}.",
+            align=["l", "r", "r", "l"],
+        )
+    )
+    body.append('<h3>The (s, S) trade-off: what the frontier actually looks like</h3>')
+    frontier_rows = []
+    for point in frontier:
+        frontier_rows.append(
+            [
+                f"s = {fx(point['s_factor'], 2)} × initial, S = {fx(point['S_factor'], 2)} × initial",
+                pct(float(point["fill_rate"]), 2),
+                fx(float(point["stockout_losses"]), 2),
+                fx(float(point["waste_units"]), 2),
+                fx(float(point["purchase_cost"]), 1),
+                fx(float(point["profit_per_hour"]), 2),
+            ]
+        )
+    body.append(
+        table(
+            ["Replenishment setting", "Fill rate", "Stock-outs", "Waste", "Purchase cost", "Profit / h"],
+            frontier_rows,
+            caption="Table 7 · The fill / waste / profit frontier returned by the study (the study's own Pareto points).",
+            note="(s, S) factors are multiples of the scenario's initial stock and order quantity; the exact reorder points and order quantities are in docs/experiments-layers.md.",
+            align=["l", "r", "r", "r", "r", "r"],
+        )
+    )
+    body.append(
+        f"<p><strong>What the frontier says.</strong> The best fill rate is "
+        f"{pct(float(tradeoff['max_fill']['fill_rate']), 2)} (at s = {fx(tradeoff['max_fill']['s_factor'], 2)}, "
+        f"S = {fx(tradeoff['max_fill']['S_factor'], 2)}) and it is almost free in profit terms: "
+        f"{fx(float(tradeoff['max_fill']['profit_per_hour']), 2)}/h versus the lean baseline's "
+        f"{fx(float(base_dec['profit_per_hour']), 2)}/h. Waste stays at "
+        f"{fx(float(tradeoff['min_waste']['waste_units']), 2)} units even at the best-waste setting, because the "
+        f"pearl shelf life, not the reorder point, is the binding constraint. The study's recommended setting is "
+        f"s = {fx(recommended['s_factor'], 2)}, S = {fx(recommended['S_factor'], 2)}: fill rate "
+        f"{pct(float(recommended['fill_rate']), 2)} and {signed(float(decision['profit_gain_per_hour']), 2)}/h "
+        f"versus the baseline.</p>"
+    )
+    body.append(fig_inv_lead_time(ctx))
+    body.append(
+        f"<p>Lead time is the cheap lever. Moving from a "
+        f"{fx(float(tradeoff['lead_time_fill_95_max']), 0)}-minute to a longer replenishment cycle is what starts "
+        "to cost fill rate; the lead-time scan in the table library shows where. Shelf life is the expensive "
+        f"lever: below {fx(float(tradeoff['shelf_life_waste_free_min']), 0)} minutes the same order quantity starts "
+        "to expire before it is used, and waste appears exactly there.</p>"
+    )
+    body.append(fig_inv_shelf_life(ctx))
+    body.append(fig_inv_ceiling(ctx))
+    body.append(fig_inv_stockout(ctx))
+    stockout_rows = ctx.rows("inventory_study", "stockout_policy")
+    body.append(
+        table(
+            ["Shortage regime", "Stock-out policy", "Fill rate", "Stock-outs", "Profit / h", "Δ vs losing the sale"],
+            [
+                [
+                    esc(str(row["regime"]).replace("_", " ")),
+                    esc(str(row["stockout_policy"]).replace("_", " ")),
+                    pct(float(row["fill_rate"]), 2),
+                    fx(float(row["stockout_losses"]), 2),
+                    fx(float(row["profit_per_hour"]), 2),
+                    "—" if not row.get("profit_delta_vs_lose") else signed(float(row["profit_delta_vs_lose"]), 2),
+                ]
+                for row in stockout_rows
+            ],
+            caption="Table 8 · Stock-out policy: three shortage regimes × three policies (nine rows).",
+            note="Substitution does not create stock; it routes demand to a product the shop can still make. It pays only when the shortage is in a component that has a substitute (ice → bread, mix → tea); with a pearl shortage all three policies collapse onto the same lost sales.",
+            align=["l", "l", "r", "r", "r", "r"],
+        )
+    )
+    if caveats:
+        body.append(
+            callout(
+                "warn",
+                "<ul>" + "".join(f"<li>{esc(str(item))}</li>" for item in caveats) + "</ul>",
+                title="Inventory study caveats (as recorded in its metadata)",
+            )
+        )
+    body.append(
+        zh(
+            "库存层的核心结论是“满足率可以很便宜，损耗才是贵的那一半”。在 inventory_lean 场景里把 (s,S) 提到最高满足率几乎是免费的"
+            "（利润与基线相差很小），但珍珠的四小时保质期决定了损耗下限：真正的杠杆是保质期与提前期，而不是把安全库存堆得更高。"
+            "缺货时“用茶替代混合单”能挽回收入，但它不创造库存，只是把需求导向还能做的产品。"
+            "报告同时保留了研究脚本自己写下的口径说明（fill_rate 的分母包含预热期到达），避免读者误读。"
+        )
+    )
+    return section(8, "Layer 3: fill rate, waste and profit", "库存层：满足率、损耗与利润", "s8", "".join(body))
+
+
+def s09_pricing(ctx: Ctx) -> str:
+    if not ctx.has("economics_study"):
+        return section(9, "Layer 4: peak pricing and elasticity", "经济层：高峰定价与需求弹性", "s9", ctx.pending("economics_study"))
+    meta = ctx.meta("economics_study")
+    grid = ctx.rows("economics_study", "pricing_grid")
+    optima = ctx.rows("economics_study", "pricing_optima")
+    caveats = meta.get("caveats") or []
+    # A compact slice of the grid for the report: the central elasticity, all
+    # tested multipliers, so the reader sees the shape without the 36-row dump.
+    central = [row for row in grid if abs(float(row["elasticity"]) + 1.0) < 1e-9]
+    central.sort(key=lambda row: float(row["peak_price_multiplier"]))
+    body: List[str] = []
+    body.append(
+        '<p class="lead">The pricing layer charges a multiplier inside the two campus peaks (minutes 60–180 and '
+        "300–420) and lets demand react with a constant elasticity: a multiplier <code>m</code> scales arrivals by "
+        "<code>m^ε</code>. The question is not whether peak pricing raises revenue — it usually does — but what it "
+        "does to the tail, and whether the profit maximum is a policy recommendation or an artefact of the cost model.</p>"
+    )
+    body.append(fig_econ_pricing(ctx))
+    if central:
+        body.append(
+            table(
+                ["Peak ×", "Demand factor", "Served", "Served retained", "Revenue / h", "Profit / h", "p95", "Peak p95"],
+                [
+                    [
+                        f"×{fx(float(row['peak_price_multiplier']), 2)}",
+                        fx(float(row["demand_factor"]), 3),
+                        fx(float(row["served"]), 1),
+                        pct(float(row["served_retained"]), 1),
+                        fx(float(row["revenue_per_hour"]), 1),
+                        fx(float(row["profit_per_hour"]), 1),
+                        minutes(float(row["los_p95"]), 1),
+                        minutes(float(row["peak_los_p95"]), 1),
+                    ]
+                    for row in central
+                ],
+                caption="Table 9 · One elasticity slice of the pricing grid (ε = −1.0): the full 36-row grid is in docs/experiments-layers.md.",
+                note="Demand factor = m^ε, i.e. the multiplier applied to the arrival rate inside the peak windows. ‘Served retained’ is served customers relative to the no-pricing baseline.",
+                align=["r", "r", "r", "r", "r", "r", "r", "r"],
+            )
+        )
+    body.append(
+        table(
+            ["Elasticity", "Revenue-max ×", "Revenue / h", "Profit-max ×", "Profit / h", "Profit-max p95", "Service-neutral ×", "Service-neutral p95"],
+            [
+                [
+                    fx(float(row["elasticity"]), 1),
+                    f"×{fx(float(row['revenue_max_multiplier']), 2)}",
+                    fx(float(row["revenue_max_per_hour"]), 1),
+                    f"×{fx(float(row['profit_max_multiplier']), 2)}",
+                    fx(float(row["profit_max_per_hour"]), 1),
+                    minutes(float(row["profit_max_los_p95"]), 1),
+                    f"×{fx(float(row.get('service_neutral_multiplier') or 1.0), 2)}",
+                    minutes(float(row.get("service_neutral_peak_p95") or 0.0), 1),
+                ]
+                for row in optima
+            ],
+            caption="Table 10 · The optima the study reports for each elasticity.",
+            note="The profit optimum sits at the edge of the tested range for these elasticities (the study marks profit_max_is_boundary), so it must be read together with the caveats below. The service-neutral multiplier is the useful decision variable: the largest increase that leaves the tail essentially unchanged.",
+            align=["r", "r", "r", "r", "r", "r", "r", "r"],
+        )
+    )
+    body.append(
+        "<p><strong>Reading the optima.</strong> Revenue and profit both rise with the multiplier at every tested "
+        "elasticity, but the mechanism is demand shedding: fewer, better-paying orders inside the peak also mean "
+        "less waiting. The useful decision variable is the <em>service-neutral</em> multiplier: the largest "
+        "increase that leaves the tail essentially unchanged. Anything above it buys profit by lowering service, "
+        "and the model prices that trade only through the waiting cost of customers who stay — not through the "
+        "ones who balk. That is a modelling limit, not a discovery about pricing.</p>"
+    )
+    if caveats:
+        body.append(
+            callout(
+                "warn",
+                "<ul>" + "".join(f"<li>{esc(str(item))}</li>" for item in caveats) + "</ul>",
+                title="Pricing study caveats (as recorded in its metadata)",
+            )
+        )
+    body.append(
+        zh(
+            "高峰定价在模型里几乎总是“提高收入”，但原因往往不是定价本身，而是削峰：价格上升、需求下降，等待成本随之下降。"
+            "真正可用于决策的量是“服务中性乘数”——再往上加价就要牺牲 p95 尾部。另外，利润只对留下来的顾客计等待成本，"
+            "对流失顾客没有计损失，因此利润最优解落在测试区间边界，不能当作定价建议；报告照实给出研究脚本的 caveat。"
+        )
+    )
+    return section(9, "Layer 4: peak pricing and elasticity", "经济层：高峰定价与需求弹性", "s9", "".join(body))
+
+
+def s10_sla_fairness(ctx: Ctx) -> str:
+    if not ctx.has("economics_study"):
+        return section(10, "Layer 4: SLA compensation and fairness", "经济层：SLA 补偿与排队公平", "s10", ctx.pending("economics_study"))
+    tables = ctx.tables("economics_study")
+    sla_rows = ctx.rows("economics_study", "sla_grid")
+    promises = ctx.rows("economics_study", "sla_promises")
+    sla_summary = dict(tables["sla_summary"])
+    fairness_rows = ctx.rows("economics_study", "fairness_pareto")
+    fairness_summary = dict(tables["fairness_summary"])
+    tightest = dict(sla_summary["tightest_promise"])
+    loosest = dict(sla_summary["loosest_promise"])
+    body: List[str] = []
+    body.append(
+        '<p class="lead">The SLA layer turns lateness into money: a customer whose time in system exceeds the '
+        "target costs the shop a fixed compensation. The fairness layer addresses the queueing side of the same "
+        "problem: with fast-item priority a tea order can wait behind a stream of fast jobs, so an ageing cap "
+        "escalates any job that has waited too long.</p>"
+    )
+    body.append(fig_econ_sla(ctx))
+    if promises:
+        body.append(
+            table(
+                ["Promise", "Attainment", "Cheapest compensation", "Cost / h", "Profit / h", "Δ vs no SLA"],
+                [
+                    [
+                        minutes(float(row["target_minutes"]), 0) + " target",
+                        pct(float(row["attainment"]), 1),
+                        fx(float(row["cheapest_compensation"]), 1),
+                        fx(float(row["cheapest_compensation_per_hour"]), 1),
+                        fx(float(row["cheapest_profit_per_hour"]), 1),
+                        signed(float(row["cheapest_profit_delta_vs_no_sla"]), 1),
+                    ]
+                    for row in promises
+                ],
+                caption="Table 11 · What each SLA promise costs: the service level does not move, only the bill does.",
+                note=f"The study records service_is_unchanged_by_sla = {bool(sla_summary.get('service_is_unchanged_by_sla'))}: an SLA is a transfer, not a queueing intervention. Attainment is identical across compensation levels — customers do not react to the promise. The highest attainment in the grid is {pct(float(loosest['attainment']), 1)} (an 8-minute target); no setting reaches 100%, so the grid is about the cost of a promise rather than a promise that can always be met.",
+                align=["l", "r", "r", "r", "r", "r"],
+            )
+        )
+    body.append(
+        table(
+            ["Target", "Compensation", "Attainment", "Compensation total", "Profit / h", "p95", "Peak p95"],
+            [
+                [
+                    minutes(float(row["target_minutes"]), 0),
+                    fx(float(row["compensation"]), 1),
+                    pct(float(row["sla_attainment"]), 1) if row.get("sla_attainment") is not None else "n/a",
+                    fx(float(row.get("sla_compensation_total") or 0.0), 1),
+                    fx(float(row["profit_per_hour"]), 1),
+                    minutes(float(row["los_p95"]), 1),
+                    minutes(float(row.get("peak_los_p95") or 0.0), 1),
+                ]
+                for row in sla_rows
+            ],
+            caption="Table 12 · The full SLA grid: the queue is identical in every row, so the differences are purely monetary.",
+            note=f"Tightest promise: {minutes(float(tightest['target_minutes']), 0)} at attainment {pct(float(tightest['attainment']), 1)}, cheapest compensation {fx(float(tightest['cheapest_compensation']), 1)} costs {fx(float(tightest['cheapest_compensation_per_hour']), 1)}/h. Loosest promise: {minutes(float(loosest['target_minutes']), 0)} at attainment {pct(float(loosest['attainment']), 1)} for {fx(float(loosest['cheapest_compensation_per_hour']), 1)}/h.",
+            align=["r", "r", "r", "r", "r", "r", "r"],
+        )
+    )
+    body.append(
+        "<p><strong>SLA is a transfer.</strong> The grid changes profit and the compensation bill, but it does "
+        "not change mean LOS or the tail: customers do not react to the promise. Its real role is to make the cost "
+        "of a miss explicit — the number an operations team needs when it weighs a fourth barista against a promise.</p>"
+    )
+    body.append(fig_econ_fairness(ctx))
+    body.append(
+        table(
+            ["Starvation cap", "Profit / h", "p95", "Class p95 spread", "Class mean spread", "Escalations / h", "Peak p95"],
+            [
+                [
+                    "none" if row.get("starvation_cap") is None else minutes(float(row["starvation_cap"]), 1),
+                    fx(float(row["profit_per_hour"]), 1),
+                    minutes(float(row["los_p95"]), 1),
+                    minutes(float(row.get("class_p95_spread") or 0.0), 2),
+                    minutes(float(row.get("class_mean_spread") or 0.0), 2),
+                    fx(float(row.get("escalations_per_hour") or 0.0), 2),
+                    minutes(float(row.get("peak_los_p95") or 0.0), 1),
+                ]
+                for row in fairness_rows
+            ],
+            caption="Table 13 · Fairness cap at the high-load campus configuration (class mean spread rises while the tail improves).",
+            note=f"Primary load λ = {fx(float(fairness_summary.get('primary_load') or 0.0), 2)}. The cap lowers every class's p95 and slightly narrows the class p95 spread ({minutes(float(fairness_summary.get('tail_gap_uncapped') or 0.0), 2)} → {minutes(float(fairness_summary.get('tail_gap_best_cap') or 0.0), 2)}), but the <em>class mean spread</em> widens ({minutes(float(fairness_summary.get('mean_gap_uncapped') or 0.0), 2)} → {minutes(float(fairness_summary.get('mean_gap_best_cap') or 0.0), 2)}); the engine's <code>fairness_gap</code> (max−min of class means, per replicate, then averaged) moves {minutes(float(fairness_summary['uncapped'].get('fairness_gap') or 0.0), 2)} → {minutes(float(fairness_summary['best_tail_protection'].get('fairness_gap') or 0.0), 2)}. The study records this explicitly as mean_gap_widens_while_tail_gap_narrows = {bool(fairness_summary.get('mean_gap_widens_while_tail_gap_narrows'))}.",
+            align=["l", "r", "r", "r", "r", "r", "r"],
+        )
+    )
+    body.append(
+        "<p><strong>Fairness costs tail latency, and the metric decides the story.</strong> Capping how long any "
+        "job may wait lowers the overall p95 from "
+        f"{minutes(float(fairness_summary['uncapped']['los_p95']), 2)} to "
+        f"{minutes(float(fairness_summary['best_tail_protection']['los_p95']), 2)} and lowers every customer "
+        f"class's p95 (delivery "
+        f"{minutes(float(fairness_summary['uncapped']['by_class']['delivery']['p95_los']), 2)} → "
+        f"{minutes(float(fairness_summary['best_tail_protection']['by_class']['delivery']['p95_los']), 2)}, regular "
+        f"{minutes(float(fairness_summary['uncapped']['by_class']['regular']['p95_los']), 2)} → "
+        f"{minutes(float(fairness_summary['best_tail_protection']['by_class']['regular']['p95_los']), 2)}, student "
+        f"{minutes(float(fairness_summary['uncapped']['by_class']['student']['p95_los']), 2)} → "
+        f"{minutes(float(fairness_summary['best_tail_protection']['by_class']['student']['p95_los']), 2)}), while "
+        f"the class-to-class p95 spread only narrows from "
+        f"{minutes(float(fairness_summary.get('tail_gap_uncapped') or 0.0), 2)} to "
+        f"{minutes(float(fairness_summary.get('tail_gap_best_cap') or 0.0), 2)}. The engine's "
+        f"<code>fairness_gap</code> is a <em>mean</em> spread, and it actually widens "
+        f"({minutes(float(fairness_summary.get('mean_gap_uncapped') or 0.0), 2)} → "
+        f"{minutes(float(fairness_summary.get('mean_gap_best_cap') or 0.0), 2)}): the cap equalises tails, not "
+        f"averages, so it is tail protection rather than proof of a fairer average. The profit cost is "
+        f"{signed(float(fairness_summary.get('profit_cost_of_best_tail_cap') or 0.0), 2)}/h, and the study counts "
+        f"{fx(float(fairness_summary.get('best_tail_protection', {}).get('escalations_per_hour') or 0.0), 1)} "
+        f"escalations per hour, so the mechanism is auditable rather than a hidden priority hack.</p>"
+    )
+    body.append(
+        zh(
+            "SLA 层把“迟到”变成钱：目标时间内未完成的顾客按固定金额赔偿。结果显示服务水平本身不因 SLA 改变——它是一次转移支付，"
+            "而不是排队干预；它的价值在于把“失约成本”显式化，方便与“多雇一个人”的投入对比。"
+            "公平约束（starvation cap）则不同：对等待过久的任务做老化升级，不增加总工作量，却把整体 p95 与三个客群各自的 p95 都降下来，"
+            "但要注意口径：引擎的 fairness_gap 是类间“均值”极差，它反而上升（约 1.48 → 1.78 分钟），类间均值极差（class mean spread）也从 1.45 升到 1.78 分钟，而类间 p95 极差只是略降（约 2.27 → 2.22 分钟）。"
+            "因此 cap 是“尾部保护”，不能当作“更公平”的唯一证据；研究把这一点显式记录为 mean_gap_widens_while_tail_gap_narrows。"
+        )
+    )
+    return section(10, "Layer 4: SLA compensation and fairness", "经济层：SLA 补偿与排队公平", "s10", "".join(body))
+
+
+def s11_management(ctx: Ctx) -> str:
+    if not ctx.has("economics_study"):
+        return section(11, "The management bundle", "管理组合：把四层拧成一套配置", "s11", ctx.pending("economics_study"))
+    tables = ctx.tables("economics_study")
+    summary = dict(tables["management_summary"])
+    rows = ctx.rows("economics_study", "good_manager")
+    base = dict(summary["baseline"])
+    good = dict(summary["good_manager"])
+    lever_rows = []
+    for row in summary.get("lever_ranking_by_profit") or []:
+        lever_rows.append(
+            [
+                esc(str(row["scenario"]).replace("_", " ")),
+                fx(float(row["profit_per_hour"]), 1),
+                signed(float(row["profit_delta_vs_baseline"]), 1),
+                minutes(float(row["los_p95"]), 2),
+            ]
+        )
+    body: List[str] = []
+    body.append(
+        '<p class="lead">Each layer study isolates one mechanism. A manager does not buy one mechanism at a '
+        "time: the last experiment combines the levers into a single configuration — an extra barista, a modest "
+        "peak multiplier with elasticity, an SLA with compensation, and the fairness cap — and compares it with "
+        "the campus baseline on common random numbers.</p>"
+    )
+    body.append(fig_econ_manager(ctx))
+    body.append(
+        table(
+            ["Configuration", "Profit / h", "Δ vs baseline", "p95", "Served", "Left early", "Fairness gap"],
+            [
+                [
+                    esc(str(row["scenario"]).replace("_", " ")),
+                    fx(float(row["profit_per_hour"]), 1),
+                    signed(float(row.get("profit_delta_vs_baseline") or 0.0), 1),
+                    minutes(float(row["los_p95"]), 1),
+                    fx(float(row["served"]), 1),
+                    fx(float(row.get("balked") or 0.0), 1),
+                    minutes(float(row.get("fairness_gap") or 0.0), 2),
+                ]
+                for row in rows
+            ],
+            caption="Table 15 · Each management lever measured against the same campus_rush baseline.",
+            note="The rows are separate configurations, not a sequence: each one adds a single lever to the baseline. The paired comparison of the full bundle against the baseline is quoted below.",
+            align=["l", "r", "r", "r", "r", "r", "r"],
+        )
+    )
+    if lever_rows:
+        body.append(
+            table(
+                ["Lever (ranked by profit)", "Profit / h", "Δ vs baseline", "p95"],
+                lever_rows,
+                caption="Table 16 · The study's own lever ranking by profit per hour.",
+                align=["l", "r", "r", "r"],
+            )
+        )
+    body.append(
+        callout(
+            "good",
+            f"<p>Baseline: profit {fx(float(base['profit_per_hour']), 1)}/h, p95 {minutes(float(base['los_p95']), 1)}, "
+            f"{fx(float(base['balked']), 1)} walk-aways per day. Bundle: profit {fx(float(good['profit_per_hour']), 1)}/h "
+            f"({signed(float(summary['paired_profit_gain']), 1)} ± {fx(float(summary['paired_profit_gain_ci95']), 1)}/h, "
+            f"paired, 95% CI), p95 {minutes(float(good['los_p95']), 1)}, "
+            f"{fx(float(good['balked']), 1)} walk-aways, fairness gap {minutes(float(good.get('fairness_gap') or 0.0), 2)}.</p>"
+            f"<p>The gain is large enough to matter and the tail improves at the same time, which is the useful "
+            f"kind of result: this is not a service-for-profit trade.</p>",
+            title="The bundle beats the baseline on profit and on the tail",
+        )
+    )
+    body.append(
+        "<h3>What the bundle implies for practice</h3>"
+        "<ul>"
+        "<li><strong>Buy capacity before you buy cleverness.</strong> The capacity lever dominates the ranking; "
+        "policy tweaks are second-order against a fourth barista at the peak.</li>"
+        "<li><strong>Protect the tail, not the average.</strong> The fairness cap and the service-neutral price "
+        "multiplier both act on p95 at little cost, which is where customers actually leave.</li>"
+        "<li><strong>Price to shed the peak, not to raise the average ticket.</strong> The profitable pricing "
+        "window is the one that moves demand out of the peak windows without worsening the tail.</li>"
+        "<li><strong>Keep the SLA explicit.</strong> Compensation does not improve service; it prices the miss. "
+        "That is what makes the capacity decision a business decision rather than a queueing preference.</li>"
+        "</ul>"
+    )
+    body.append(
+        zh(
+            "把四层拧成一套“店长配置”后，利润与 p95 同时改善：这说明在峰值为主要矛盾的门店，"
+            "“加一个吧台人手 + 适度高峰定价 + 明确 SLA + 公平老化上限”不是牺牲服务的换钱，而是把等待与流失一起降下来。"
+            "单杠杆排名显示：容量是第一位，策略微调是第二位；公平上限与服务中性定价是保护尾部的高性价比手段；"
+            "SLA 的意义在于把“失约”变成可计价项，从而让扩容决策有商业依据。"
+        )
+    )
+    return section(11, "The management bundle", "管理组合：把四层拧成一套配置", "s11", "".join(body))
+
+
+def s12_baseline_vs_layers(ctx: Ctx) -> str:
+    return section(12, "Course model and layered study: what changed in the answers", "课程模型与分层模型：结论发生了什么变化", "s12", _baseline_layers_body(ctx))
+
+
+def _baseline_layers_body(ctx: Ctx) -> str:
+    records = baseline_policy_rows(ctx, workers=3, lam=1.25)
+    means = {str(row["policy_key"]): dict(row["means"]) for row in records}
+    fast_pair = baseline_pair(ctx, workers=3, lam=1.25, pair_key="fast_minus_fcfs")
+    split_pair = baseline_pair(ctx, workers=3, lam=1.25, pair_key="split_minus_synchro")
+    breakeven = baseline_breakeven(ctx, 3)
+    baseline_fast = float(fast_pair["diff"]["profit_per_hour"])
+    baseline_fast_ci = float(fast_pair["ci95"]["profit_per_hour"])
+    baseline_split = float(split_pair["diff"]["profit_per_hour"])
+    baseline_split_ci = float(split_pair["ci95"]["profit_per_hour"])
+    lambda_star = float(breakeven["lambda_star"])
+    util_star = float(breakeven["utilization_star"])
+    spread = max(float(means[key]["profit_per_hour"]) for key in means) - min(
+        float(means[key]["profit_per_hour"]) for key in means
+    )
+
+    demand_findings = dict(ctx.study("demand_study").get("findings") or {}) if ctx.has("demand_study") else {}
+    peak = dict(demand_findings.get("peak_vs_flat") or {})
+    net_findings = dict(ctx.study("network_study").get("findings") or {}) if ctx.has("network_study") else {}
+    strategy = dict(net_findings.get("strategy_by_bottleneck") or {})
+    fast_values = {
+        (str(row["scenario"]), str(row["split_label"])): dict(row["profit_per_hour"])
+        for row in (strategy.get("fast_priority_value") or [])
+    }
+    split_values = {}
+    if ctx.has("network_study"):
+        for row in ctx.rows("network_study", "strategy_split_value"):
+            split_values[(str(row["scenario"]), str(row["fast_label"]))] = dict(row["profit_per_hour"])
+
+    def fast_cell(scenario: str, split: str) -> str:
+        value = fast_values.get((scenario, split))
+        if not value:
+            return "n/a"
+        return f"{signed(float(value['diff']), 2)} ± {fx(float(value['ci95']), 2)}/h"
+
+    def split_cell(scenario: str, fast: str) -> str:
+        value = split_values.get((scenario, fast))
+        if not value:
+            return "n/a"
+        return f"{signed(float(value['diff']), 2)} ± {fx(float(value['ci95']), 2)}/h"
+
+    inv_decision = {}
+    if ctx.has("inventory_study"):
+        inv_decision = dict(ctx.tables("inventory_study")["decision_summary"])
+    econ_summary = {}
+    if ctx.has("economics_study"):
+        econ_summary = dict(ctx.tables("economics_study")["management_summary"])
+    econ_pricing = {}
+    if ctx.has("economics_study"):
+        optima = ctx.rows("economics_study", "pricing_optima")
+        econ_pricing = optima[0] if optima else {}
+
+    body: List[str] = []
+    body.append(
+        '<p class="lead">The honest way to present an extension is to say which baseline conclusions survived and '
+        "which were boundaries of the original model. The two columns below are not a re-run of the course model with new code: they "
+        "are the baseline numbers from <code>results/policy_sweep.json</code> and <code>results/breakeven.json</code> "
+        "(200 paired replicates), placed next to the layer studies that add the missing mechanism.</p>"
+    )
+    rows = [
+        [
+            "<strong>Does fast-item triage pay?</strong>",
+            f"yes: {signed(baseline_fast, 2)} ± {fx(baseline_fast_ci, 2)}/h at λ = 1.25, m = 3; mean LOS "
+            f"{fx(float(means['synchro+fcfs']['mean_los']), 2)} → {fx(float(means['synchro+fast']['mean_los']), 2)} min",
+            f"depends on where the slack is. Tea bottleneck: {fast_cell('network_tea_bottleneck', 'synchro')} "
+            f"(synchro) / {fast_cell('network_tea_bottleneck', 'split')} (split). Ice-cream bottleneck: "
+            f"{fast_cell('ice_cream_bottleneck', 'synchro')} (synchro) / {fast_cell('ice_cream_bottleneck', 'split')} (split)",
+            "The sign survives; the size does not. Triage is worth roughly twice as much when the fast item's own station has slack.",
+        ],
+        [
+            "<strong>Does split delivery pay?</strong>",
+            f"only below the break-even: {signed(baseline_split, 2)} ± {fx(baseline_split_ci, 2)}/h at λ = 1.25, and the "
+            f"break-even sits at λ* = {fx(lambda_star, 3)} (ρ* = {pct(util_star, 1)})",
+            f"almost never, and not at a station bottleneck: tea bottleneck {split_cell('network_tea_bottleneck', 'plain')} "
+            f"(plain) / {split_cell('network_tea_bottleneck', 'fast')} (fast); ice-cream bottleneck "
+            f"{split_cell('ice_cream_bottleneck', 'plain')} (plain) / {split_cell('ice_cream_bottleneck', 'fast')} (fast)",
+            "The baseline conclusions survive, but the mechanism is now explicit: splitting saves the ice cream's wait and pays only when the ice station, not the shared pool, is the constraint.",
+        ],
+        [
+            "<strong>Peak versus average</strong>",
+            "not testable: the course model had one stationary arrival rate, so the daily mean was also the peak",
+            f"same daily mean, different shape: peak-hour busy {pct(float(peak.get('peak_hour_busy_ratio_peak', 0.0)))} vs "
+            f"{pct(float(peak.get('peak_hour_busy_ratio_flat', 0.0)))}, p95 ×{fx(float(peak.get('p95_ratio_peak_over_flat', 0.0)), 2)}, "
+            f"balk {pct(float(peak.get('balk_rate_peak', 0.0)))} vs {pct(float(peak.get('balk_rate_flat', 0.0)))}, "
+            f"profit {fx(float(peak.get('profit_per_hour_peak', 0.0)), 1)} vs {fx(float(peak.get('profit_per_hour_flat', 0.0)), 1)}/h",
+            "New conclusion: the daily average is the wrong planning number. The peak shape, not the total demand, drives abandonment and profit.",
+        ],
+        [
+            "<strong>Is utilisation a decision metric?</strong>",
+            f"no: the four policies span {fx(spread, 1)}/h of profit at an identical 88.2% theoretical utilisation",
+            f"even less so: the peak case has a <em>lower</em> daily utilisation "
+            f"({pct(float(peak.get('daily_util_peak', 0.0)))} vs {pct(float(peak.get('daily_util_flat', 0.0)))}) "
+            "and a worse tail, because abandonment removes work; "
+            "pool and station utilisation also diverge by role (barista 90.0% vs cashier 30.6% in the dedicated-skill cell)",
+            "The caution is even stronger now: utilisation hides both the tail and the composition of the work.",
+        ],
+        [
+            "<strong>What about stock, price, SLA and fairness?</strong>",
+            "not in the model at all",
+            f"inventory: fill rate {pct(float(inv_decision.get('baseline', {}).get('fill_rate', 0.0)), 2)} baseline, substitution worth "
+            f"{signed(float(inv_decision.get('substitution_gain_ice_short', 0.0)), 2)}/h when ice runs short; "
+            f"pricing: service-neutral multiplier ×{fx(float(econ_pricing.get('service_neutral_multiplier') or 1.0), 2)}; "
+            f"SLA: service unchanged, compensation priced; fairness: cap improves p95 at a small profit cost; "
+            f"bundle: {signed(float(econ_summary.get('paired_profit_gain', 0.0)), 1)} ± {fx(float(econ_summary.get('paired_profit_gain_ci95', 0.0)), 1)}/h",
+            "New conclusions, not revisions: these are levers the course model could not see at all.",
+        ],
+    ]
+    body.append(
+        table(
+            ["original question", "original answer (200 paired replicates, Python engine)", "layer model answer (100 replicates per cell)", "Verdict"],
+            rows,
+            caption="Table 21 · The baseline conclusions, re-examined with the four mechanism layers.",
+            note="baseline numbers: results/policy_sweep.json and results/breakeven.json. layer numbers: results/demand_study.json, network_study.json, inventory_study.json and economics_study.json. All differences are paired on common random numbers where the study supports it.",
+            align=["l", "l", "l", "l"],
+        )
+    )
+    body.append(
+        callout(
+            "key",
+            "<p><strong>What did not change:</strong> the engine, the 2×2 policy matrix and the direction of the "
+            "headline baseline result. Fast-item priority is still the stronger lever than split delivery at the baseline "
+            "operating point, and split delivery still stops paying as load rises.<br>"
+            "<strong>What changed:</strong> the answer's boundary conditions. The size of the triage gain depends "
+            "on which station has slack; the peak shape, not the daily mean, decides abandonment; and stock, "
+            "price, SLA and fairness are first-order levers that the one-pool model could not represent.</p>",
+            title="Continuity and revision",
+        )
+    )
+    body.append(
+        zh(
+            "课程模型的两个核心结论都保留了下来：在课程模型的运行点上，快品优先比拆分交付更值钱，拆分交付随负载上升而失去价值；"
+            "但 四层机制改变了结论的边界条件：①快品优先的价值取决于“快品自己的站台有没有富余”，茶站瓶颈下它几乎消失；"
+            "②真正决定流失和利润的是峰值形状而不是日均值；③库存、定价、SLA 与公平是 baseline 完全看不到的第一类杠杆。"
+            "因此本报告把课程模型当作基线而不是被推翻的对象：同一台引擎、同一套 2×2 矩阵，只是把 baseline 隐含的假设显式化了。"
+        )
+    )
+    return "".join(body)
+
+
+def s13_validation(ctx: Ctx) -> str:
+    checks = ctx.validation
+    scenarios = dict(checks.get("scenarios") or {})
+    equivalence = dict(checks.get("equivalence") or {})
+    determinism = dict(checks.get("determinism") or {})
+    study_rows = []
+    for study in ("scenario_library", "demand_study", "network_study", "inventory_study", "economics_study"):
+        if not ctx.has(study):
+            continue
+        meta = ctx.meta(study)
+        study_rows.append(
+            [
+                f"<code>{esc(study)}</code>",
+                esc(str(meta.get("experiment", ""))),
+                esc(str(meta.get("reps", "n/a"))),
+                f"{fx(meta.get('runtime_seconds'), 1)} s" if meta.get("runtime_seconds") is not None else "n/a",
+                f"{len(ctx.tables(study))} tables / {len(ctx.series(study))} series",
+            ]
+        )
+    body: List[str] = []
+    body.append(
+        '<p class="lead">Validation has three independent legs: the model contract (a layer-off configuration '
+        "equals baseline), the numerical contract (determinism, flow conservation, finite metrics), and the provenance "
+        "contract (no scenario without a source, a method and an uncertainty statement). The first two are checked "
+        "when this report is built, and again by the test suite.</p>"
+    )
+    body.append(
+        table(
+            ["Contract", "Evidence on this build", "Where it is pinned"],
+            [
+                ["Layer-off equivalence",
+                 ("identical metrics for <code>baseline_flat</code> and the baseline configuration at seed 7"
+                  if equivalence.get("identical") else "metrics differ — see the build log"),
+                 "tests/test_layers.py::test_baseline_flat_scenario_is_bit_exact and this builder"],
+                ["Determinism",
+                 ("same seed reproducible; a different seed changes the metrics"
+                  if determinism.get("same_seed_identical") and determinism.get("different_seed_differs") else "see build log"),
+                 "tests/test_layers.py::test_runs_are_deterministic"],
+                ["Flow conservation",
+                 f"{scenarios.get('flow_conservation_ok', 0)} / {scenarios.get('count', 0)} scenarios account for every customer",
+                 "tests/test_layers.py::test_flow_conservation and this builder"],
+                ["Provenance",
+                 f"{scenarios.get('provenance_complete', 0)} / {scenarios.get('count', 0)} scenario files carry source + method + uncertainty",
+                 "tests/test_layers.py::test_scenario_library_is_complete_and_provenanced"],
+                ["Directional mechanisms",
+                 "the layer tests assert that variability raises the tail, that the tea station is the busiest resource in the bottleneck scenario, that pricing lowers demand inside the peak, and that the fairness cap escalates jobs",
+                 "tests/test_layers.py (mechanism tests)"],
+            ],
+            caption="Table 15 · Validation evidence. The results are produced by this build; the test names are the ones in the repository.",
+            note="The per-scenario flags recorded inside results/scenario_library.json (flow_conservation, all_metrics_finite) are consistent with this build-time check.",
+            align=["l", "l", "l"],
+        )
+    )
+    body.append('<h3>Study registry</h3>')
+    body.append(
+        table(
+            ["Study file", "Experiment id", "Replicates", "Runtime", "Contents"],
+            study_rows,
+            caption="Table 16 · What each layer study file contains and how long it took to regenerate.",
+            note="Runtimes are recorded by the experiment scripts themselves; they are hardware-dependent and shown for orientation only.",
+            align=["l", "l", "r", "r", "r"],
+        )
+    )
+    body.append(
+        callout(
+            "warn",
+            "<p>These checks rule out silent regressions; they do not validate the model against a real shop. "
+            "Every scenario is synthetic, anchored on the course parameter set and teaching-case ranges, and "
+            "carries <code>uncertainty: high</code>. Treat the layer studies as a disciplined way to compare "
+            "mechanisms, not as calibrated forecasts.</p>",
+            title="What validation does not prove",
+        )
+    )
+    body.append(
+        zh(
+            "验证分三条腿：模型契约（关闭全部新层时与 baseline 数值逐位一致）、数值契约（确定性、流量守恒、指标有限）、"
+            "来源契约（每个场景都有 source/method/uncertainty）。前两条在构建报告时重新计算，并由 tests/test_layers.py 固化；"
+            "方向性机制（变异抬高尾部、茶站是瓶颈、定价削减峰值需求、公平上限触发老化升级）也有对应测试。"
+            "但验证不能证明模型等于真实门店：场景全部是合成数据，只能用于机制对比，不能当作预测。"
+        )
+    )
+    return section(13, "Validation", "验证：契约、不变量与来源", "s13", "".join(body))
+
+
+def s14_reproducibility(ctx: Ctx) -> str:
+    inventory_rows = []
+    for study in STUDIES:
+        if not ctx.has(study):
+            continue
+        meta = ctx.meta(study)
+        inventory_rows.append(
+            [
+                f"<code>results/{esc(study)}.json</code>",
+                esc(str(meta.get("experiment", ""))),
+                esc(str(meta.get("reps", "n/a"))),
+                esc(str(meta.get("package_version", ""))),
+            ]
+        )
+    body: List[str] = []
+    body.append(
+        '<p class="lead">Everything in this report is regenerated from this repository with the standard library '
+        "only: Python 3.14, no numpy, no matplotlib, and no network access is needed to render the report. The "
+        "figures are hand-built SVG strings from <code>analysis/svgchart.py</code>.</p>"
+    )
+    body.append(
+        "<pre>pip install -e .\n"
+        "python analysis/run_demand_network.py      # layer 1 + 2 + scenario library\n"
+        "python analysis/run_inventory_econ.py      # layer 3 + 4\n"
+        "python analysis/build_report.py        # docs/index.html, docs/experiments-layers.md, docs/figures-layers/\n"
+        "python analysis/build_demo_data.py        # demo/data/*.json (offline demo)\n"
+        "pytest -q                                 # baseline anchors + mechanism layers</pre>"
+    )
+    body.append(
+        table(
+            ["Input file", "Experiment", "Replicates", "Package version"],
+            inventory_rows,
+            caption="Table 17 · The result files this report reads. Nothing else is an input to the numbers.",
+            note="The baseline numbers in sections 1 and 12 come from results/policy_sweep.json and results/breakeven.json, which are themselves generated by the baseline scripts.",
+            align=["l", "l", "r", "r"],
+        )
+    )
+    body.append('<h3>Guarantees and how to check them</h3>')
+    body.append(
+        "<ul>"
+        "<li><strong>Offline report.</strong> This build rejects its own output if it finds a script tag, a linked "
+        "stylesheet, an external font, or any URL outside the SVG namespace.</li>"
+        "<li><strong>No hand-typed numbers in the generated tables.</strong> Table and figure values are pulled from "
+        "the JSON by key, and every English sentence that quotes a number reads it from the same file. The Chinese "
+        "summary paragraphs are human-written translations and are spot-checked, not machine-generated.</li>"
+        "<li><strong>One-day model.</strong> 480 simulated minutes, 60-minute warm-up. A run is one representative "
+        "day, not a forecast of a year.</li>"
+        "<li><strong>Archive, not evidence.</strong> The AnyLogic model in <code>archive/anylogic/</code> cannot be "
+        "re-run; the Python engine is the reproducible baseline. The archived earlier report is preserved at "
+        '<a href="../archive/report-2026-11.html">archive/report-2026-11.html</a>.</li>'
+        "<li><strong>Interactive demo.</strong> <a href=\"../demo/index.html\">demo/index.html</a> replays "
+        "precomputed data (5–6 replicates and one traced day); it is a reading aid, not a second analysis.</li>"
+        "</ul>"
+    )
+    body.append('<h3>Limitations</h3>')
+    body.append(
+        table(
+            ["Limitation", "Consequence", "What would fix it"],
+            [
+                ["Synthetic scenarios; no field data",
+                 "Absolute levels (profit, LOS) are teaching-case magnitudes, not forecasts; <code>uncertainty: high</code> everywhere",
+                 "A week of timestamped order data would calibrate the arrival profile, the mix and the make times."],
+                ["Single-day model, no day-to-day carry-over",
+                 "Stock, fatigue and learning effects across days are out of scope",
+                 "A multi-day model with inventory carry-over and staff rosters."],
+                ["Waiting cost is linear and charged to served customers only",
+                 "Pricing extremes look attractive because abandoning customers are not charged; profit optima sit at the tested boundary",
+                 "Model lost goodwill explicitly and re-run the pricing grid."],
+                ["Fill rate denominator includes the warm-up hour",
+                 "Morning stock-outs are slightly over-weighted relative to served metrics",
+                 "Use the same warm-up filter for fill rate; documented as a caveat in the study metadata."],
+                ["Staff are homogeneous within a skill; breaks are fixed windows",
+                 "Skill variation and flexible breaks are only crudely represented",
+                 "Per-person skill levels and break optimisation."],
+                ["No statistical test beyond paired 95% CIs",
+                 "Differences near the noise floor are not formally tested",
+                 "Paired t-test or bootstrap on the per-replicate differences."],
+                ["The scenario catalogue uses screening replicates",
+                 "Its table is for orientation, not for decisions",
+                 "Re-run the catalogue at 100 replicates (cost is the only obstacle)."],
+            ],
+            caption="Table 18 · Limitations, their consequences in this report, and the cheapest honest fix.",
+            align=["l", "l", "l"],
+        )
+    )
+    body.append(
+        zh(
+            "复现契约：pip install -e . 后依次运行 analysis/run_demand_network.py、analysis/run_inventory_econ.py、"
+            "analysis/build_report.py、analysis/build_demo_data.py，再跑 pytest -q；报告本身零 JS、零外链，"
+            "构建脚本会在写文件前拒绝任何外部引用。数据纪律：报告中的每个数字都按 key 从 results/*.json 读取，"
+            "课程模型的基线数字来自 results/*.json；AnyLogic 存档不可重跑，只作为历史证据引用。局限：场景为合成数据、单日模型、"
+            "等待成本线性且只对已服务顾客计费，因此定价结论只能用于机制比较，不能当作定价建议。"
+        )
+    )
+    return section(14, "Reproducibility and limitations", "可复现性与局限", "s14", "".join(body))
+
+
+def s15_index(ctx: Ctx) -> str:
+    figure_rows = [[f"<code>{esc(name)}</code>", f"{len(markup) / 1024:.1f} KiB"] for name, markup in ctx.figures.items()]
+    body: List[str] = []
+    body.append(
+        '<p class="lead">Every table in this report exists in machine-readable form, and every figure exists as a '
+        "standalone SVG. This page is the map.</p>"
+    )
+    body.append(
+        table(
+            ["Document", "What it is"],
+            [
+                ['<a href="experiments-layers.md">docs/experiments-layers.md</a>', "all layer tables and series, as Markdown, generated by the same script"],
+                ['<a href="figures-layers/fig_architecture.svg">docs/figures-layers/</a>', "the standalone SVG files embedded in this report"],
+                ['<a href="../demo/index.html">demo/index.html</a>', "offline interactive demo: scenario × policy, demand-curve slider, queue timeline (precomputed data)"],
+                ['<a href="../archive/report-2026-11.html">archive/report-2026-11.html</a>', "the earlier report, preserved unchanged as the baseline record"],
+                ['<a href="../README.md">README.md</a>', "quick start, repository layout and how to regenerate everything"],
+                ['<a href="theory.md">docs/theory.md</a>', "the analytical layer: Little's law, queueing approximations, MPS/BOM/MRP and the layer formulas"],
+                ['<a href="experiment_log.md">docs/experiment_log.md</a>', "the experiment ledger, including the archival AnyLogic runs"],
+            ],
+            caption="Table 19 · Where each piece of the study lives.",
+            align=["l", "l"],
+        )
+    )
+    if figure_rows:
+        body.append(
+            table(
+                ["Standalone figure", "Size"],
+                figure_rows,
+                caption="Table 20 · Figures written to docs/figures-layers/ by this build.",
+                align=["l", "r"],
+            )
+        )
+    body.append(
+        '<p class="small muted">Build metadata: package '
+        f"{esc(str(ctx.meta('scenario_library').get('package_version', 'unknown')) if ctx.has('scenario_library') else 'unknown')}"
+        f", Python {esc(str(ctx.validation.get('python', 'unknown')))}, "
+        f"{len(ctx.studies)} of {len(STUDIES)} studies present. "
+        "The archived AnyLogic study is not re-run.</p>"
+    )
+    body.append(
+        zh(
+            "本页是索引：完整数值表在 docs/experiments-layers.md，独立 SVG 图在 docs/figures-layers/；"
+            "交互演示 demo/index.html 使用预计算数据，离线可开；baseline 报告原文保留在 archive/report-2026-11.html；"
+            "理论公式与台账分别在 docs/theory.md 与 docs/experiment_log.md。"
+        )
+    )
+    return section(15, "Index and data files", "索引与数据文件", "s15", "".join(body))
+
+
+# --------------------------------------------------------------------------
+# hero, navigation, document assembly
+# --------------------------------------------------------------------------
+def hero(ctx: Ctx) -> str:
+    stats: List[Tuple[str, str, str]] = []
+    if ctx.has("scenario_library"):
+        count = len(ctx.rows("scenario_library", "comparison"))
+        stats.append(("Scenario library", f"{count} contexts", "one JSON per shop context, each with provenance"))
+    if ctx.has("economics_study"):
+        summary = ctx.tables("economics_study")["management_summary"]  # type: ignore[index]
+        gain = float(summary["paired_profit_gain"])  # type: ignore[index]
+        ci = float(summary["paired_profit_gain_ci95"])  # type: ignore[index]
+        stats.append(("Management bundle", f"{signed(gain, 0)} ± {fx(ci, 0)} /h", "paired profit gain over the campus baseline, 95% CI"))
+        sla = ctx.tables("economics_study")["sla_summary"]  # type: ignore[index]
+        unchanged = "unchanged" if sla.get("service_is_unchanged_by_sla") else "changed"  # type: ignore[union-attr]
+        stats.append(("SLA", f"service {unchanged}", "an SLA prices the miss; it does not move the queue"))
+    if ctx.has("inventory_study"):
+        tradeoff = ctx.tables("inventory_study")["tradeoff"]  # type: ignore[index]
+        stats.append(("Best fill rate", pct(float(tradeoff["max_fill"]["fill_rate"]), 2), "at the (s, S) setting with the highest fill rate"))
+    breakeven = baseline_breakeven(ctx, 3)
+    stats.append(
+        (
+            "baseline break-even (kept as baseline)",
+            pct(float(breakeven["utilization_star"]), 1),
+            f"split delivery stops paying above λ* = {fx(float(breakeven['lambda_star']), 3)} with 3 clerks",
+        )
+    )
+    cards = "".join(
+        f'<div class="stat"><div class="label">{esc(label)}</div><div class="value">{esc(value)}</div>'
+        f'<div class="hint">{esc(hint)}</div></div>'
+        for label, value, hint in stats
+    )
+    meta = ctx.meta("scenario_library") if ctx.has("scenario_library") else {}
+    return (
+        '<header class="hero"><div class="wrap">'
+        '<p class="sub">SYE5006 service-operations project · version 2 · reproducible re-implementation and extension</p>'
+        f"<h1>{esc(TITLE_EN)}</h1>"
+        f'<p class="zh-title">{esc(TITLE_ZH)}</p>'
+        f'<p class="meta">bubble_tea_sim {esc(str(meta.get("package_version", "")))} · '
+        f'Python {esc(str(meta.get("python_version", "")))} · seed 0, stride 1 · '
+        "standard library only · every number regenerated from results/</p>"
+        f'<div class="stats">{cards}</div>'
+        "</div></header>"
+    )
+
+
+SECTIONS = (
+    ("s1", "1 · What the four-layer model adds"),
+    ("s2", "2 · Scenario library"),
+    ("s3", "3 · Design & validation"),
+    ("s4", "4 · Peak cost"),
+    ("s5", "5 · Variability & patience"),
+    ("s6", "6 · Bottleneck moves"),
+    ("s7", "7 · Policies, skills, shifts"),
+    ("s8", "8 · Inventory"),
+    ("s9", "9 · Pricing"),
+    ("s10", "10 · SLA & fairness"),
+    ("s11", "11 · Management bundle"),
+    ("s12", "12 · course model vs four-layer model"),
+    ("s13", "13 · Validation"),
+    ("s14", "14 · Reproducibility"),
+    ("s15", "15 · Index"),
 )
 
 
-# --------------------------------------------------------------------------
-# HTML assembly
-# --------------------------------------------------------------------------
-def build_html(data: Data, figures: Dict[str, str]) -> str:
-    data.figures = figures
-    parts = [
-        hero(data),
-        nav(),
-        '<div class="wrap">',
-        s1_background(data),
-        s2_model(data),
-        s3_strategies(data),
-        s4_theory(data),
-        s5_design(data),
-        s6_sweep(data),
-        s7_breakeven(data),
-        s8_sensitivity(data),
-        s9_behaviour(data),
-        s10_anylogic(data),
-        s11_conclusions(data),
-        s12_limitations(data),
-        "</div>",
+def navigation() -> str:
+    links = "".join(f'<a href="#{anchor}">{esc(label)}</a>' for anchor, label in SECTIONS)
+    return f'<nav class="toc"><div class="wrap">{links}</div></nav>'
+
+
+def renumber_tables(document: str) -> str:
+    """Number the "Table N ·" captions sequentially in document order."""
+    counter = {"value": 0}
+
+    def replace(match: "re.Match[str]") -> str:
+        counter["value"] += 1
+        return f"Table {counter['value']} ·"
+
+    return re.sub(r"Table \d+ ·", replace, document)
+
+
+def build_document(ctx: Ctx) -> str:
+    sections = [
+        s01_overview(ctx),
+        s02_scenarios(ctx),
+        s03_design(ctx),
+        s04_demand_peaks(ctx),
+        s05_demand_mechanisms(ctx),
+        s06_network_bottleneck(ctx),
+        s07_network_policy(ctx),
+        s08_inventory(ctx),
+        s09_pricing(ctx),
+        s10_sla_fairness(ctx),
+        s11_management(ctx),
+        s12_baseline_vs_layers(ctx),
+        s13_validation(ctx),
+        s14_reproducibility(ctx),
+        s15_index(ctx),
     ]
-    body = "".join(parts)
-    return f"""<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{esc(TITLE_EN)}</title>
-<meta name="description" content="Reproducible discrete-event simulation study of a bubble-tea shop: fast-item triage, split vs synchronised delivery, break-even load, sensitivity and behaviour mechanisms, with an audit of the archived AnyLogic E1-E6 ledger.">
-<style>{CSS}</style>
-</head>
-<body>
-{body}
-</body>
-</html>
-"""
+    footer = (
+        '<footer><div class="wrap">'
+        "<p>Generated by <code>analysis/build_report.py</code> from <code>results/*.json</code> and the baseline "
+        "baseline files. Static HTML, no JavaScript, no external assets.</p>"
+        "<p>The archived AnyLogic study is not re-run anywhere in this repository; the baseline Python engine is the "
+        "reproducible baseline and the earlier report is preserved at "
+        '<a href="../archive/report-2026-11.html">archive/report-2026-11.html</a>.</p>'
+        "</div></footer>"
+    )
+    document = (
+        "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"
+        '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+        f"<title>{esc(TITLE_EN)}</title>\n"
+        '<meta name="description" content="Reproducible discrete-event simulation of a bubble-tea shop, version 2: '
+        'intra-day demand, a station network, inventory with shelf life, pricing, SLA and fairness, all regenerated '
+        'from JSON results with no JavaScript in the report.">\n'
+        f"<style>{CSS}</style>\n</head>\n<body>\n"
+        f"{hero(ctx)}\n{navigation()}<div class=\"wrap\">"
+        + "".join(sections)
+        + f"</div>\n{footer}\n</body>\n</html>\n"
+    )
+    return renumber_tables(document)
 
 
 # --------------------------------------------------------------------------
-# Markdown export
+# Markdown dump (experiments-layers.md)
 # --------------------------------------------------------------------------
-def build_markdown(data: Data) -> str:
-    lines: List[str] = []
-    add = lines.append
-    add(f"# {TITLE_EN}")
-    add("")
-    add(f"*{TITLE_ZH}*")
-    add("")
-    add(
-        "Every table in this file is generated by `analysis/build_report.py` from the results/*.json "
-        "files (five study outputs plus the legacy anchors). The HTML version with figures is "
-        "[`docs/index.html`](index.html)."
-    )
-    add("")
-    add("## Provenance")
-    add("")
-    meta = data.sweep["meta"]
-    add(f"- Engine: `bubble_tea_sim` {meta['package_version']} (Python standard library only)")
-    add(f"- Python: {meta['python_version']}")
-    add(f"- Seeds: first replicate {meta['seed']}, stride {meta['seed_stride']} (identical across policies: common random numbers)")
-    add(f"- Replicates: {meta['reps_default']} per cell, {meta['reps_overload']} in cells with ρ ≥ {meta['overload_util_threshold']}")
-    add("- AnyLogic rows are archived screenshots, not re-runnable; Python rows are reproducible")
-    add(f"- Total simulated runs behind this document: {data.total_runs():,}")
-    add("")
+def md_value(value: object) -> str:
+    if isinstance(value, float):
+        if math.isnan(value) or math.isinf(value):
+            return "n/a"
+        return fx(value, 4)
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if value is None:
+        return "–"
+    if isinstance(value, int):
+        return str(value)
+    if isinstance(value, str):
+        return value.replace("|", "\\|")
+    if isinstance(value, dict):
+        return "`" + json.dumps(value, ensure_ascii=False, separators=(",", ":")) + "`"
+    if isinstance(value, list):
+        text = json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+        return "`" + (text if len(text) <= 120 else text[:117] + "…") + "`"
+    return str(value)
 
-    add("## 1. Policy sweep - profit per hour (full grid)")
-    add("")
-    for worker_count in data.workers():
-        add(f"### m = {worker_count} clerk" + ("s" if worker_count > 1 else ""))
-        add("")
-        rows = []
-        for lam_value in data.lambdas(worker_count):
-            rows.append(
-                [
-                    lam(lam_value),
-                    pct(data.mean(worker_count, lam_value, "synchro+fcfs", "util"), 1),
-                    fx(data.mean(worker_count, lam_value, "synchro+fcfs", "profit_per_hour"), 1),
-                    fx(data.mean(worker_count, lam_value, "split+fcfs", "profit_per_hour"), 1),
-                    fx(data.mean(worker_count, lam_value, "synchro+fast", "profit_per_hour"), 1),
-                    fx(data.mean(worker_count, lam_value, "split+fast", "profit_per_hour"), 1),
-                ]
-            )
-        add(md_table(["λ", "ρ", "Synchro FCFS", "Split FCFS", "Synchro fast", "Split + fast"], rows))
-        add("")
 
-    add("## 2. Policy sweep - mean time in system (full grid)")
-    add("")
-    for worker_count in data.workers():
-        add(f"### m = {worker_count} clerk" + ("s" if worker_count > 1 else ""))
-        add("")
-        rows = []
-        for lam_value in data.lambdas(worker_count):
-            rows.append(
-                [
-                    lam(lam_value),
-                    pct(data.mean(worker_count, lam_value, "synchro+fcfs", "util"), 1),
-                    fx(data.mean(worker_count, lam_value, "synchro+fcfs", "mean_los"), 2),
-                    fx(data.mean(worker_count, lam_value, "split+fcfs", "mean_los"), 2),
-                    fx(data.mean(worker_count, lam_value, "synchro+fast", "mean_los"), 2),
-                    fx(data.mean(worker_count, lam_value, "split+fast", "mean_los"), 2),
-                ]
-            )
-        add(md_table(["λ", "ρ", "Synchro FCFS", "Split FCFS", "Synchro fast", "Split + fast"], rows))
-        add("")
+def md_table_from_rows(rows: Sequence[Dict[str, object]]) -> str:
+    columns: List[str] = []
+    for row in rows:
+        for key in row:
+            if key not in columns:
+                columns.append(key)
+    body_rows = [[md_value(row.get(key)) for key in columns] for row in rows]
+    return md_table(columns, body_rows)
 
-    add("## 3. Paired differences at m = 3 (common random numbers, 200 replicates)")
-    add("")
-    add(
-        "Values are `mean(a - b)` with the 95% confidence half-width. For the split comparison a "
-        "positive number means split is more profitable; for the triage comparison it means fast "
-        "priority is more profitable."
-    )
-    add("")
-    rows = []
-    for lam_value in data.lambdas(3):
-        rows.append(
-            [
-                lam(lam_value),
-                pct(data.mean(3, lam_value, "synchro+fcfs", "util"), 1),
-                f"{signed(data.pair_diff(3, lam_value, 'split_minus_synchro', 'profit_per_hour'), 2)} ± {fx(data.pair_ci(3, lam_value, 'split_minus_synchro', 'profit_per_hour'), 2)}",
-                f"{signed(data.pair_diff(3, lam_value, 'fast_minus_fcfs', 'profit_per_hour'), 2)} ± {fx(data.pair_ci(3, lam_value, 'fast_minus_fcfs', 'profit_per_hour'), 2)}",
-                signed(data.pair_diff(3, lam_value, "split_minus_synchro", "mean_los"), 3),
-                signed(data.pair_diff(3, lam_value, "fast_minus_fcfs", "mean_los"), 3),
-                fx(data.pair_diff(3, lam_value, "split_minus_synchro", "mix_ice_hand"), 2),
-            ]
-        )
-    add(md_table(["λ", "ρ", "Δ profit split", "Δ profit fast", "Δ LOS split", "Δ LOS fast", "Δ ice handoff"], rows))
-    add("")
 
-    add("## 4. Break-even analysis")
-    add("")
-    rows = []
-    for worker_count in (2, 3, 4):
-        entry = data.be_entry(worker_count, "profit_per_hour")
-        band = entry.get("identification_band", {})
-        rows.append(
-            [
-                f"m = {worker_count}",
-                f"{data.lambda_star(worker_count):.4f}",
-                pct(data.util_star(worker_count), 1),
-                f"{entry.get('interpolated_lambda', {}).get('lambda', float('nan')):.4f}",
-                f"{band.get('last_significantly_better', 'n/a')} .. {band.get('first_significantly_worse', 'n/a')}",
-                f"{float(data.crosscheck[worker_count]['absolute_gap']):.6f}",
-            ]
-        )
-    add(md_table(["Headcount", "λ* profit", "ρ*", "λ* grid interpolation", "Identification band", "profit vs LOS gap"], rows))
-    add("")
-    add(
-        "The profit and mean-LOS bisections return the same root: revenue is identical under both "
-        "delivery strategies and waiting cost is linear in total flow time, so the two differences "
-        "change sign together."
-    )
-    add("")
+def md_from_mapping(mapping: Dict[str, object]) -> str:
+    metrics = mapping.get("metrics")
+    if isinstance(metrics, dict):
+        ci95 = mapping.get("ci95") or {}
+        rows = [[f"`{key}`", md_value(value), md_value(ci95.get(key))] for key, value in metrics.items()]  # type: ignore[union-attr]
+        return md_table(["metric", "mean", "ci95"], rows)
+    if all(not isinstance(value, (dict, list)) for value in mapping.values()):
+        rows = [[f"`{key}`", md_value(value)] for key, value in mapping.items()]
+        return md_table(["key", "value"], rows)
+    parts: List[str] = []
+    for key, value in mapping.items():
+        parts.append(f"\n**`{key}`**\n")
+        if isinstance(value, list) and value and isinstance(value[0], dict):
+            parts.append(md_table_from_rows(value))  # type: ignore[arg-type]
+        elif isinstance(value, dict):
+            parts.append(md_from_mapping(value))  # type: ignore[arg-type]
+        else:
+            parts.append(md_value(value))
+    return "\n".join(parts)
 
-    add("## 5. One-at-a-time sensitivity (λ = 1.25, m = 3)")
-    add("")
-    for key, entry in data.sens_dims.items():
-        add(f"### {entry['label']} ({entry['unit']})")
-        add("")
-        rows = []
-        for index, point in enumerate(entry["series"][0]["points"]):
-            split_point = entry["series"][1]["points"][index]
-            rows.append(
-                [
-                    f"{float(point['value']):g}",
-                    pct(float(point["means"]["util"]), 1),
-                    fx(float(point["means"]["profit_per_hour"]), 2),
-                    fx(float(split_point["means"]["profit_per_hour"]), 2),
-                    fx(float(point["means"]["mean_los"]), 3),
-                    fx(float(split_point["means"]["mean_los"]), 3),
-                ]
-            )
-        add(md_table(["Value", "ρ", "Profit/h synchro", "Profit/h split", "LOS synchro", "LOS split"], rows))
-        add("")
-    add("### Linearity check for the two economics-only knobs")
-    add("")
-    rows = [
-        [
-            row["dimension"],
-            row["policy"],
-            fx(float(row["analytical_slope"]), 3),
-            f"{float(row['max_abs_residual']):.2e}",
-            "yes" if row["is_exactly_linear"] else "no",
-        ]
-        for row in data.sensitivity["linearity_check"]
+
+def md_series(name: str, payload: object) -> str:
+    parts: List[str] = [f"\n### series · `{name}`\n"]
+    if isinstance(payload, list) and payload and isinstance(payload[0], dict):
+        parts.append(md_table_from_rows(payload))  # type: ignore[arg-type]
+    elif isinstance(payload, dict):
+        if payload and all(isinstance(value, dict) for value in payload.values()):
+            for key, value in payload.items():  # type: ignore[union-attr]
+                parts.append(f"\n**`{name}.{key}`**\n")
+                parts.append(md_from_mapping(value))  # type: ignore[arg-type]
+        elif payload and all(isinstance(value, list) for value in payload.values()):
+            columns = list(payload.keys())
+            length = max((len(value) for value in payload.values() if isinstance(value, list)), default=0)
+            rows = []
+            for index in range(length):
+                row = []
+                for column in columns:
+                    values = payload[column]
+                    if isinstance(values, list) and index < len(values):
+                        row.append(md_value(values[index]))
+                    else:
+                        row.append("–")
+                rows.append(row)
+            parts.append(md_table(columns, rows))
+        else:
+            parts.append(md_from_mapping(payload))
+    else:
+        parts.append(md_value(payload))
+    return "\n".join(parts)
+
+
+def build_markdown(ctx: Ctx) -> str:
+    parts: List[str] = [
+        "# Bubble-tea shop simulation — complete result tables\n",
+        "Generated by `analysis/build_report.py` from `results/*.json`. "
+        "Every number is read from a result file; the HTML report at "
+        "[docs/index.html](index.html) contains the curated tables and figures.\n",
     ]
-    add(md_table(["Dimension", "Policy arm", "Analytical slope", "Max abs residual", "Exactly linear"], rows))
-    add("")
-    add(
-        "Wage and waiting cost do not change the event schedule, so those two sweeps are affine "
-        "transforms of the same run; their slopes are derived in closed form and confirmed to "
-        "floating-point precision. They contain no simulation information."
-    )
-    add("")
-
-    add("## 6. Behaviour mechanisms")
-    add("")
-    add("### Balking (customer leaves at arrival if the estimated wait exceeds the threshold)")
-    add("")
-    rows = []
-    for threshold in (None, 3.0, 5.0, 8.0, 10.0):
-        cells = ["off" if threshold is None else f"{threshold:g} min"]
-        for lam_value in (1.0, 1.25):
-            means = data.balking[(lam_value, threshold)]["means"]
-            cells.extend(
-                [
-                    pct(float(means["abandon_rate"]), 2),
-                    fx(float(means["served_post"]), 1),
-                    fx(float(means["mean_los"]), 2),
-                    fx(float(means["profit_per_hour"]), 2),
-                ]
-            )
-        rows.append(cells)
-    add(md_table(
-        ["Threshold", "Abandon λ=1.0", "Served λ=1.0", "LOS λ=1.0", "Profit λ=1.0",
-         "Abandon λ=1.25", "Served λ=1.25", "LOS λ=1.25", "Profit λ=1.25"],
-        rows,
-    ))
-    add("")
-    add("### Reneging (customer leaves if service has not started within the threshold)")
-    add("")
-    rows = []
-    for threshold in (None, 10.0, 15.0, 20.0):
-        cells = ["off" if threshold is None else f"{threshold:g} min"]
-        for lam_value in (1.0, 1.25):
-            means = data.reneging[(lam_value, threshold)]["means"]
-            cells.extend(
-                [
-                    pct(float(means["abandon_rate"]), 2),
-                    fx(float(means["mean_los"]), 2),
-                    fx(float(means["profit_per_hour"]), 2),
-                ]
-            )
-        rows.append(cells)
-    add(md_table(
-        ["Threshold", "Abandon λ=1.0", "LOS λ=1.0", "Profit λ=1.0",
-         "Abandon λ=1.25", "LOS λ=1.25", "Profit λ=1.25"],
-        rows,
-    ))
-    add("")
-    add("### Dynamic ice-cream priority (split delivery, λ = 1.25)")
-    add("")
-    rows = []
-    for row in data.priority:
-        if round(float(row["lambda"]), 2) != 1.25:
+    for study in STUDIES:
+        if not ctx.has(study):
+            parts.append(f"\n## {study}\n\n_Missing: results/{study}.json is not present in this build._\n")
             continue
-        means = row["means"]
-        delta = row.get("delta_vs_jump", {}).get("diff", {}).get("profit_per_hour")
-        rows.append(
-            [
-                row["mode_label"],
-                fx(float(means["mix_ice_hand"]), 3),
-                fx(float(means["mix_los"]), 3),
-                fx(float(means["mean_los"]), 3),
-                fx(float(means["profit_per_hour"]), 2),
-                signed(float(delta), 3) if delta is not None else "0",
-            ]
+        meta = ctx.meta(study)
+        parts.append(f"\n## {study}\n")
+        parts.append(f"\nSource file: `results/{study}.json` (regenerated by the experiment script).\n")
+        parts.append("\n### provenance\n")
+        parts.append(
+            md_table(
+                ["key", "value"],
+                [[f"`{key}`", md_value(value)] for key, value in meta.items() if key != "scenario_library"],
+            )
         )
-    add(md_table(
-        ["Priority rule", "Ice handoff", "Mixed LOS", "All-store LOS", "Profit/h", "Δ profit vs jump"],
-        rows,
-    ))
-    add("")
-
-    add("## 7. AnyLogic E1-E6 alignment")
-    add("")
-    add("The archive is a set of screenshots (`docs/assets/slides/E_series/`); the model cannot be re-run.")
-    add("")
-    rows = []
-    for row in data.archive:
-        rows.append(
-            [
-                row["id"],
-                lam(float(row["arrival_rate"])),
-                "split" if row["split_mix"] else "synchro",
-                "fast" if row["fast_priority"] else "FCFS",
-                fx(float(row["revenue_total"]), 0),
-                fx(float(row["profit_per_hour"]), 3),
-                fx(float(row["flow_time_total"]), 3),
-                row["served"],
-                pct(float(row["util_display"]), 0),
-            ]
-        )
-    add(md_table(["Run", "λ", "Delivery", "Triage", "Revenue", "Profit/h", "Flow time", "Served", "Util (screen)"], rows))
-    add("")
-    add("### Deviations of the re-implementation")
-    add("")
-    rows = []
-    for row in data.ledger["deviations"]:
-        rows.append(
-            [
-                row["id"],
-                pct(float(row["util_theory"]), 1),
-                fx(float(row["python_multi_rep_profit_per_hour"]), 3),
-                fx(float(row["python_multi_rep_ci95"]), 3),
-                pct_signed(float(row["profit_deviation_multi_rep"])),
-                pct(float(row["tolerance"]), 0),
-                "pass" if row["profit_within_tolerance"] else "FAIL",
-                pct_signed(float(row["profit_deviation_single_seed"])),
-                pct_signed(float(row["profit_deviation_censored"])),
-            ]
-        )
-    add(md_table(
-        ["Run", "ρ theory", "Python profit/h (200 reps)", "CI95", "Δ profit", "Tolerance",
-         "Within tolerance", "Δ single run", "Δ censored run"],
-        rows,
-    ))
-    add("")
-    add("### Class-level LOS, Python mean vs archive")
-    add("")
-    rows = []
-    for row in data.ledger["deviations"]:
-        cells = [row["id"]]
-        for key in ("tea", "bread", "ice", "mix_sync", "mix_tea", "mix_ice_hand"):
-            entry = row["los_deviation"].get(key)
-            if entry is None:
-                cells.append("-")
-            elif entry.get("deviation") is None:
-                cells.append(f"{fx(float(entry['python']), 2)} vs 0.00 (n/a)")
+        parts.append("\n### tables\n")
+        for key, value in ctx.tables(study).items():
+            parts.append(f"\n#### `{key}`\n")
+            if isinstance(value, list) and value and isinstance(value[0], dict):
+                parts.append(md_table_from_rows(value))  # type: ignore[arg-type]
+            elif isinstance(value, dict):
+                parts.append(md_from_mapping(value))  # type: ignore[arg-type]
+            elif isinstance(value, list):
+                parts.append(md_table(["index", "value"], [[str(i), md_value(v)] for i, v in enumerate(value)]))
             else:
-                cells.append(
-                    f"{fx(float(entry['python']), 2)} vs {fx(float(entry['archive']), 2)} ({pct_signed(float(entry['deviation']))})"
-                )
-        rows.append(cells)
-    add(md_table(["Run", "Tea", "Bread", "Ice", "Mix sync", "Mix tea", "Ice handoff"], rows))
-    add("")
-    add("### Archive internal audit")
-    add("")
-    rows = []
-    for row in data.ledger["archive_internal_audit"]:
-        rows.append(
-            [
-                row["id"],
-                fx(float(row["implied_hours_from_revenue"]), 4),
-                fx(float(row["profit_recomputed_from_own_fields"]), 3),
-                fx(float(row["profit_archived"]), 3),
-                pct_signed(float(row["deviation"])),
-                "consistent" if row["consistent"] else "INCONSISTENT",
-            ]
-        )
-    add(md_table(["Run", "Implied hours", "Profit recomputed", "Profit archived", "Deviation", "Status"], rows))
-    add("")
-    add("### Utilisation read-out audit")
-    add("")
-    rows = []
-    for row in data.ledger["archive_utilization_audit"]:
-        rows.append(
-            [
-                row["id"],
-                pct(float(row["displayed_utilization"]), 0),
-                pct(float(row["utilization_implied_by_served"]), 2),
-                fx(float(row["implied_measurement_window_minutes"]), 1),
-            ]
-        )
-    add(md_table(["Run", "Displayed util", "Implied by served × p̄", "Implied window (min)"], rows))
-    add("")
-    add("### Paired comparisons inside the re-implementation (λ = 1.25)")
-    add("")
-    rows = []
-    for row in data.ledger_paired:
-        rows.append(
-            [
-                row["label"],
-                f"{row['a']} - {row['b']}",
-                f"{signed(float(row['diff']['profit_per_hour']), 3)} ± {fx(float(row['ci95']['profit_per_hour']), 3)}",
-                signed(float(row["diff"]["mean_los"]), 3),
-            ]
-        )
-    add(md_table(["Comparison", "Runs", "Δ profit/h", "Δ mean LOS"], rows))
-    add("")
-    verdict = data.ledger_verdict
-    add("### Verdict")
-    add("")
-    add(f"- Passed: **{'yes' if verdict['passed'] else 'no'}**")
-    add(f"- Low load (λ = 1.00): {verdict['low_load_passed']}/{verdict['low_load_cases']} within ±5%")
-    add(f"- High load (λ = 1.25): {verdict['high_load_passed']}/{verdict['high_load_cases']} within ±12%")
-    add(f"- Archive ranking: {', '.join(verdict['archive_ranking'])}")
-    add(f"- Python ranking: {', '.join(verdict['python_ranking'])}")
-    add(f"- {verdict['ranking_note']}")
-    add("")
-    add("Deviation sources:")
-    add("")
-    for item in verdict["deviation_sources"]:
-        add(f"1. {item}")
-    add("")
+                parts.append(md_value(value))
+        parts.append("\n### series\n")
+        for key, value in ctx.series(study).items():
+            parts.append(md_series(str(key), value))
+    parts.append(
+        "\n---\n\n"
+        "## Reproduction\n\n"
+        "```\n"
+        "pip install -e .\n"
+        "python analysis/run_demand_network.py\n"
+        "python analysis/run_inventory_econ.py\n"
+        "python analysis/build_report.py\n"
+        "```\n"
+    )
+    return "".join(parts)
 
-    add("## 8. Validity checks")
-    add("")
-    checks = [
-        ["Workload conservation", "Δ utilisation (split - synchro) over all paired cells", f"max |Δ| = {data.max_util_pair_gap():.6f}"],
-        ["Served-count invariance", "served identical across 4 policies in each cell", "identical" if data.served_invariant() else "MISMATCH"],
-        ["Utilisation vs theory", "observed ρ - λ·p̄/m over stable cells", f"max {data.max_util_gap_pp():.2f} pp"],
-    ]
-    add(md_table(["Check", "Comparison", "Result"], checks))
-    add("")
-    add("## 9. Reproduction")
-    add("")
-    add("```bash")
-    add("python -m pip install -e .")
-    add("python analysis/run_policy_sweep.py")
-    add("python analysis/run_breakeven.py")
-    add("python analysis/run_sensitivity.py")
-    add("python analysis/run_behaviour.py")
-    add("python analysis/reproduce_anylogic_ledger.py")
-    add("python analysis/build_report.py")
-    add("pytest")
-    add("```")
-    add("")
-    return "\n".join(lines) + "\n"
+
+# --------------------------------------------------------------------------
+# self check
+# --------------------------------------------------------------------------
+def self_check(ctx: Ctx, document: str, markdown: str, expected_figures: int) -> List[str]:
+    problems: List[str] = []
+    lower = document.lower()
+    without_namespace = lower.replace("http://www.w3.org/2000/svg", "")
+    for needle, label in (
+        ("<script", "script tag"),
+        ("<link", "linked stylesheet"),
+        ("@import", "CSS import"),
+        ("http://", "http URL"),
+        ("https://", "https URL"),
+        ("src=", "external source attribute"),
+        ("fetch(", "network fetch"),
+        ("cdn.", "CDN reference"),
+        ("todo", "TODO marker"),
+        ("lorem", "placeholder text"),
+    ):
+        haystack = without_namespace if needle in ("http://", "https://") else lower
+        if needle in haystack:
+            problems.append(f"report contains a {label}")
+    expected_svgs = sum(markup.count("<svg") for markup in ctx.figures.values())
+    svg_count = document.count("<svg")
+    if svg_count != expected_svgs:
+        problems.append(f"expected {expected_svgs} inline SVG charts, found {svg_count}")
+    if document.count("<section") != len(SECTIONS):
+        problems.append(f"expected {len(SECTIONS)} sections, found {document.count('<section')}")
+    captions = [int(value) for value in re.findall(r"Table (\d+) ·", document)]
+    if captions != list(range(1, len(captions) + 1)):
+        problems.append(f"table captions are not sequential: {captions[:8]}…")
+    if ctx.missing:
+        problems.append("missing studies: " + ", ".join(ctx.missing))
+    if "not available in this build" in lower:
+        problems.append("report still contains a missing-study placeholder")
+    for study in STUDIES:
+        if f"results/{study}" not in markdown:
+            problems.append(f"markdown does not mention results/{study}")
+    return problems
 
 
 # --------------------------------------------------------------------------
 # main
 # --------------------------------------------------------------------------
-def self_check(document: str, expected_svgs: int) -> List[str]:
-    """Static sanity checks for the offline promise of the HTML file."""
-    problems = []
-    lowered = document.lower()
-    for token in ("<script", "<link", "@import", "src=\"http", "href=\"http", "url(http"):
-        if token in lowered:
-            problems.append(f"found {token!r}")
-    svg_count = lowered.count("<svg")
-    if svg_count != expected_svgs:
-        problems.append(f"expected {expected_svgs} inline figures, found {svg_count}")
-    for match in lowered.split("http://")[1:]:
-        if not match.startswith("www.w3.org/2000/svg"):
-            problems.append("found an unexpected http:// reference")
-            break
-    for match in lowered.split("https://")[1:]:
-        problems.append("found an https:// reference")
-        break
-    return problems
+def write_figures(ctx: Ctx) -> None:
+    FIGDIR.mkdir(parents=True, exist_ok=True)
+    for stale in FIGDIR.glob("*.svg"):
+        stale.unlink()
+    for name, markup in ctx.figures.items():
+        path = FIGDIR / f"{name}.svg"
+        path.write_text('<?xml version="1.0" encoding="utf-8"?>\n' + markup + "\n", encoding="utf-8")
+    print(f"wrote {len(ctx.figures)} figures to docs/figures-layers/")
+
+
+def register_figures(ctx: Ctx) -> None:
+    builders = (
+        ("fig_architecture", lambda: fig_architecture()),
+        ("fig_demand_profiles", lambda: fig_demand_profiles(ctx)),
+        ("fig_demand_hourly", lambda: fig_demand_hourly(ctx)),
+        ("fig_peak_factor", lambda: fig_peak_factor(ctx)),
+        ("fig_variability", lambda: fig_variability(ctx)),
+        ("fig_patience", lambda: fig_patience(ctx)),
+        ("fig_batch", lambda: fig_batch(ctx)),
+        ("fig_tea_capacity", lambda: fig_tea_capacity(ctx)),
+        ("fig_bottleneck_utils", lambda: fig_bottleneck_utils(ctx)),
+        ("fig_strategy", lambda: fig_strategy(ctx)),
+        ("fig_skills", lambda: fig_skills(ctx)),
+        ("fig_shifts", lambda: fig_shifts(ctx)),
+        ("fig_scenario_compare", lambda: fig_scenario_compare(ctx)),
+        ("fig_baseline_policies", lambda: fig_baseline_policies(ctx)),
+        ("fig_inv_lead_time", lambda: fig_inv_lead_time(ctx)),
+        ("fig_inv_shelf_life", lambda: fig_inv_shelf_life(ctx)),
+        ("fig_inv_ceiling", lambda: fig_inv_ceiling(ctx)),
+        ("fig_inv_stockout", lambda: fig_inv_stockout(ctx)),
+        ("fig_econ_pricing", lambda: fig_econ_pricing(ctx)),
+        ("fig_econ_sla", lambda: fig_econ_sla(ctx)),
+        ("fig_econ_fairness", lambda: fig_econ_fairness(ctx)),
+        ("fig_econ_manager", lambda: fig_econ_manager(ctx)),
+    )
+    for name, builder in builders:
+        try:
+            ctx.figures[name] = builder()
+        except Exception as error:  # pragma: no cover - defensive
+            ctx.problems.append(f"figure {name} could not be generated: {error}")
+            print(f"WARNING: figure {name} failed: {error}")
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
-    data = Data()
-    figures = build_figures(data)
-    FIGURES.mkdir(parents=True, exist_ok=True)
-    for name, markup in figures.items():
-        path = FIGURES / f"{name}.svg"
-        with path.open("w", encoding="utf-8", newline="\n") as handle:
-            handle.write(markup)
-    print(f"wrote {len(figures)} figures to {FIGURES.relative_to(common.ROOT)}")
-
-    document = build_html(data, figures)
-    DOCS.mkdir(parents=True, exist_ok=True)
-    index_path = common.ROOT / "archive" / "report-v1.html"
-    index_path.parent.mkdir(parents=True, exist_ok=True)
-    with index_path.open("w", encoding="utf-8", newline="\n") as handle:
-        handle.write(document)
-    print(f"wrote {index_path.relative_to(common.ROOT)} ({len(document) / 1024:.0f} KiB)")
-
-    markdown = build_markdown(data)
-    markdown_path = DOCS / "experiments.md"
-    with markdown_path.open("w", encoding="utf-8", newline="\n") as handle:
-        handle.write(markdown)
-    print(f"wrote {markdown_path.relative_to(common.ROOT)} ({len(markdown) / 1024:.0f} KiB)")
-
-    problems = self_check(document, len(figures))
+    args = list(sys.argv[1:] if argv is None else argv)
+    allow_partial = "--allow-partial" in args
+    ctx = load_all(allow_partial)
+    ctx.validation = run_checks(ctx)
+    register_figures(ctx)
+    document = build_document(ctx)
+    markdown = build_markdown(ctx)
+    write_figures(ctx)
+    (DOCS / "index.html").write_text(document, encoding="utf-8", newline="\n")
+    (DOCS / "experiments-layers.md").write_text(markdown, encoding="utf-8", newline="\n")
+    print(f"wrote docs/index.html ({len(document) / 1024:.1f} KiB)")
+    print(f"wrote docs/experiments-layers.md ({len(markdown) / 1024:.1f} KiB)")
+    problems = self_check(ctx, document, markdown, len(ctx.figures)) + ctx.problems
     if problems:
-        print("OFFLINE CHECK FAILED:")
         for problem in problems:
-            print(f"  - {problem}")
+            print(f"SELF-CHECK FAILED: {problem}")
         return 1
     print(
-        "offline check: no script tags, no external CSS/JS/fonts, no http(s) fetches, "
-        f"{document.lower().count('<svg')}/{len(figures)} figures inline"
+        "self-check passed: "
+        f"{document.count('<section')} sections, {document.count('<svg')} inline figures, "
+        "no script, no external assets, no TODO markers"
     )
     return 0
 

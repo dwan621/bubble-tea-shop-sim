@@ -1,6 +1,6 @@
-"""Shared harness for the v2 experiments.
+"""Shared harness for the layer experiments.
 
-Every v2 result file in ``results/v2/`` is produced by a script that uses this
+Every layer result file in ``results/`` is produced by a script that uses this
 module, so the JSON schema, the seeds and the provenance metadata are identical
 across layers. Each file has the shape::
 
@@ -27,7 +27,7 @@ from bubble_tea_sim import __version__, library, stats
 from bubble_tea_sim.engine import Simulation, simulate
 
 ROOT = Path(__file__).resolve().parents[1]
-RESULTS_DIR = ROOT / "results" / "v2"
+RESULTS_DIR = ROOT / "results"
 
 
 def meta(experiment: str, notes: str = "", **extra) -> Dict[str, object]:
@@ -121,7 +121,7 @@ def scenario_catalogue() -> List[Dict[str, object]]:
                 "title": raw.get("title", name),
                 "provenance": raw.get("provenance", {}),
                 "config": config.describe(),
-                "legacy_compat": config.legacy_compat,
+                "baseline_compat": config.baseline_compat,
             }
         )
     return rows

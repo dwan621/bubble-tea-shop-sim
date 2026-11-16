@@ -195,7 +195,7 @@ class SimConfig:
     policy: Policy = field(default_factory=Policy)
     economics: Economics = field(default_factory=Economics)
 
-    # -- v2 layers (all opt-in; defaults reproduce v1 exactly) --------------
+    # -- mechanism layers (all opt-in; defaults reproduce baseline exactly) --------------
     demand: DemandProfile = field(default_factory=DemandProfile)
     batches: BatchSpec = field(default_factory=BatchSpec)
     classes: MixSpec = field(default_factory=MixSpec)
@@ -223,12 +223,12 @@ class SimConfig:
                     )
 
     @property
-    def legacy_compat(self) -> bool:
-        """True when the configuration is exactly the v1 model.
+    def baseline_compat(self) -> bool:
+        """True when the configuration is exactly the original model.
 
-        The v1 dispatch rule (reserving idle clerks for future jobs) is kept for
-        these configurations so the legacy anchor tables stay bit-for-bit
-        identical. Any v2 layer switches the engine to event-driven dispatch.
+        The baseline dispatch rule (reserving idle clerks for future jobs) is kept for
+        these configurations so the original anchor tables stay bit-for-bit
+        identical. Any mechanism layer switches the engine to event-driven dispatch.
         """
         if not self.demand.is_flat():
             return False

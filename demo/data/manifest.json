@@ -1,6 +1,6 @@
 {
  "schema_version": 1, 
- "generated_at": "2026-11-15T18:48:01Z", 
+ "generated_at": "2026-11-16T02:54:35Z", 
  "package_version": "2.0.0", 
  "python_version": "3.14.5", 
  "engine": "bubble_tea_sim.engine.Simulation (standard library only)", 
@@ -26,12 +26,12 @@
   ]
  }, 
  "sizes_bytes": {
-  "scenarios.json": 45099, 
+  "scenarios.json": 45147, 
   "demand_slider.json": 6390, 
   "timeline-synchro-fast.json": 67221, 
   "timeline-split-fast.json": 67177
  }, 
- "total_bytes": 185887, 
+ "total_bytes": 185935, 
  "scenarios": [
   "baseline_flat", 
   "bread_counter_bottleneck", 

@@ -1,21 +1,21 @@
-"""v2 Layer 3 (inventory / BOM) and Layer 4 (economics / fairness) experiments.
+"""Layer 3 (inventory / BOM) and Layer 4 (economics / fairness) experiments.
 
-Two studies, one script, one shared harness (``analysis/v2_common.py``) so the
-JSON schema, the seeds and the provenance metadata match the other v2 layers::
+Two studies, one script, one shared harness (``analysis/study_common.py``) so the
+JSON schema, the seeds and the provenance metadata match the other mechanism layers::
 
-    python analysis/v2_inventory_econ.py              # full run (~5 minutes)
-    python analysis/v2_inventory_econ.py --quick      # smoke test (~20 seconds)
-    python analysis/v2_inventory_econ.py --only economics
+    python analysis/run_inventory_econ.py              # full run (~5 minutes)
+    python analysis/run_inventory_econ.py --quick      # smoke test (~20 seconds)
+    python analysis/run_inventory_econ.py --only economics
 
 Outputs
 -------
-``results/v2/inventory_study.json``
+``results/inventory_study.json``
     Layer 3: (s, S) reorder-point / order-quantity grids for the perishable
     pearls and the non-perishable tea kit, lead-time scan, pearl shelf-life
     scan, shelf-life x lot-size interaction, and the lost-sale vs substitution
     policy comparison.  Baseline scenario: ``data/scenarios/inventory_lean.json``.
 
-``results/v2/economics_study.json``
+``results/economics_study.json``
     Layer 4: peak-pricing grid (multiplier x elasticity) on the ``campus_rush``
     peak windows, SLA target x compensation grid, the fairness (starvation-cap)
     trade-off at high load, and a combined "good manager" scenario compared with
@@ -23,7 +23,7 @@ Outputs
 
 Method
 ------
-* Every cell is a ``v2_common.replicate`` run (mean + 95% CI over the
+* Every cell is a ``study_common.replicate`` run (mean + 95% CI over the
   per-replicate metrics), seed ``0``, stride ``1``.
 * ``100`` replicates per cell; cells whose theoretical utilisation exceeds
   ``0.95`` use ``60`` (the queue tail dominates and extra replicates buy very
@@ -61,11 +61,11 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
-try:  # ``python analysis/v2_inventory_econ.py`` puts analysis/ on sys.path
-    import v2_common as common
+try:  # ``python analysis/run_inventory_econ.py`` puts analysis/ on sys.path
+    import study_common as common
 except ImportError:  # pragma: no cover - only when imported as a module
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-    import v2_common as common
+    import study_common as common
 
 from bubble_tea_sim import data_spec as ds
 from bubble_tea_sim import library, stats
@@ -168,13 +168,13 @@ def reps_for(config) -> int:
 def run_cell(config, peaks: bool = False) -> Dict[str, object]:
     """Run one design cell.
 
-    With ``peaks=False`` this is exactly :func:`v2_common.replicate`.  With
+    With ``peaks=False`` this is exactly :func:`study_common.replicate`.  With
     ``peaks=True`` the same seeds are replayed once and the customer records are
     read as well, so the peak-window tail (``los_p95`` inside the pricing
     windows) can be separated from the off-peak tail.  The metric block is
     identical either way: it is ``stats.flatten_metrics`` aggregated with
     ``stats.mean`` / ``stats.ci95`` over the same seeds, which is what
-    ``v2_common.replicate`` does internally.
+    ``study_common.replicate`` does internally.
     """
     reps = reps_for(config)
     if not peaks:
@@ -377,7 +377,7 @@ def scale_ss(config, names: Sequence[str], s_factor: float, S_factor: float):
 def substitution_outcomes(config) -> Dict[str, float]:
     """Per-replicate substitution count and stock-out mix, from a second pass.
 
-    ``v2_common.replicate`` only returns flattened metrics, and the engine does
+    ``study_common.replicate`` only returns flattened metrics, and the engine does
     not expose a "substituted units" metric, so this helper re-runs the same
     seeds to read the customer records directly.
     """

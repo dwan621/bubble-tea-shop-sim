@@ -1,7 +1,7 @@
-"""v2 layer tests: degenerate equivalence, invariants and directional effects.
+"""mechanism layer tests: degenerate equivalence, invariants and directional effects.
 
-The contract is: with every v2 layer switched off the unified engine reproduces
-the v1 numbers exactly; with a layer switched on, the mechanism must move the
+The contract is: with every mechanism layer switched off the unified engine reproduces
+the baseline numbers exactly; with a layer switched on, the mechanism must move the
 metrics in the documented direction without breaking conservation.
 """
 
@@ -21,13 +21,13 @@ def _run(config, seed=0):
     return Simulation(config, seed=seed).run()
 
 
-def test_baseline_flat_scenario_is_bit_exact_v1() -> None:
+def test_baseline_flat_scenario_is_bit_exact() -> None:
     config = library.load_scenario("baseline_flat")
-    assert config.legacy_compat
-    legacy = scenarios.legacy_mixed_order(1.25, split_mix=False)
-    assert legacy.legacy_compat
+    assert config.baseline_compat
+    original = scenarios.mixed_order_baseline(1.25, split_mix=False)
+    assert original.baseline_compat
     first = _run(config, seed=7).metrics.as_dict()
-    second = _run(legacy, seed=7).metrics.as_dict()
+    second = _run(original, seed=7).metrics.as_dict()
     assert first == second
 
 
@@ -191,13 +191,13 @@ def test_pricing_and_sla_layers() -> None:
     sla = ds.SlaSpec(target_minutes=4.0, compensation=2.0)
     with_layers = replace(base, pricing=pricing, sla=sla)
     plain = _run(base, seed=0).metrics
-    layered = _run(with_layers, seed=0).metrics
-    assert 1.0 < layered.mean_price_factor < 1.2
-    assert layered.served < plain.served  # elasticity lowers demand inside the peak
-    assert layered.sla_attainment is not None
-    assert 0.0 <= layered.sla_attainment <= 1.0
-    assert layered.sla_compensation_total >= 0.0
-    assert layered.profit_per_hour < plain.profit_per_hour
+    configured = _run(with_layers, seed=0).metrics
+    assert 1.0 < configured.mean_price_factor < 1.2
+    assert configured.served < plain.served  # elasticity lowers demand inside the peak
+    assert configured.sla_attainment is not None
+    assert 0.0 <= configured.sla_attainment <= 1.0
+    assert configured.sla_compensation_total >= 0.0
+    assert configured.profit_per_hour < plain.profit_per_hour
     no_late = replace(with_layers, sla=ds.SlaSpec(target_minutes=1e6, compensation=2.0))
     assert _run(no_late, seed=0).metrics.sla_compensation_total == 0.0
 
@@ -248,7 +248,7 @@ def test_sla_fairness_cap_alias_is_mapped_to_the_policy() -> None:
     assert result.metrics.starvation_events > 0
 
 
-def test_v2_runs_are_deterministic() -> None:
+def test_runs_are_deterministic() -> None:
     config = library.load_scenario("campus_rush")
     first = _run(config, seed=11).metrics.as_dict()
     second = _run(config, seed=11).metrics.as_dict()
@@ -262,14 +262,14 @@ def test_scenario_library_results_match_the_library() -> None:
     from pathlib import Path
 
     root = Path(__file__).resolve().parents[1]
-    path = root / "results" / "v2" / "scenario_library.json"
+    path = root / "results" / "scenario_library.json"
     payload = json.loads(path.read_text(encoding="utf-8"))
     names = library.scenario_names()
     assert payload["meta"]["scenario_library"] == names
     assert [row["name"] for row in payload["tables"]["scenarios"]] == names
 
 
-def test_v2_flow_conservation() -> None:
+def test_flow_conservation() -> None:
     for name in library.scenario_names():
         config = library.load_scenario(name)
         result = _run(config, seed=4)
