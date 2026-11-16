@@ -43,7 +43,7 @@ main.wrap{padding-top:18px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:18px 20px;margin:0 0 16px}
 .card h2{font-size:1.16rem;margin:0 0 4px;letter-spacing:-.2px}
 .card h3{font-size:.98rem;margin:16px 0 7px}
-.card .zh{display:block;font-size:.83rem;color:var(--muted);font-weight:400;margin-top:2px}
+.card .subtitle{display:block;font-size:.83rem;color:var(--muted);font-weight:400;margin-top:2px}
 .sidebar{position:sticky;top:60px}
 .scenario-list{display:flex;flex-direction:column;gap:6px;max-height:70vh;overflow:auto;padding-right:2px}
 .scenario-btn{text-align:left;font:inherit;background:#fff;border:1px solid var(--line);
@@ -162,7 +162,7 @@ footer p{margin:4px 0}
   <section class="panel" id="panel-scenarios" aria-labelledby="h-scenarios">
     <div class="layout">
       <aside class="card sidebar">
-        <h2 id="h-scenarios">Scenarios<span class="zh">场景库（来自 data/scenarios/*.json）</span></h2>
+        <h2 id="h-scenarios">Scenarios<span class="subtitle">Scenario library (from data/scenarios/*.json)</span></h2>
         <p class="small muted">Each file is one shop context with its own provenance block. Select one to relink every chart.</p>
         <div class="scenario-list" id="scenarioList"></div>
       </aside>
@@ -196,7 +196,7 @@ footer p{margin:4px 0}
           average changes.<span class="src">data/scenarios/*.json → scenario config.demand</span></figcaption>
         </figure>
         <div class="card">
-          <h2>Metrics table<span class="zh">所选场景在四种策略下的指标</span></h2>
+          <h2>Metrics table<span class="subtitle">Metrics for the selected scenario under the four policies</span></h2>
           <div class="table-wrap" id="scenarioTable"></div>
           <p class="small muted" id="scenarioTableNote"></p>
         </div>
@@ -208,7 +208,7 @@ footer p{margin:4px 0}
   <section class="panel" id="panel-demand" aria-labelledby="h-demand" hidden>
     <div class="card">
       <h2 id="h-demand">Intra-day demand curve: same daily mean, different peaks
-        <span class="zh">日内需求曲线滑块：日均客流不变，只改变峰值形状</span></h2>
+        <span class="subtitle">Intra-day demand-curve slider: same daily mean, only the peak shape changes</span></h2>
       <p>Drag the slider to make the day peakier. The <b>daily mean arrival rate is held fixed</b>: every point models the
       same total demand, only its shape changes. Watch the tail (p95) and the walk-away rate deteriorate while the
       day-average utilisation barely moves — the same trap the demand study reports at 100 replicates.</p>
@@ -233,7 +233,7 @@ footer p{margin:4px 0}
   <!-- ======================= PANEL 3 ======================= -->
   <section class="panel" id="panel-timeline" aria-labelledby="h-timeline" hidden>
     <div class="card">
-      <h2 id="h-timeline">One traced day<span class="zh">一天的事件级排队时间轴（预计算 trace，浏览器只回放）</span></h2>
+      <h2 id="h-timeline">One traced day<span class="subtitle">Event-level queue timeline for one day (precomputed trace; the browser only replays it)</span></h2>
       <p>The engine records every <span class="mono">arrival</span>, <span class="mono">start</span> and
       <span class="mono">done</span> event. This panel replays one traced replicate: the top band is the number of customers
       waiting, the swim-lanes show which station each order occupied, and the counters track the day as it unfolds.

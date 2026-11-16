@@ -3,18 +3,18 @@
 Three operational rules are layered on top of the baseline policy and measured
 at two loads (``lambda = 1.00`` and ``1.25``, 3 clerks):
 
-Balking / 顾客看到长队直接离开
+Balking / walk away when the queue looks long
     A customer walks away at arrival when the estimated wait exceeds a threshold
     in minutes (``None`` disables the rule).  The estimate is the engine's
     Little's-Law style rule ``in_system * p_bar / m``, so a 3-minute threshold
     with 3 clerks fires when roughly 4 customers are already in the shop.
 
-Reneging / 排队太久后离开
+Reneging / leave after waiting too long
     A customer leaves if service has not started within the threshold minutes
     (``None`` disables the rule).  Waiting *before* service start is what counts;
     once a clerk starts, the customer stays.
 
-Dynamic priority / 冰淇淋动态插队
+Dynamic priority / ice-cream orders jump the queue
     Only meaningful for split delivery: the ice-cream component of a mixed order
     jumps the queue immediately (``jump``), never (``fcfs``), or only after it has
     waited ``t`` minutes (``dynamic``).  The idea is to buy most of the melting
