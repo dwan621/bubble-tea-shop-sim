@@ -127,7 +127,12 @@ def copy_anylogic() -> None:
     source = ROOT / "docs" / "assets" / "slides" / "E_series" / "E3.png"
     target = ASSETS / "anylogic_e3.png"
     shutil.copyfile(source, target)
-    print("copied anylogic_e3.png")
+    # Crop the desktop window chrome (title bar and toolbar) so the archived
+    # screenshot shows only the model canvas, not the application UI language.
+    with Image.open(target) as image:
+        cropped = image.convert("RGB").crop((0, 42, image.width, image.height - 74))
+        cropped.save(target, optimize=True)
+    print("copied and cropped anylogic_e3.png")
 
 
 def main() -> None:
