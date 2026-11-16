@@ -2,7 +2,7 @@
   "meta": {
     "experiment": "layer3_inventory_bom",
     "schema_version": 1,
-    "package_version": "2.0.0",
+    "package_version": "2026.11",
     "python_version": "3.14.5",
     "engine": "bubble_tea_sim.engine.Simulation (stdlib only)",
     "scenario_library": [
